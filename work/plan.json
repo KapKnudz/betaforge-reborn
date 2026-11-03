@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-03T19:14:58+01:00",
+  "updated_at": "2026-11-03T20:11:35+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "expand-corpus-to-30",
+  "next_task": "storage-hardening",
   "milestones": [
     {
       "id": "foundation",
@@ -33,7 +33,7 @@
       "id": "development-corpus",
       "title": "Frozen multi-company development corpus",
       "status": "in_progress",
-      "summary": "Clarify retained-use permissions and preserve a representative dated corpus for offline development."
+      "summary": "Preserve representative dated API evidence and original-report coverage for offline development."
     }
   ],
   "tasks": [
@@ -169,7 +169,7 @@
         "tests/test_codex_runner.py"
       ],
       "blocker": null,
-      "note": "Project defaults and three narrow agent roles installed; no Astra and no global configuration change. Strict installed-client validation and effective config/model catalogue checks pass. Live exact Sol/xhigh image/financial/calculation smoke succeeds. Independent Sol/high review found no actionable issues. Clean offline suite: 104 tests, OK with one skipped private-evidence class. Existing turns retain their executing model; new runs use the project defaults unless explicitly overridden."
+      "note": "Project defaults and three narrow agent roles installed; no Astra and no global configuration change. Strict installed-client validation and effective config/model catalogue checks pass. Live exact Sol/xhigh image/financial/calculation smoke succeeds. Independent Sol/high review found no actionable issues. Clean offline suite: 106 tests, OK with one skipped private-evidence class. Existing turns retain their executing model; new runs use the project defaults unless explicitly overridden."
     },
     {
       "id": "storage-hardening",
@@ -187,7 +187,7 @@
         "betaforge/storage.py"
       ],
       "blocker": null,
-      "note": "Current version-1 stores are healthy. The corpus builder now sorts captures; arbitrary standalone store ingestion still needs the shared-metadata chronology regression alongside schema/freshness hardening."
+      "note": "Current version-1 stores are healthy. The corpus builder now sorts captures; arbitrary standalone store ingestion still needs the shared-metadata chronology regression alongside schema/freshness hardening. A read-only query-plan check on the existing schema confirms a full dataset scan for KPI metadata lookup; profile its import cost before choosing a minimal optimization."
     },
     {
       "id": "material-mapping",
@@ -273,7 +273,7 @@
         "docs/research/frozen-dataset-feasibility.md"
       ],
       "blocker": null,
-      "note": "Completed the API-only corpus for ten distinct issuers: 970/970 responses, 880 source blobs and 264,214 current observations. Raw coverage/identity/basis/hash checks, SQLite integrity/foreign keys, clean archive restore and a downloaded remote-copy checksum pass. A metadata-format audit checked 22,335 percentage/MCURR observations with zero mismatches. Exact data and receipts are in the private release development-corpus-2026-11-03. Final clean suite: 103 tests, OK with one skipped private-evidence class. Greptile identified argument-order-dependent units; the verifier now ingests chronologically with reversed-order regression coverage. Original PDFs and accounting reconciliation remain separate pending tasks. PR #3 contains generic tooling/docs only and awaits final current-head review and user merge."
+      "note": "Completed the API-only corpus for ten distinct issuers: 970/970 responses, 880 source blobs and 264,214 current observations. Raw coverage/identity/basis/hash checks, SQLite integrity/foreign keys, clean archive restore and a downloaded remote-copy checksum pass. A metadata-format audit checked 22,335 percentage/MCURR observations with zero mismatches. Exact data and receipts are in the private release development-corpus-2026-11-03. Final clean suite: 103 tests, OK with one skipped private-evidence class. Greptile identified argument-order-dependent units; the verifier now ingests chronologically with reversed-order regression coverage. Original PDFs and accounting reconciliation remain separate pending tasks. PR #3 contains generic tooling/docs only and awaits user merge."
     },
     {
       "id": "complete-report-corpus",
@@ -296,7 +296,7 @@
       "id": "expand-corpus-to-30",
       "milestone": "development-corpus",
       "title": "Expand the frozen API corpus to thirty operating issuers",
-      "status": "in_progress",
+      "status": "done",
       "acceptance": [
         "Retain the verified original ten and capture twenty additional distinct suitable operating issuers.",
         "Verify thirty-company request coverage, identities, KPI bases, hashes and chronological metadata ingestion.",
@@ -309,13 +309,13 @@
         "docs/research/frozen-dataset-feasibility.md"
       ],
       "blocker": null,
-      "note": "Twenty additions independently selected and reviewed; exact selection stays private. Acquisition exposed intermittent connection failures: the existing three-attempt budget now retries transport failures with redacted diagnostics. Incomplete attempts are retained separately and must be reacquired before freeze; the original ten-company corpus is intact. Independent review accepts the bounded retry and private archive inventory/hash checks. Report-currency continuity remains a future mapping case."
+      "note": "Completed thirty distinct issuers: 2,910/2,910 responses, 2,620 source blobs, 724,710 current observations, 7–20 annual periods and 101,708 price rows. Original ten captures are unchanged. Source/basis/hash, SQLite integrity/foreign keys, 138,506 KPI metadata links and 64,905 percentage/MCURR unit checks pass with zero mismatches. Clean archive restore verified all 5,569 reviewed files; all seven downloaded original release assets match exact sizes/SHA256. Private release: development-corpus-30-2026-11-03. Three incomplete attempts were reacquired; bounded transport retry recovered two requests. Source import took 2,517.503 seconds; metadata lookup profiling remains in storage hardening. Original PDFs and accounting reconciliation are pending. PR #4 depends on PR #3; final review receipt belongs in the PR conversation. User merges."
     }
   ],
   "session": {
     "task": "expand-corpus-to-30",
-    "summary": "Researched project routing is implemented and validated. Twenty approved API additions are being captured serially; the verified original ten remain intact.",
-    "next_step": "Reacquire incomplete captures, finish the thirty-company freeze, verify a clean private archive restore and downloaded copy, then obtain a fresh PR #4 review. PR #4 targets the still-open PR #3 branch."
+    "summary": "Thirty-company API corpus is verified, clean-restored and backed up privately with a downloaded-copy checksum. Explicit non-Astra project model roles and the Sol/xhigh runner are implemented and validated.",
+    "next_step": "User reviews/merges PR #3, then dependent PR #4. Resume storage-hardening: schema guard, freshness, out-of-order metadata units and measured import lookup cost; then material mappings and another issuer. Original-report corpus remains separate pending work."
   },
   "references": [
     {
