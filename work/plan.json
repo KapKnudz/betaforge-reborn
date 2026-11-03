@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-03T16:45:18+01:00",
+  "updated_at": "2026-11-03T16:49:34+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "storage-hardening",
+  "next_task": "project-workflow",
   "milestones": [
     {
       "id": "foundation",
@@ -14,7 +14,7 @@
     {
       "id": "workflow",
       "title": "Persistent project workflow",
-      "status": "done",
+      "status": "blocked",
       "summary": "Short README, project instructions, current plan, clear boundaries, PR rules and local progress display."
     },
     {
@@ -106,12 +106,13 @@
       "id": "project-workflow",
       "milestone": "workflow",
       "title": "Make project state and working rules persistent",
-      "status": "done",
+      "status": "blocked",
       "acceptance": [
         "README provides a short directory map and clear entry points.",
         "Project instructions define plan updates, boundaries and user-reviewed PRs.",
         "Local read-only dashboard displays the current plan and handles reload failures safely.",
-        "Relevant tests, browser verification and independent review are recorded."
+        "Relevant tests, browser verification and independent review are recorded.",
+        "Publish the focused change as a PR for user review, after the user settles the public-document scope."
       ],
       "evidence": [
         "AGENTS.md",
@@ -122,7 +123,7 @@
         "web/progress/index.html",
         "tests/test_progress.py"
       ],
-      "blocker": null,
+      "blocker": "Automatic approval review rejected the public push pending explicit approval of the 16-file payload, including two engineering research documents. User choice has been requested; no PR is open.",
       "note": "Implemented and independently reviewed. Clean proposed checkout: 91 tests, OK (1 skipped private-evidence class); all seven dashboard tests pass. Browser verified filtering, criteria navigation and stale-state warning. Working-tree suite: 95 passed, one pre-existing missing example-manifest error; unrelated rename preserved. JavaScript syntax, documentation links and whitespace checks pass. User PR review/merge pending; completion here describes the local implementation."
     },
     {
@@ -228,8 +229,8 @@
   ],
   "session": {
     "task": "project-workflow",
-    "summary": "Persistent project instructions, a short README, architecture/PR rules and a live local progress dashboard are implemented and checked. User review and merge remain pending.",
-    "next_step": "Review and merge the workflow PR, then resume storage-hardening: inspect the existing schema version before writes and expose separate freshness dates."
+    "summary": "Implementation is committed locally on feat/project-workflow (455f346) and checked. Public publication is blocked pending the user choice about the two research notes. The unrelated Granges manifest rename remains untouched.",
+    "next_step": "Wait for the publication choice. If approved, publish the feature branch and open a PR for user review/merge; otherwise revise the public-document scope. Then resume storage-hardening."
   },
   "references": [
     {
