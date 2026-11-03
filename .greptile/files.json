@@ -1,0 +1,7 @@
+{
+  "files": [
+    {"path": "AGENTS.md", "description": "Project working and independent review rules."},
+    {"path": "CONTRIBUTING.md", "description": "PR scope, structure, validation and user merge."},
+    {"path": "docs/architecture.md", "description": "Module ownership, evidence boundaries and simplicity."}
+  ]
+}

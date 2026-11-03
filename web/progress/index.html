@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Betaforge · Project progress</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">BETAFORGE<span>Research workbench</span></a>
+    <div class="toolbar"><span class="local-label">LOCAL · READ ONLY</span><button id="refresh" type="button">Refresh</button></div>
+  </header>
+  <main>
+    <div class="page-heading"><div><p class="eyebrow">PROJECT STATUS</p><h1>A clear path to a<br>traceable valuation.</h1></div><p class="intro">One saved plan for the agent and this page. Updated during working sessions; refreshed here every 10 seconds.</p></div>
+    <p id="connection" class="connection" role="status" aria-live="polite">Loading the project plan…</p>
+    <div id="error" class="error" role="alert" hidden></div>
+    <div id="dashboard" hidden>
+      <section class="overview" aria-label="Current objective">
+        <div class="goal"><p class="eyebrow">CURRENT GOAL</p><h2 id="goal"></h2><p id="scope"></p><div id="counts" class="counts"></div></div>
+        <div class="next"><p class="eyebrow">NEXT ACTION</p><h2 id="next-title"></h2><p id="next-note"></p><a id="next-link" href="#tasks">View completion criteria <span aria-hidden="true">↗</span></a></div>
+      </section>
+      <section aria-labelledby="roadmap-heading"><div class="section-heading"><h2 id="roadmap-heading">The path forward</h2><span>Milestones</span></div><div id="milestones" class="milestones"></div></section>
+      <section aria-labelledby="tasks-heading" id="tasks"><div class="section-heading"><h2 id="tasks-heading">Work and evidence</h2><label class="filter">Show <select id="filter"><option value="all">All tasks</option><option value="active">Open tasks</option><option value="done">Completed tasks</option></select></label></div><div id="task-list" class="task-list"></div></section>
+      <div class="bottom-grid">
+        <section class="handoff" aria-labelledby="handoff-heading"><p class="eyebrow">SESSION HANDOFF</p><h2 id="handoff-heading">Where we left off</h2><p id="session-summary"></p><p class="next-step"><strong>Next step</strong><span id="session-next"></span></p></section>
+        <section class="references" aria-labelledby="references-heading"><p class="eyebrow">PROJECT RULES</p><h2 id="references-heading">Architecture and working agreements</h2><div id="references"></div></section>
+      </div>
+    </div>
+    <footer><span>Progress records describe work completed, not investment confidence.</span><span id="updated"></span></footer>
+  </main>
+</body>
+</html>

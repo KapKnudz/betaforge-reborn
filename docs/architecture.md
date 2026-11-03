@@ -1,0 +1,44 @@
+# Project architecture
+
+Betaforge separates data collection, interpretation, arithmetic and presentation. The [investment policy](analysis-policy.md) owns valuation choices; [adopted decisions](planning/decisions.md) record agreements; [work/plan.json](../work/plan.json) tracks delivery.
+
+```text
+Börsdata + original reports
+            ↓
+Acquisition → raw files + SQLite → frozen company packet
+                                         ↓
+                           Codex evidence tools + named formulas
+                                         ↓
+                              saved analysis + audit records
+                                         ↓
+                              analysis viewer (planned)
+
+work/plan.json → local project progress dashboard
+```
+
+## Ownership
+
+| Layer | Location | Responsibility |
+|---|---|---|
+| Acquisition | `betaforge/borsdata.py`, fetch scripts | Download original responses with safe diagnostics; preserve sources. |
+| Evidence | `betaforge/storage.py` | Normalize observations, keep definitions/provenance/revisions, freeze SQLite and source blobs. |
+| Preparation | `scripts/prepare_codex_packet.py` | Select one issuer and freeze reports, evidence, policy and context for a run. |
+| Arithmetic | `betaforge/financials.py` | Named, versioned deterministic formulas defined in [calculations](calculations.md). |
+| Analyst access | `betaforge/tools.py` | Bounded reads, saved inputs, provenance and calculation calls. |
+| Execution | `betaforge/codex_runner.py` | Run limits, cancellation/resume, model interaction and saved outputs. |
+| Private preservation | `scripts/archive_research.py` | Versioned research bundles and verified restore. |
+| Project progress | `work/`, `scripts/serve_progress.py`, `web/progress/` | Session-maintained delivery state and its read-only local display. |
+| Company examples | `examples/<company>/` | Issuer prompts, reconciliations, replay scripts and public example documents. |
+
+## Boundaries
+
+- Acquisition is independent of analysis. Opening a saved result does not fetch data or rerun the analyst. [ADR 0001](adr/0001-persist-company-evidence.md)
+- Raw provider values, report-derived facts and selected inputs retain their identities. SQLite and source files are backed up together; ingestion has one writer. [ADR 0002](adr/0002-local-evidence-storage.md)
+- Financial arithmetic belongs in the named formula registry. The analyst explains assumptions and choices; the interface displays their saved records. The first formulas use SEK and operating-company concepts. [Policy](analysis-policy.md), [formula conventions](calculations.md#common-conventions)
+- Shared modules take explicit company inputs. Issuer assumptions belong in examples or private analysis inputs.
+- Public Git holds code, policy, documentation and safe project status. Credentials, original evidence, watchlists and exact saved analyses belong in ignored/private storage. [Handoff](research-handoff.md)
+- The progress plan is delivery state, not financial evidence or investment confidence. The dashboard serves an explicit set of public files and never starts analysis. A saved-analysis viewer remains separate planned work.
+
+## Extension rule
+
+Add the smallest capability to its owning layer. Change a boundary only for a demonstrated need and record the decision. A new service, database or agent framework needs a concrete requirement that the current modules cannot satisfy.

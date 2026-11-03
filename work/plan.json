@@ -1,0 +1,291 @@
+{
+  "version": 1,
+  "updated_at": "2026-11-03T17:40:35+01:00",
+  "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
+  "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
+  "next_task": "storage-hardening",
+  "milestones": [
+    {
+      "id": "foundation",
+      "title": "Evidence and valuation foundation",
+      "status": "done",
+      "summary": "Deterministic acquisition, preserved evidence, named formulas and a company-neutral core with a worked example."
+    },
+    {
+      "id": "workflow",
+      "title": "Persistent project workflow",
+      "status": "done",
+      "summary": "Short README, project instructions, current plan, clear boundaries, PR rules and local progress display."
+    },
+    {
+      "id": "validation",
+      "title": "Validate financial inputs across companies",
+      "status": "pending",
+      "summary": "Harden storage and verify material definitions and selected inputs beyond the first issuer."
+    },
+    {
+      "id": "saved-review",
+      "title": "Inspect saved valuations",
+      "status": "pending",
+      "summary": "Connect source evidence and decision rationale to a read-only analysis viewer."
+    },
+    {
+      "id": "development-corpus",
+      "title": "Frozen multi-company development corpus",
+      "status": "pending",
+      "summary": "Clarify retained-use permissions and preserve a representative dated corpus for offline development."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "deterministic-acquisition",
+      "milestone": "foundation",
+      "title": "Preserve deterministic API acquisition",
+      "status": "done",
+      "acceptance": [
+        "Explicit company inputs; raw responses, hashes and safe diagnostics are preserved."
+      ],
+      "evidence": [
+        "betaforge/borsdata.py",
+        "scripts/fetch_borsdata_context.py",
+        "tests/test_acquisition.py"
+      ],
+      "blocker": null,
+      "note": "Existing implementation. General report discovery/OCR remains outside this completed task."
+    },
+    {
+      "id": "evidence-foundation",
+      "milestone": "foundation",
+      "title": "Store and freeze source-linked evidence",
+      "status": "done",
+      "acceptance": [
+        "SQLite observations and source files preserve identity and revisions; frozen bundles are verified."
+      ],
+      "evidence": [
+        "betaforge/storage.py",
+        "docs/adr/0002-local-evidence-storage.md",
+        "docs/research/system-readiness-review.md"
+      ],
+      "blocker": null,
+      "note": "Existing stores passed read-only integrity, foreign-key and source-hash checks on 3 November. Wider operational claims remain bounded by the readiness review."
+    },
+    {
+      "id": "valuation-contract",
+      "milestone": "foundation",
+      "title": "Define valuation policy and named calculations",
+      "status": "done",
+      "acceptance": [
+        "Policy and formula definitions are frozen into new packets and deterministic outputs retain input references."
+      ],
+      "evidence": [
+        "docs/analysis-policy.md",
+        "docs/calculations.md",
+        "betaforge/financials.py",
+        "docs/codex-integration.md"
+      ],
+      "blocker": null,
+      "note": "Forward operating EV/EBIT is the primary model. This task does not establish predictive accuracy or complete accounting mappings."
+    },
+    {
+      "id": "generic-core",
+      "milestone": "foundation",
+      "title": "Keep shared workflow generic and issuer work in examples",
+      "status": "done",
+      "acceptance": [
+        "Shared commands take explicit company inputs; worked-example assumptions are separate."
+      ],
+      "evidence": [
+        "examples/granges/README.md",
+        "scripts/prepare_codex_packet.py",
+        "docs/codex-integration.md"
+      ],
+      "blocker": null,
+      "note": "Main restructure is merged. A second real-company walkthrough remains a separate validation task."
+    },
+    {
+      "id": "project-workflow",
+      "milestone": "workflow",
+      "title": "Make project state and working rules persistent",
+      "status": "done",
+      "acceptance": [
+        "README provides a short directory map and clear entry points.",
+        "Project instructions define plan updates, boundaries and user-reviewed PRs.",
+        "Local read-only dashboard displays the current plan and handles reload failures safely.",
+        "Relevant tests, browser verification and independent review are recorded.",
+        "Publish the focused change as a PR for user review, after the user settles the public-document scope."
+      ],
+      "evidence": [
+        "AGENTS.md",
+        "CONTRIBUTING.md",
+        "docs/architecture.md",
+        "work/README.md",
+        "scripts/serve_progress.py",
+        "web/progress/index.html",
+        "tests/test_progress.py"
+      ],
+      "blocker": null,
+      "note": "Implemented and independently reviewed. Clean proposed checkout: 91 tests, OK (1 skipped private-evidence class); all seven dashboard tests pass. Browser verified filtering, criteria navigation, stale-state warning and recovery. Working-tree suite: 95 passed, one pre-existing missing example-manifest error; unrelated rename preserved. JavaScript syntax, documentation links and whitespace checks pass. User approved publishing all 16 files. PR #2 is open for user review/merge: https://github.com/KapKnudz/betaforge-reborn/pull/2. Completion describes implementation and PR preparation, not merge."
+    },
+    {
+      "id": "pr-review-loop",
+      "milestone": "workflow",
+      "title": "Automate bounded Greptile review and fixes",
+      "status": "done",
+      "acceptance": [
+        "A project-local skill and agent instructions make review, justified fixes, tests, push and re-review the default PR workflow.",
+        "Review freshness is tied to the current head; retries and waits have limits; user merge remains unchanged.",
+        "Current valid PR findings are fixed and checked, and the workflow is exercised on PR #2."
+      ],
+      "evidence": [
+        ".agents/skills/greploop/SKILL.md",
+        ".greptile/config.json",
+        ".greptile/files.json",
+        "AGENTS.md",
+        "CONTRIBUTING.md",
+        "scripts/serve_progress.py",
+        "tests/test_progress.py"
+      ],
+      "blocker": null,
+      "note": "Configured the project-local MIT Greploop adaptation and default agent/PR instructions, with open/push review settings and public context files. Fixed two valid findings; acknowledged the already-fixed handoff. Eight dashboard tests pass; clean checkout: 92 tests, OK with one skipped private-evidence class. Independent read-only review, skill validation and link/whitespace checks pass. First end-to-end cycle completed on 3 November at 17:39 CET: head 4f1c86f3ee3f3f05bd262f658817018c712774fa received 5/5, completed Greptile check126056153708 succeeded and all three prior threads were resolved. This is a dated receipt for that head, not approval of later commits. The final handoff commit is rechecked before declaring the PR ready; its receipt belongs in the PR conversation. User merge remains pending."
+    },
+    {
+      "id": "storage-hardening",
+      "milestone": "validation",
+      "title": "Harden schema compatibility and expose freshness",
+      "status": "pending",
+      "acceptance": [
+        "Unsupported existing schema versions are rejected before any schema/version write.",
+        "Queries distinguish financial period, source publication, first capture and last successful check.",
+        "Focused compatibility and unchanged-refresh tests pass."
+      ],
+      "evidence": [
+        "docs/research/system-readiness-review.md",
+        "betaforge/storage.py"
+      ],
+      "blocker": null,
+      "note": "First recommended financial-foundation follow-up; current version-1 databases are healthy."
+    },
+    {
+      "id": "material-mapping",
+      "milestone": "validation",
+      "title": "Record financial meaning and selected-input rationale",
+      "status": "pending",
+      "acceptance": [
+        "Material inputs retain definition status separately from numeric reconciliation.",
+        "Scope, units, period, conventions, residuals, evidence and selection reasons are inspectable.",
+        "Report substitutions and assumptions keep optional gaps local."
+      ],
+      "evidence": [
+        "docs/research/borsdata-retrieval-storage.md",
+        "examples/granges/docs/research/granges-mapping-resolution.md"
+      ],
+      "blocker": null,
+      "note": "Reuse the existing mapping specification; do not build a second mapping platform."
+    },
+    {
+      "id": "multi-company-validation",
+      "milestone": "validation",
+      "title": "Verify another issuer, then three to five different operating businesses",
+      "status": "pending",
+      "acceptance": [
+        "Another real-company end-to-end walkthrough succeeds with source-linked material inputs.",
+        "Selected businesses exercise different capital intensity, acquisitions, leases or share-count conventions.",
+        "Archived report coverage is distinguished from mandatory analyst reading."
+      ],
+      "evidence": [
+        "docs/research/system-readiness-review.md",
+        "docs/retrieval-design.md"
+      ],
+      "blocker": null,
+      "note": "General report discovery/preparation still needs a minimal reusable path; five annuals remain the reading baseline where available."
+    },
+    {
+      "id": "saved-analysis-viewer",
+      "milestone": "saved-review",
+      "title": "Expose saved evidence, decisions and valuation bridges",
+      "status": "pending",
+      "acceptance": [
+        "Material forecasts, multiples, probabilities and cash/claims assumptions have evidence and rationale.",
+        "A read-only local viewer links financial history, source comparisons, named calculations and scenario results.",
+        "Opening saved results makes no provider or model calls."
+      ],
+      "evidence": [
+        "docs/research/system-readiness-review.md",
+        "docs/analysis-policy.md",
+        "docs/codex-integration.md"
+      ],
+      "blocker": null,
+      "note": "Reuse frozen packets and run artifacts. The project progress dashboard does not satisfy this task."
+    },
+    {
+      "id": "retained-use-clarification",
+      "milestone": "development-corpus",
+      "title": "Clarify frozen-data use before relying on cancellation",
+      "status": "pending",
+      "acceptance": [
+        "Applicable permissions for post-subscription personal reuse, local display, private backup and AI processing are established."
+      ],
+      "evidence": [
+        "docs/research/frozen-dataset-feasibility.md"
+      ],
+      "blocker": null,
+      "note": "Public terms do not settle all proposed uses. No support message or subscription change has been made."
+    },
+    {
+      "id": "freeze-development-corpus",
+      "milestone": "development-corpus",
+      "title": "Preserve a representative multi-company development corpus",
+      "status": "pending",
+      "acceptance": [
+        "Capture about ten distinct issuers initially with agreed dataset families, definitions, reports, coverage gaps and hashes.",
+        "Preserve exact private evidence separately from public code and verify restore.",
+        "Record frozen cutoffs and keep live freshness/revision checks separate."
+      ],
+      "evidence": [
+        "docs/research/frozen-dataset-feasibility.md",
+        "docs/research-handoff.md"
+      ],
+      "blocker": null,
+      "note": "Ten is a proposed first cohort, not a downloaded dataset. Expand toward thirty for demonstrated coverage needs."
+    }
+  ],
+  "session": {
+    "task": "pr-review-loop",
+    "summary": "The session-based autonomous PR loop is configured and exercised successfully: justified fixes, tests, push, thread replies/resolution and a fresh 5/5 review on 4f1c86f. Publishing this final handoff requires a last current-head check.",
+    "next_step": "Verify the final handoff commit through Greptile and post its receipt in PR #2 without another status-only commit. User reviews/merges PR #2; storage-hardening follows."
+  },
+  "references": [
+    {
+      "label": "Project structure",
+      "path": "README.md"
+    },
+    {
+      "label": "Architecture and boundaries",
+      "path": "docs/architecture.md"
+    },
+    {
+      "label": "Agent working instructions",
+      "path": "AGENTS.md"
+    },
+    {
+      "label": "PR workflow",
+      "path": "CONTRIBUTING.md"
+    },
+    {
+      "label": "Plan update rules",
+      "path": "work/README.md"
+    },
+    {
+      "label": "Investment policy",
+      "path": "docs/analysis-policy.md"
+    },
+    {
+      "label": "Calculation definitions",
+      "path": "docs/calculations.md"
+    },
+    {
+      "label": "Readiness review",
+      "path": "docs/research/system-readiness-review.md"
+    }
+  ]
+}
