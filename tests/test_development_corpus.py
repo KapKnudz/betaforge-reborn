@@ -105,6 +105,46 @@ class DevelopmentCorpusTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "complete request plan"):
                     corpus.verify_capture(directory)
 
+    def test_input_order_preserves_shared_kpi_definitions_in_utc_time(self):
+        older, newer = [self.capture(i) for i in (777, 888)]
+        definitions = {"kpiHistoryMetadatas": [{"kpiId": 29, "format": "%", "isString": False},
+                                               {"kpiId": 64, "format": "MCURR", "isString": False}]}
+        for directory, stamp in ((older, "2026-11-03T01:30:00+02:00"), (newer, "2026-11-03T00:00:00Z")):
+            self.replace_payload(directory, "kpi-metadata", definitions)
+            path = directory / "manifest.json"
+            manifest = json.loads(path.read_text())
+            manifest["retrieved_at_utc"] = stamp
+            path.write_text(json.dumps(manifest))
+        normalized = []
+        for name, captures in (("chronological", [older, newer]), ("reversed", [newer, older])):
+            result = corpus.build_corpus(captures, self.root / name)
+            manifest = json.loads(result.read_text())
+            records = {}
+            with EvidenceStore(result.parent / "snapshot/evidence.sqlite3", readonly=True) as store:
+                for instrument in (777, 888):
+                    rows = store.query_financials(instrument, "year", ["kpi_29", "kpi_64"])
+                    by_metric = {row["metric"]: row for row in rows}
+                    for metric, expected in (("kpi_29", ("percent", "1")), ("kpi_64", ("currency", "1000000"))):
+                        record = by_metric[metric]
+                        self.assertEqual((record["unit"], record["scale"]), expected)
+                        source = store.get_source(record["metadata_source_id"])
+                        self.assertEqual(source["observed_at"], "2026-11-02T23:30:00+00:00")
+                        records[instrument, metric] = (record["unit"], record["scale"], record["metadata_source_id"])
+            self.assertEqual(manifest["instrument_ids"], [777, 888])
+            normalized.append(records)
+        self.assertEqual(normalized[0], normalized[1])
+
+    def test_capture_timestamp_requires_valid_explicit_timezone(self):
+        directory = self.capture(777)
+        path = directory / "manifest.json"
+        manifest = json.loads(path.read_text())
+        for stamp in (None, "not-a-timestamp", "2026-11-03T12:00:00"):
+            with self.subTest(timestamp=stamp):
+                manifest["retrieved_at_utc"] = stamp
+                path.write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(ValueError, "timestamp"):
+                    corpus.verify_capture(directory)
+
     def test_corruption_never_publishes_partial_corpus(self):
         directory = self.capture(777)
         (directory / "prices.json").write_text('{}')

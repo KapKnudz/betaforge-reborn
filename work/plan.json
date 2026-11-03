@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-03T18:21:39+01:00",
+  "updated_at": "2026-11-03T18:37:15+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "freeze-development-corpus",
+  "next_task": "storage-hardening",
   "milestones": [
     {
       "id": "foundation",
@@ -156,14 +156,15 @@
       "acceptance": [
         "Unsupported existing schema versions are rejected before any schema/version write.",
         "Queries distinguish financial period, source publication, first capture and last successful check.",
-        "Focused compatibility and unchanged-refresh tests pass."
+        "Focused compatibility and unchanged-refresh tests pass.",
+        "Shared metadata units remain correct when older captures are imported after newer ones directly through EvidenceStore."
       ],
       "evidence": [
         "docs/research/system-readiness-review.md",
         "betaforge/storage.py"
       ],
       "blocker": null,
-      "note": "First recommended financial-foundation follow-up; current version-1 databases are healthy."
+      "note": "Current version-1 stores are healthy. The corpus builder now sorts captures; arbitrary standalone store ingestion still needs the shared-metadata chronology regression alongside schema/freshness hardening."
     },
     {
       "id": "material-mapping",
@@ -235,7 +236,7 @@
       "id": "freeze-development-corpus",
       "milestone": "development-corpus",
       "title": "Freeze the verified Börsdata API development corpus",
-      "status": "in_progress",
+      "status": "done",
       "acceptance": [
         "Capture ten distinct issuers with agreed API dataset families, definitions, actual history coverage and hashes.",
         "Preserve exact API evidence separately from public code and verify a clean restore.",
@@ -249,7 +250,7 @@
         "docs/research/frozen-dataset-feasibility.md"
       ],
       "blocker": null,
-      "note": "All ten issuers captured: 970/970 planned responses saved. An isolated frozen store was built; final copied-capture, identity, basis, integrity and source-hash checks are recorded privately. Final clean suite: 101 tests, OK with one skipped private-evidence class. Independent review findings were fixed and rechecked. Private archive and clean restore are in progress. Original-report coverage remains a separate task."
+      "note": "Completed the API-only corpus for ten distinct issuers: 970/970 responses, 880 source blobs and 264,214 current observations. Raw coverage/identity/basis/hash checks, SQLite integrity/foreign keys, clean archive restore and a downloaded remote-copy checksum pass. A metadata-format audit checked 22,335 percentage/MCURR observations with zero mismatches. Exact data and receipts are in the private release development-corpus-2026-11-03. Final clean suite: 103 tests, OK with one skipped private-evidence class. Greptile identified argument-order-dependent units; the verifier now ingests chronologically with reversed-order regression coverage. Original PDFs and accounting reconciliation remain separate pending tasks. PR #3 contains generic tooling/docs only and awaits final current-head review and user merge."
     },
     {
       "id": "complete-report-corpus",
@@ -271,8 +272,8 @@
   ],
   "session": {
     "task": "freeze-development-corpus",
-    "summary": "Permission is settled and ten-company API capture is complete. Building the private reproducible corpus and finishing archive/restore verification.",
-    "next_step": "Archive the verified snapshot privately, perform a clean restore, then publish the generic verifier and coverage result for review."
+    "summary": "Ten-company paid API data is frozen, checked, privately archived and verified after clean restore and remote download. Permission is settled. Code/plan changes are in PR #3; user merge remains pending.",
+    "next_step": "Finish the current-head Greptile check and post its receipt without another status-only commit. User reviews/merges PR #3, then storage-hardening resumes. Original-report collection remains a separate pending task."
   },
   "references": [
     {

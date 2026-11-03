@@ -114,6 +114,19 @@ def date_coverage(rows, start_key, end_key=None):
     return {"count": len(rows), "first_date": min(starts, default=None), "last_date": max(ends, default=None)}
 
 
+def capture_time(manifest):
+    stamp = manifest.get("retrieved_at") or manifest.get("retrieved_at_utc")
+    if not isinstance(stamp, str):
+        raise ValueError("Capture needs a timestamp with an explicit timezone")
+    try:
+        captured_at = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError("Invalid capture timestamp") from error
+    if captured_at.tzinfo is None:
+        raise ValueError("Capture timestamp needs an explicit timezone")
+    return captured_at.astimezone(timezone.utc)
+
+
 def verify_capture(directory):
     directory = Path(directory)
     if directory.is_symlink():
@@ -124,6 +137,7 @@ def verify_capture(directory):
     instrument = manifest.get("instrument_id")
     if type(instrument) is not int or instrument < 1:
         raise ValueError("Capture needs a positive instrument ID")
+    capture_time(manifest)
     requests = manifest.get("requests")
     if not isinstance(requests, list):
         raise ValueError("Capture requests are missing")
@@ -194,6 +208,8 @@ def build_corpus(captures, destination):
     if any(destination.is_relative_to(path) or path.is_relative_to(destination) for path in captures):
         raise ValueError("Corpus output must be separate from its capture inputs")
     verified = [(path, *verify_capture(path)) for path in captures]
+    # Shared metadata deduplicates by content; store its earliest acquisition first.
+    verified.sort(key=lambda item: (capture_time(json.loads((item[0] / "manifest.json").read_bytes())), item[1]["instrument_id"]))
     ids = [coverage["instrument_id"] for _, coverage, _ in verified]
     if len(ids) != len(set(ids)):
         raise ValueError("Supply one capture per distinct instrument")
