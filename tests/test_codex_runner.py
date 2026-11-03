@@ -6,12 +6,52 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
-from betaforge.codex_runner import AppServer, child_environment, integration_smoke_prompt, safe_event, verify_implementation, verify_prompt
+from betaforge.codex_runner import AppServer, child_environment, integration_smoke_prompt, run, safe_event, verify_implementation, verify_prompt
 
 
 class RunnerTests(unittest.TestCase):
+    def test_run_requests_and_records_sol_xhigh(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            prompt=root/'prompt.md';prompt.write_text('Inspect the supplied evidence.')
+            tools=Mock(analysis_contract={},packet={},identity={})
+            tools.state={'calculations':{},'inputs':{},'rounds':[]}
+            tools.coverage.return_value={'complete':True,'delivered_pages':0}
+            tools.catalogue.return_value={}
+            tools.get_calculation_definitions.return_value={}
+            code='''import sys,json
+for line in sys.stdin:
+ m=json.loads(line)
+ method=m.get('method')
+ if 'id' not in m:continue
+ result={}
+ if method=='thread/start':result={'model':'gpt-6.1-sol','thread':{'id':'thread'}}
+ if method=='turn/start':result={'turn':{'id':'turn'}}
+ print(json.dumps({'id':m['id'],'result':result}),flush=True)
+ if method=='turn/start':
+  print(json.dumps({'method':'item/completed','params':{'item':{'type':'agentMessage','phase':'final_answer','text':'Complete.'}}}),flush=True)
+  print(json.dumps({'method':'turn/completed','params':{'turn':{'id':'turn','status':'completed'}}}),flush=True)
+'''
+            def fake_server(executable,cwd,event_path):
+                return AppServer('',cwd,event_path,command=[sys.executable,'-u','-c',code])
+            with patch('betaforge.codex_runner.EvidenceTools',return_value=tools), \
+                 patch('betaforge.codex_runner.AppServer',side_effect=fake_server), \
+                 patch('betaforge.codex_runner.subprocess.run',return_value=subprocess.CompletedProcess([],0,'fake codex')):
+                state=run(root/'packet.json',prompt,root/'run',timeout_seconds=5)
+            self.assertEqual(state['status'],'completed')
+            events=[json.loads(line) for line in (root/'run/events.jsonl').read_text().splitlines()]
+            requests={event['message'].get('method'):event['message'].get('params',{})
+                      for event in events if event['direction']=='out'}
+            thread=requests['thread/start'];turn=requests['turn/start']
+            self.assertEqual(thread['model'],'gpt-6.1-sol')
+            self.assertEqual(thread['config']['model_reasoning_effort'],'xhigh')
+            self.assertFalse(thread['allowProviderModelFallback'])
+            self.assertEqual((turn['model'],turn['effort']),('gpt-6.1-sol','xhigh'))
+            saved=json.loads((root/'run/run.json').read_text())
+            self.assertEqual((saved['model'],saved['reasoning_effort']),('gpt-6.1-sol','xhigh'))
+
     def test_smoke_uses_supplied_report_without_company_or_period_assumptions(self):
         prompt=integration_smoke_prompt(['other-issuer-annual-2030'])
         self.assertIn('"other-issuer-annual-2030"',prompt)

@@ -1,6 +1,6 @@
 # Codex evidence tools
 
-The local Python controller drives the desktop-bundled Codex app-server and dispatches client-owned tools over a supplied frozen company packet. It uses exact `gpt-6.1-sol`, high reasoning and the workstation's existing Codex login. The analyst process receives no Börsdata key.
+The local Python controller drives the desktop-bundled Codex app-server and dispatches client-owned tools over a supplied frozen company packet. New runs use exact `gpt-6.1-sol`, `xhigh` reasoning and the workstation's existing Codex login, following the [project model policy](model-routing.md). The analyst process receives no Börsdata key.
 
 ## Entry point and packet
 
