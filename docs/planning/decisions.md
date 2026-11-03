@@ -74,6 +74,10 @@ The user selected Macs first and exact evidence plus saved analyses for workstat
 
 Each Mac has its own local credentials and Codex authentication. Completed-result restoration and active conversation migration are separate capabilities; cross-Mac live resume remains unverified. See [research handoff](../research-handoff.md).
 
+## Frozen development corpus
+
+On 3 November 2026, the user confirmed that permission for the proposed frozen-data use is resolved and authorized capturing the development corpus. Capture a representative initial set of ten operating-company issuers from the private watchlist, preserving API payloads, metadata and actual coverage in private storage. Verify transport coverage, issuer identity, hashes, database integrity and restore. Original-report coverage and accounting reconciliation remain distinct from a verified API capture. See the [feasibility review](../research/frozen-dataset-feasibility.md).
+
 ## Available or proposed sources
 
 - Börsdata API.

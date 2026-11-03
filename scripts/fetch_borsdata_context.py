@@ -49,13 +49,16 @@ def request_plan(instrument):
     for report_type, count in (("year", 20), ("r12", 40), ("quarter", 40)):
         plan.append((f"summary-{report_type}", prefix + f"/kpis/{report_type}/summary", {"maxCount": count}))
     # Supported combinations: official KPI-History table, saved in the research references.
-    for kpi in (2, 3, 4, 10, 11, 15, 49, 50, 76):
+    for kpi in (1, 2, 3, 4, 10, 11, 15, 49, 50, 76):
         for basis, count in (("year", 20), ("r12", 40)):
             for price in ("mean", "low", "high"):
                 plan.append((f"kpi-{kpi}-{basis}-{price}", prefix + f"/kpis/{kpi}/{basis}/{price}/history", {"maxCount": count}))
     for kpi in (37, 42, 61, 62, 63, 64):
         for basis, count in (("year", 20), ("r12", 40)):
             plan.append((f"kpi-{kpi}-{basis}-mean", prefix + f"/kpis/{kpi}/{basis}/mean/history", {"maxCount": count}))
+    # Exact pairs from the provider's Kpi-Screener-List; retain these as raw context.
+    for kpi in (1, 37, 42, 49, 50):
+        plan.append((f"current-kpi-{kpi}", prefix + f"/kpis/{kpi}/last/latest", {}))
     return plan
 
 

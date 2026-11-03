@@ -51,3 +51,14 @@ The primary model is forward operating EV/EBIT with an explicit common-equity br
 Follow the [private archival and restore workflow](research-handoff.md). Preserve the database, source files and saved run together. Credentials stay local.
 
 The [Gränges example](../examples/granges/README.md) preserves report comparisons, sourced facts and financial-quality validation. Its company assumptions and private evidence paths are example inputs. Another real-company end-to-end walkthrough and an automatic refresh scheduler remain to be verified or implemented.
+
+## Freeze a development corpus
+
+Capture each selected issuer with step 1, then verify the saved directories together:
+
+```sh
+.venv/bin/python scripts/verify_development_corpus.py "$CAPTURE_DIR_A" "$CAPTURE_DIR_B" \
+  --output "$CORPUS_DIR"
+```
+
+Use a new directory under ignored `data/corpora/`. Verification checks the exact request plan, source hashes, response identities and available history before building an isolated, frozen multiissuer store. The corpus keeps raw captures and a coverage manifest. Empty optional datasets stay visible. This API-only snapshot does not certify accounting definitions or collect original PDFs; preserve those separately. Archive and verify restore using the existing private handoff workflow.
