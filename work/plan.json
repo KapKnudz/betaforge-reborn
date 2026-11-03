@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-03T20:11:35+01:00",
+  "updated_at": "2026-11-03T22:40:22+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "storage-hardening",
@@ -273,7 +273,7 @@
         "docs/research/frozen-dataset-feasibility.md"
       ],
       "blocker": null,
-      "note": "Completed the API-only corpus for ten distinct issuers: 970/970 responses, 880 source blobs and 264,214 current observations. Raw coverage/identity/basis/hash checks, SQLite integrity/foreign keys, clean archive restore and a downloaded remote-copy checksum pass. A metadata-format audit checked 22,335 percentage/MCURR observations with zero mismatches. Exact data and receipts are in the private release development-corpus-2026-11-03. Final clean suite: 103 tests, OK with one skipped private-evidence class. Greptile identified argument-order-dependent units; the verifier now ingests chronologically with reversed-order regression coverage. Original PDFs and accounting reconciliation remain separate pending tasks. PR #3 contains generic tooling/docs only and awaits user merge."
+      "note": "Completed the API-only corpus for ten distinct issuers: 970/970 responses, 880 source blobs and 264,214 current observations. Raw coverage/identity/basis/hash checks, SQLite integrity/foreign keys, clean archive restore and a downloaded remote-copy checksum pass. A metadata-format audit checked 22,335 percentage/MCURR observations with zero mismatches. Exact data and receipts are in the private release development-corpus-2026-11-03. Final clean suite: 103 tests, OK with one skipped private-evidence class. Greptile identified argument-order-dependent units; the verifier now ingests chronologically with reversed-order regression coverage. Original PDFs and accounting reconciliation remain separate pending tasks. PR #3 contains generic tooling/docs only and is merged into main."
     },
     {
       "id": "complete-report-corpus",
@@ -309,13 +309,32 @@
         "docs/research/frozen-dataset-feasibility.md"
       ],
       "blocker": null,
-      "note": "Completed thirty distinct issuers: 2,910/2,910 responses, 2,620 source blobs, 724,710 current observations, 7–20 annual periods and 101,708 price rows. Original ten captures are unchanged. Source/basis/hash, SQLite integrity/foreign keys, 138,506 KPI metadata links and 64,905 percentage/MCURR unit checks pass with zero mismatches. Clean archive restore verified all 5,569 reviewed files; all seven downloaded original release assets match exact sizes/SHA256. Private release: development-corpus-30-2026-11-03. Three incomplete attempts were reacquired; bounded transport retry recovered two requests. Source import took 2,517.503 seconds; metadata lookup profiling remains in storage hardening. Original PDFs and accounting reconciliation are pending. PR #4 depends on PR #3; final review receipt belongs in the PR conversation. User merges."
+      "note": "Completed thirty distinct issuers: 2,910/2,910 responses, 2,620 source blobs, 724,710 current observations, 7–20 annual periods and 101,708 price rows. Original ten captures are unchanged. Source/basis/hash, SQLite integrity/foreign keys, 138,506 KPI metadata links and 64,905 percentage/MCURR unit checks pass with zero mismatches. Clean archive restore verified all 5,569 reviewed files; all seven downloaded original release assets match exact sizes/SHA256. Private release: development-corpus-30-2026-11-03. Three incomplete attempts were reacquired; bounded transport retry recovered two requests. Source import took 2,517.503 seconds; metadata lookup profiling remains in storage hardening. Original PDFs and accounting reconciliation are pending. PR #4 was reviewed at 5/5 and merged into the old feature branch; the main-landing task carries it into main. Final review receipts belong in PR conversations; the user merges."
+    },
+    {
+      "id": "main-landing",
+      "milestone": "workflow",
+      "title": "Carry the reviewed model and corpus changes into main",
+      "status": "done",
+      "acceptance": [
+        "Prepare a main-targeted PR carrying the exact reviewed PR #4 changes.",
+        "Require ready PRs to target main and keep dependent work draft until predecessors merge.",
+        "Verify the carried content, plan handoff and appropriate checks with independent review."
+      ],
+      "evidence": [
+        "CONTRIBUTING.md",
+        "docs/model-routing.md",
+        ".codex/config.toml",
+        "work/plan.json"
+      ],
+      "blocker": null,
+      "note": "PR #3 merged into main; PR #4 merged into the predecessor feature branch. The isolated follow-up applies all three reviewed commits cleanly and initially matches the reviewed source tree exactly. User review/merge remains required. Independent read-only review found no actionable issues; plan-schema and whitespace checks pass. The exact carried code tree previously passed 106 tests with one private-evidence skip. Follow-up targets main; fresh Greptile receipt belongs in the PR conversation and user merge remains pending."
     }
   ],
   "session": {
-    "task": "expand-corpus-to-30",
-    "summary": "Thirty-company API corpus is verified, clean-restored and backed up privately with a downloaded-copy checksum. Explicit non-Astra project model roles and the Sol/xhigh runner are implemented and validated.",
-    "next_step": "User reviews/merges PR #3, then dependent PR #4. Resume storage-hardening: schema guard, freshness, out-of-order metadata units and measured import lookup cost; then material mappings and another issuer. Original-report corpus remains separate pending work."
+    "task": "main-landing",
+    "summary": "The reviewed model/corpus changes are carried unchanged onto current main in a focused follow-up. Ready PRs now require a main base; dependent work stays draft until its predecessor merges.",
+    "next_step": "User reviews/merges the main-landing PR. Storage hardening proceeds as dependent work targeting main in draft until that merge."
   },
   "references": [
     {

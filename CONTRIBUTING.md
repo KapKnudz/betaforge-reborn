@@ -10,12 +10,12 @@ The root [AGENTS.md](AGENTS.md) makes this the default project workflow. [Archit
 
 ## One pull request
 
-- Use `feat/<short-purpose>` branches from `main`. Keep one reviewable outcome per PR; split unrelated cleanup and company research. Wait for required predecessor merges or make the dependency explicit.
+- Use `feat/<short-purpose>` branches from `main`. Keep one reviewable outcome per PR; split unrelated cleanup and company research. Ready PRs must target `main`. Keep dependent work local or in a draft targeting `main` until its predecessor merges; then verify the remaining diff before marking it ready.
 - Shared code stays generic. Keep company-specific examples under `examples/<company>/`; exact evidence and saved runs use the existing private archive workflow.
 - Title the PR by the resulting behavior. Explain the problem, change, checks actually run and material limitations. Use the [PR template](.github/pull_request_template.md).
 - Link the relevant task ID and include its plan update. Move long research explanations to the appropriate document and link them.
 - Preserve unrelated working-tree changes. Stage explicit files; inspect the staged diff for scope and private material before publishing.
-- Prepare a draft PR when publication is part of the user's request or already authorized. Mark it ready after validation and independent review. The user reviews and merges; do not merge or push directly to `main`.
+- Prepare a draft PR when publication is part of the user's request or already authorized. Mark it ready after validation and independent review, after checking that its base is `main` and required predecessors are merged. The user reviews and merges; do not merge or push directly to `main`.
 
 ## Greptile review loop
 
