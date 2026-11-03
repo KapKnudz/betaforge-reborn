@@ -69,6 +69,8 @@ def validate_plan(plan):
             raise ValueError("Unfinished plan needs a next task")
     elif not isinstance(plan["next_task"], str) or plan["next_task"] not in ids["tasks"]:
         raise ValueError("Unknown next task")
+    elif any(task["id"] == plan["next_task"] and task["status"] == "done" for task in plan["tasks"]):
+        raise ValueError("Next task is already done")
     session = plan.get("session")
     if not isinstance(session, dict) or any(not isinstance(session.get(f), str) for f in ("task", "summary", "next_step")):
         raise ValueError("Missing session handoff")

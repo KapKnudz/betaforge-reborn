@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-03T16:53:19+01:00",
+  "updated_at": "2026-11-03T17:33:52+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "storage-hardening",
+  "next_task": "pr-review-loop",
   "milestones": [
     {
       "id": "foundation",
@@ -14,7 +14,7 @@
     {
       "id": "workflow",
       "title": "Persistent project workflow",
-      "status": "done",
+      "status": "in_progress",
       "summary": "Short README, project instructions, current plan, clear boundaries, PR rules and local progress display."
     },
     {
@@ -127,6 +127,28 @@
       "note": "Implemented and independently reviewed. Clean proposed checkout: 91 tests, OK (1 skipped private-evidence class); all seven dashboard tests pass. Browser verified filtering, criteria navigation, stale-state warning and recovery. Working-tree suite: 95 passed, one pre-existing missing example-manifest error; unrelated rename preserved. JavaScript syntax, documentation links and whitespace checks pass. User approved publishing all 16 files. PR #2 is open for user review/merge: https://github.com/KapKnudz/betaforge-reborn/pull/2. Completion describes implementation and PR preparation, not merge."
     },
     {
+      "id": "pr-review-loop",
+      "milestone": "workflow",
+      "title": "Automate bounded Greptile review and fixes",
+      "status": "in_progress",
+      "acceptance": [
+        "A project-local skill and agent instructions make review, justified fixes, tests, push and re-review the default PR workflow.",
+        "Review freshness is tied to the current head; retries and waits have limits; user merge remains unchanged.",
+        "Current valid PR findings are fixed and checked, and the workflow is exercised on PR #2."
+      ],
+      "evidence": [
+        ".agents/skills/greploop/SKILL.md",
+        ".greptile/config.json",
+        ".greptile/files.json",
+        "AGENTS.md",
+        "CONTRIBUTING.md",
+        "scripts/serve_progress.py",
+        "tests/test_progress.py"
+      ],
+      "blocker": null,
+      "note": "Project Greploop/config and two valid Greptile fixes are implemented. Eight dashboard tests pass; clean checkout: 92 tests, OK with one skipped private-evidence class. Independent read-only review found no actionable defect; skill checker and document anchors pass. Preparing the first fix/review round on PR #2; a fresh current-head review is still required."
+    },
+    {
       "id": "storage-hardening",
       "milestone": "validation",
       "title": "Harden schema compatibility and expose freshness",
@@ -228,9 +250,9 @@
     }
   ],
   "session": {
-    "task": "project-workflow",
-    "summary": "Persistent project workflow and local progress dashboard are implemented, checked and published in PR #2. The user reviews and merges.",
-    "next_step": "Review/merge https://github.com/KapKnudz/betaforge-reborn/pull/2, then resume storage-hardening: inspect schema version before writes and expose separate freshness dates."
+    "task": "pr-review-loop",
+    "summary": "Bounded autonomous review rules and project skill are implemented and checked. Fixed completed next-task selection and the scope link; original handoff finding was already fixed.",
+    "next_step": "Push explicit files, reply to addressed Greptile comments, trigger a fresh review if needed, and inspect results for the new head."
   },
   "references": [
     {

@@ -16,6 +16,8 @@ The product is initially for one person's own use. Python acquisition/preparatio
 
 The user selected session-based plan maintenance and user review/merge of agent-prepared PRs. Repository [agent instructions](../../AGENTS.md) define the working loop; [work/plan.json](../../work/plan.json) holds current tasks and handoff, with a read-only local progress dashboard. This progress display is separate from the planned saved-analysis viewer. [Architecture](../architecture.md) owns module boundaries and [CONTRIBUTING.md](../../CONTRIBUTING.md) owns PR procedures. No unattended agent execution is part of this first workflow.
 
+The user subsequently authorized autonomous Greptile review/fix/retrigger cycles for PRs during working sessions. The project-local [greploop skill](../../.agents/skills/greploop/SKILL.md) defines bounded retries, current-head review evidence and supported thread resolution. The agent handles justified fixes and re-reviews; user merge remains unchanged.
+
 ## Research focus
 
 - Swedish listed companies first.

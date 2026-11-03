@@ -17,6 +17,12 @@ The root [AGENTS.md](AGENTS.md) makes this the default project workflow. [Archit
 - Preserve unrelated working-tree changes. Stage explicit files; inspect the staged diff for scope and private material before publishing.
 - Prepare a draft PR when publication is part of the user's request or already authorized. Mark it ready after validation and independent review. The user reviews and merges; do not merge or push directly to `main`.
 
+## Greptile review loop
+
+After opening or updating a PR, the agent runs [the project greploop skill](.agents/skills/greploop/SKILL.md) through review, justified fixes, validation, push and re-review. This is the default session workflow; repeated user prompts are unnecessary. Repository config requests review on open/push. The agent checks actual current-head review evidence and uses a manual mention when needed.
+
+Target 5/5 with no unaddressed actionable findings and passing checks. The skill defines freshness, thread ownership, retry limits and stop conditions. A confidence score does not authorize a merge or establish correctness. Keep the PR description accurate as scope changes; record fixes and validation in the affected threads. The user reviews and merges.
+
 ## Validation
 
 Run targeted tests for behavior changed. Run the full offline suite before declaring a code PR ready:

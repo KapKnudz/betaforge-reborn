@@ -6,7 +6,7 @@ Reviewed 3 November 2026 against main `c540c56b16c666a9a78edf2b903d78cdc32a146f`
 
 The project has a working evidence and calculation foundation. It does not yet have verified multi-company financial semantics or a general report-acquisition workflow. Proceed with validation and a saved-analysis viewer, preserving the existing valuation method.
 
-The user confirmed ordinary operating companies first and a website that reviews saved analyses first. Analysis launch and refresh controls follow later. The existing model remains forward operating EV/EBIT scenarios with an explicit common-equity bridge; P/E and properly scoped cash yield are checks. Market-implied EBIT is a complement, not a reverse DCF. [Current scope](../../README.md#financial-and-evidence-contracts), [policy, valuation methods](../analysis-policy.md#valuation-methods).
+The user confirmed ordinary operating companies first and a website that reviews saved analyses first. Analysis launch and refresh controls follow later. The existing model remains forward operating EV/EBIT scenarios with an explicit common-equity bridge; P/E and properly scoped cash yield are checks. Market-implied EBIT is a complement, not a reverse DCF. [Current scope](../planning/decisions.md#destination-and-scope), [policy, valuation methods](../analysis-policy.md#valuation-methods).
 
 ## Storage: healthy foundation, bounded operational evidence
 

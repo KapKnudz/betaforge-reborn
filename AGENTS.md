@@ -24,6 +24,7 @@
 ## Checks and pull requests
 
 - Follow [CONTRIBUTING.md](CONTRIBUTING.md) for branches, PR scope, validation and handoff. The user reviews and merges.
+- After opening or pushing a PR, run the project [greploop skill](.agents/skills/greploop/SKILL.md) during the active session: inspect feedback, fix justified issues, validate, push and obtain a fresh review without asking the user to repeat these steps. Use its retry/time limits and keep merge user-owned.
 - Add tests for meaningful behavior or credible failures. Run appropriate checks; repeat them when subsequent changes or unresolved concerns justify it.
 - Keep the README short: purpose, directory map, start commands and links. Put detailed procedures in their owning documents.
 - Write short, concrete progress updates and a final account of changes, validation and remaining limits.

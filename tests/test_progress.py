@@ -79,6 +79,24 @@ class ProgressTests(unittest.TestCase):
         self.save_plan()
         self.assertEqual(self.request("/api/plan")[0], 503)
 
+    def test_completed_task_cannot_be_the_next_action(self):
+        self.plan["tasks"][0]["status"] = "done"
+        self.plan["milestones"][0]["status"] = "done"
+        self.save_plan()
+        self.assertEqual(self.request("/api/plan")[0], 503)
+
+        self.plan["tasks"].append(dict(self.plan["tasks"][0], id="task-2", status="pending"))
+        self.plan["milestones"][0]["status"] = "in_progress"
+        self.save_plan()
+        self.assertEqual(self.request("/api/plan")[0], 503)
+
+        self.plan["next_task"] = "task-2"
+        for status in ("pending", "in_progress", "blocked"):
+            with self.subTest(status=status):
+                self.plan["tasks"][1]["status"] = status
+                self.save_plan()
+                self.assertEqual(self.request("/api/plan")[0], 200)
+
     def test_version_and_session_task_are_validated(self):
         for version in (True, 1.0, "1", 2):
             with self.subTest(version=version):
