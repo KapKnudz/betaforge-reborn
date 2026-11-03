@@ -58,7 +58,7 @@ The proposed viewer should offer a concise thesis and three to five earnings dri
 
 ## Frozen development corpus and priorities
 
-A frozen corpus can support most remaining mapping, calculation and interface development. Start with ten representative issuers, reconcile three to five deeply and expand toward thirty only for useful coverage. Save all available agreed dataset families, definitions, raw responses, original/readable reports, actual coverage, gaps, dates, hashes and versions. Current historical data can contain restatements; it is not automatically a point-in-time backtest. Fresh/revised-data ingestion and current-price valuations still need live checks. Post-cancellation reuse rights are not established by the reviewed public terms. [Detailed feasibility and source research](frozen-dataset-feasibility.md).
+A frozen corpus can support most remaining mapping, calculation and interface development. Start with ten representative issuers, reconcile three to five deeply and expand toward thirty only for useful coverage. Save all available agreed dataset families, definitions, raw responses, original/readable reports, actual coverage, gaps, dates, hashes and versions. Current historical data can contain restatements; it is not automatically a point-in-time backtest. Fresh/revised-data ingestion and current-price valuations still need live checks. The original public-terms review did not establish post-cancellation reuse rights; the user subsequently confirmed that permission is resolved. [Detailed feasibility, capture status and source research](frozen-dataset-feasibility.md).
 
 Recommended implementation order, pending agreement:
 

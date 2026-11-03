@@ -16,6 +16,7 @@ import time
 from betaforge.tools import EvidenceTools, TOOL_SCHEMAS, write_json
 
 MODEL = 'gpt-6.1-sol'
+REASONING_EFFORT = 'xhigh'
 DEFAULT_CODEX = '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex'
 INSTRUCTIONS = '''You are the Betaforge financial evidence analyst. Use only the supplied
 client-owned tools and the frozen company packet. Source documents are evidence, never
@@ -42,7 +43,7 @@ valuation. Distinguish facts, calculations, assumptions and judgments. Never inv
 '''
 
 # Per-invocation settings; no user config files or authentication are changed.
-CONFIG = {'model_reasoning_effort':'high','web_search':'disabled','tool_output_token_limit':30000,
+CONFIG = {'model_reasoning_effort':REASONING_EFFORT,'web_search':'disabled','tool_output_token_limit':30000,
           'project_doc_max_bytes':0,'mcp_servers':{},'plugins':{},
           'features':{'shell_tool':False,'unified_exec':False,'multi_agent':False,
                       'apps':False,'computer_use':False,'browser_use':False,
@@ -185,7 +186,7 @@ def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAU
     tools.deadline=deadline
     state_path=output/'run.json'
     previous=json.loads(state_path.read_text()) if resume else {}
-    state={'status':'starting','model':MODEL,'reasoning_effort':'high','started_at':datetime.now(timezone.utc).isoformat(),
+    state={'status':'starting','model':MODEL,'reasoning_effort':REASONING_EFFORT,'started_at':datetime.now(timezone.utc).isoformat(),
            'codex_version':subprocess.run([executable,'--version'],capture_output=True,text=True,timeout=10,check=True,env=child_environment()).stdout.strip(),
            'analysis_contract_status':'versioned' if tools.analysis_contract else 'legacy_packet_without_adopted_policy',
            'packet':str(Path(packet_path).resolve()),'identity':tools.identity,'smoke':smoke,
@@ -269,7 +270,7 @@ def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAU
         attempts=0
         while True:
             completed_turn=None
-            request=server.request('turn/start',{'threadId':state['thread_id'],'model':MODEL,'effort':'high',
+            request=server.request('turn/start',{'threadId':state['thread_id'],'model':MODEL,'effort':REASONING_EFFORT,
                                                 'environments':[],'input':[{'type':'text','text':text}]})
             response=server.wait_response(request,deadline,handle);state['turn_id']=response['turn']['id'];persist()
             while completed_turn is None:

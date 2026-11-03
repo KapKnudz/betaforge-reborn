@@ -13,6 +13,15 @@
 - Have one coordinating agent edit the plan when workers run in parallel. Preserve other tasks and validate the JSON after updates.
 - Update during working sessions. The dashboard reads this file; background execution requires a separate user request.
 
+## Model routing
+
+- Use `gpt-6.1-sol`/`xhigh` for the coordinating thinker, financial judgment and valuation runner. Astra is excluded. If the required Sol/`xhigh` is unavailable, stop and report it; never silently substitute a model.
+- Delegate bounded implementation to the built-in `worker` on `gpt-6.1-sol`/`high`; escalate ambiguous design or financial meaning to the thinker.
+- Use `explorer` on `gpt-6-luna`/`high` for narrow read-only file/source scans, `visual_evidence` on `gpt-6.1-terra`/`medium` for visual/UI/PDF layout evidence, and a fresh independent `reviewer` on `gpt-6.1-sol`/`high`. Return ambiguity and financial judgment to the thinker.
+- When these roles are not exposed by the harness, pass those exact model/effort settings explicitly. Give cross-model workers fresh scoped briefs. Use a full-history fork only when its inherited model and effort match the assigned role.
+- If Luna or Terra is unavailable, explicitly use Sol at the role's effort and report the substitution. For a difficult independent review, use a fresh generic Sol/`xhigh` agent: the configured `reviewer` pins `high` and overrides spawn settings.
+- Read [the model policy](docs/model-routing.md) when selecting or changing roles, checking effective configuration, or handling unavailable models. Project defaults apply to new runs; they cannot change the model executing an existing turn.
+
 ## Boundaries and simplicity
 
 - Implement the smallest complete change. Reuse existing modules and the standard library before adding dependencies, services or abstractions.

@@ -64,6 +64,41 @@ class AcquisitionTests(unittest.TestCase):
         self.assertEqual(calls, 3)
         self.assertEqual(manifest["requests"][0]["attempts"], 3)
 
+    def test_transient_transport_errors_retry_and_preserve_exact_bytes(self):
+        body = b'{"reports": [null], "value": 1.2300}'
+        message = 'https://example.com/?authKey=TEST_SECRET_VALUE'
+        path, manifest, calls, output = self.run_fetch([
+            requests.ConnectionError(message), requests.Timeout(message),
+            response(200, body), response(200)])
+        first = manifest['requests'][0]
+        self.assertEqual(calls, 4)
+        self.assertEqual(first['status'], 'saved')
+        self.assertEqual(first['attempts'], 3)
+        self.assertEqual(first['transport_errors'], ['ConnectionError', 'Timeout'])
+        self.assertNotIn('error', first)
+        self.assertEqual((path / 'one.json').read_bytes(), body)
+        captured = output + (path / 'manifest.json').read_text()
+        self.assertNotIn('TEST_SECRET_VALUE', captured)
+        self.assertNotIn('https://example.com/', captured)
+
+    def test_transport_exhaustion_is_failed_and_redacted(self):
+        for error_type in (requests.ConnectionError, requests.Timeout):
+            with self.subTest(error=error_type.__name__):
+                path, manifest, calls, output = self.run_fetch([
+                    error_type('https://example.com/?authKey=TEST_SECRET_VALUE')
+                    for _ in range(3)] + [response(200)])
+                first = manifest['requests'][0]
+                self.assertEqual(calls, 4)
+                self.assertEqual(first['status'], 'failed')
+                self.assertEqual(first['attempts'], 3)
+                self.assertEqual(first['error'], error_type.__name__)
+                self.assertEqual(first['transport_errors'], [error_type.__name__] * 3)
+                self.assertFalse((path / 'one.json').exists())
+                self.assertEqual(manifest['requests'][1]['status'], 'saved')
+                captured = output + (path / 'manifest.json').read_text()
+                self.assertNotIn('TEST_SECRET_VALUE', captured)
+                self.assertNotIn('https://example.com/', captured)
+
     def test_long_retry_after_defers_instead_of_retrying_early(self):
         _, manifest, calls, _ = self.run_fetch([response(429, headers={"Retry-After": "120"})])
         self.assertEqual(calls, 1)

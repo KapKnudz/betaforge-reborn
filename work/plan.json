@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-03T18:37:15+01:00",
+  "updated_at": "2026-11-03T20:11:35+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "storage-hardening",
@@ -33,7 +33,7 @@
       "id": "development-corpus",
       "title": "Frozen multi-company development corpus",
       "status": "in_progress",
-      "summary": "Clarify retained-use permissions and preserve a representative dated corpus for offline development."
+      "summary": "Preserve representative dated API evidence and original-report coverage for offline development."
     }
   ],
   "tasks": [
@@ -149,6 +149,29 @@
       "note": "Configured the project-local MIT Greploop adaptation and default agent/PR instructions, with open/push review settings and public context files. Fixed two valid findings; acknowledged the already-fixed handoff. Eight dashboard tests pass; clean checkout: 92 tests, OK with one skipped private-evidence class. Independent read-only review, skill validation and link/whitespace checks pass. First end-to-end cycle completed on 3 November at 17:39 CET: head 4f1c86f3ee3f3f05bd262f658817018c712774fa received 5/5, completed Greptile check126056153708 succeeded and all three prior threads were resolved. This is a dated receipt for that head, not approval of later commits. The final handoff commit is rechecked before declaring the PR ready; its receipt belongs in the PR conversation. User merge remains pending."
     },
     {
+      "id": "model-routing",
+      "milestone": "workflow",
+      "title": "Configure researched project model roles",
+      "status": "done",
+      "acceptance": [
+        "Project thinker and valuation runner use gpt-6.1-sol/xhigh; Astra is excluded.",
+        "Bounded explorer, implementation, visual evidence and independent review have explicit supported model/effort settings.",
+        "Configuration and routing are documented, checked and exercised without changing global account settings."
+      ],
+      "evidence": [
+        "AGENTS.md",
+        "docs/model-routing.md",
+        ".codex/config.toml",
+        ".codex/agents/explorer.toml",
+        ".codex/agents/visual_evidence.toml",
+        ".codex/agents/reviewer.toml",
+        "betaforge/codex_runner.py",
+        "tests/test_codex_runner.py"
+      ],
+      "blocker": null,
+      "note": "Project defaults and three narrow agent roles installed; no Astra and no global configuration change. Strict installed-client validation and effective config/model catalogue checks pass. Live exact Sol/xhigh image/financial/calculation smoke succeeds. Independent Sol/high review found no actionable issues. Clean offline suite: 106 tests, OK with one skipped private-evidence class. Existing turns retain their executing model; new runs use the project defaults unless explicitly overridden."
+    },
+    {
       "id": "storage-hardening",
       "milestone": "validation",
       "title": "Harden schema compatibility and expose freshness",
@@ -164,7 +187,7 @@
         "betaforge/storage.py"
       ],
       "blocker": null,
-      "note": "Current version-1 stores are healthy. The corpus builder now sorts captures; arbitrary standalone store ingestion still needs the shared-metadata chronology regression alongside schema/freshness hardening."
+      "note": "Current version-1 stores are healthy. The corpus builder now sorts captures; arbitrary standalone store ingestion still needs the shared-metadata chronology regression alongside schema/freshness hardening. A read-only query-plan check on the existing schema confirms a full dataset scan for KPI metadata lookup; profile its import cost before choosing a minimal optimization."
     },
     {
       "id": "material-mapping",
@@ -250,7 +273,7 @@
         "docs/research/frozen-dataset-feasibility.md"
       ],
       "blocker": null,
-      "note": "Completed the API-only corpus for ten distinct issuers: 970/970 responses, 880 source blobs and 264,214 current observations. Raw coverage/identity/basis/hash checks, SQLite integrity/foreign keys, clean archive restore and a downloaded remote-copy checksum pass. A metadata-format audit checked 22,335 percentage/MCURR observations with zero mismatches. Exact data and receipts are in the private release development-corpus-2026-11-03. Final clean suite: 103 tests, OK with one skipped private-evidence class. Greptile identified argument-order-dependent units; the verifier now ingests chronologically with reversed-order regression coverage. Original PDFs and accounting reconciliation remain separate pending tasks. PR #3 contains generic tooling/docs only and awaits final current-head review and user merge."
+      "note": "Completed the API-only corpus for ten distinct issuers: 970/970 responses, 880 source blobs and 264,214 current observations. Raw coverage/identity/basis/hash checks, SQLite integrity/foreign keys, clean archive restore and a downloaded remote-copy checksum pass. A metadata-format audit checked 22,335 percentage/MCURR observations with zero mismatches. Exact data and receipts are in the private release development-corpus-2026-11-03. Final clean suite: 103 tests, OK with one skipped private-evidence class. Greptile identified argument-order-dependent units; the verifier now ingests chronologically with reversed-order regression coverage. Original PDFs and accounting reconciliation remain separate pending tasks. PR #3 contains generic tooling/docs only and awaits user merge."
     },
     {
       "id": "complete-report-corpus",
@@ -268,12 +291,31 @@
       ],
       "blocker": null,
       "note": "API capture does not include original PDFs. Existing worked-example reports are preserved separately; remaining issuer reports can be acquired without live Börsdata access."
+    },
+    {
+      "id": "expand-corpus-to-30",
+      "milestone": "development-corpus",
+      "title": "Expand the frozen API corpus to thirty operating issuers",
+      "status": "done",
+      "acceptance": [
+        "Retain the verified original ten and capture twenty additional distinct suitable operating issuers.",
+        "Verify thirty-company request coverage, identities, KPI bases, hashes and chronological metadata ingestion.",
+        "Freeze, privately archive, clean-restore and verify a downloaded remote copy."
+      ],
+      "evidence": [
+        "scripts/fetch_borsdata_context.py",
+        "tests/test_acquisition.py",
+        "scripts/verify_development_corpus.py",
+        "docs/research/frozen-dataset-feasibility.md"
+      ],
+      "blocker": null,
+      "note": "Completed thirty distinct issuers: 2,910/2,910 responses, 2,620 source blobs, 724,710 current observations, 7–20 annual periods and 101,708 price rows. Original ten captures are unchanged. Source/basis/hash, SQLite integrity/foreign keys, 138,506 KPI metadata links and 64,905 percentage/MCURR unit checks pass with zero mismatches. Clean archive restore verified all 5,569 reviewed files; all seven downloaded original release assets match exact sizes/SHA256. Private release: development-corpus-30-2026-11-03. Three incomplete attempts were reacquired; bounded transport retry recovered two requests. Source import took 2,517.503 seconds; metadata lookup profiling remains in storage hardening. Original PDFs and accounting reconciliation are pending. PR #4 depends on PR #3; final review receipt belongs in the PR conversation. User merges."
     }
   ],
   "session": {
-    "task": "freeze-development-corpus",
-    "summary": "Ten-company paid API data is frozen, checked, privately archived and verified after clean restore and remote download. Permission is settled. Code/plan changes are in PR #3; user merge remains pending.",
-    "next_step": "Finish the current-head Greptile check and post its receipt without another status-only commit. User reviews/merges PR #3, then storage-hardening resumes. Original-report collection remains a separate pending task."
+    "task": "expand-corpus-to-30",
+    "summary": "Thirty-company API corpus is verified, clean-restored and backed up privately with a downloaded-copy checksum. Explicit non-Astra project model roles and the Sol/xhigh runner are implemented and validated.",
+    "next_step": "User reviews/merges PR #3, then dependent PR #4. Resume storage-hardening: schema guard, freshness, out-of-order metadata units and measured import lookup cost; then material mappings and another issuer. Original-report corpus remains separate pending work."
   },
   "references": [
     {
