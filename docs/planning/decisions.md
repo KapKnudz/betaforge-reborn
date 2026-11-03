@@ -62,7 +62,7 @@ The user selected **operating ROIC** using an explicit operating-tax assumption 
 
 ## Preservation and Mac handoff
 
-The user selected Macs first and exact evidence plus saved analyses for workstation handoff. Preserve source, tests, setup, policy and documents in the existing private GitHub repository, and exact research in private versioned archives outside ordinary Git history. Archive digests cover saved outputs as well as input evidence.
+The user selected Macs first and exact evidence plus saved analyses for workstation handoff. The user subsequently selected public application code in `KapKnudz/betaforge-reborn` and separate private research storage in `KapKnudz/betaforge-research-private`. Preserve source, tests, setup, policy and public reference documents in the code repository. Preserve exact reports, databases, watchlists and saved analyses in private versioned release assets outside ordinary Git history. Archive digests cover saved outputs as well as input evidence.
 
 Each Mac has its own local credentials and Codex authentication. Completed-result restoration and active conversation migration are separate capabilities; cross-Mac live resume remains unverified. See [research handoff](../research-handoff.md).
 
