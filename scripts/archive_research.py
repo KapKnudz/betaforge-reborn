@@ -15,24 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from betaforge.storage import EvidenceStore
 
-# These are the completed research inputs/results, never the user's home or config.
-RESEARCH_DIRECTORIES = (
-    "data/granges-codex/packet-20261101",
-    "data/granges-codex/runs/20261101-full",
-    "data/granges-walkthrough/sources",
-    "data/granges-walkthrough/prepared",
-    "data/granges-walkthrough/runs",
-    "data/granges-walkthrough/qa",
-    "data/borsdata",
-)
-OPTIONAL_RESEARCH_DIRECTORIES = (
-    "data/granges-codex/packet-quality-20261103",
-    "data/granges-codex/runs/20261103-quality-smoke",
-    "data/financial-reviews",
-    "data/benchmarks",
-    "data/watchlists",
-)
-FORBIDDEN_PARTS = {".git", ".idea", ".venv", "node_modules", "__pycache__"}
+FORBIDDEN_PARTS = {".git", ".idea", ".venv", ".aws", ".ssh", ".codex", ".agents", ".config", "node_modules", "__pycache__"}
 
 
 def digest(path):
@@ -44,33 +27,52 @@ def digest(path):
 
 
 def forbidden(path):
-    return any(part in FORBIDDEN_PARTS or part.startswith(".env") or
+    return any(part.lower() in FORBIDDEN_PARTS or part.lower().startswith(".env") or
                part.lower() in {"auth.json", "credentials.json", "credentials"}
                for part in path.parts)
 
 
-def source_files(root):
-    """An explicit selection keeps secrets and unrelated workspace files out."""
+def research_path(root, value):
+    """Only explicit research subpaths, never the repository or a home directory."""
+    relative = Path(value)
+    if (relative.is_absolute() or ".." in relative.parts or "\\" in str(value) or
+            forbidden(relative) or len(relative.parts) < 2):
+        raise ValueError("Use a reviewed repository-relative research subpath")
+    if relative.parts[0] == "data":
+        if relative.parts[1] == "backups":
+            raise ValueError("Backup output is not an archive input")
+    elif relative.parts[0] == "examples":
+        if len(relative.parts) < 3 or relative.parts[2] != "data":
+            raise ValueError("Example inputs must be inside examples/<case>/data")
+    else:
+        raise ValueError("Research inputs must be under data/ or examples/<case>/data")
+    path = root / relative
+    if any(parent.is_symlink() for parent in (path, *path.parents) if parent != root and parent.is_relative_to(root)):
+        raise ValueError("Research symlinks are not archived: " + str(relative))
+    if not path.resolve().is_relative_to(root):
+        raise ValueError("Research path escapes the repository")
+    return path
+
+
+def source_files(root, includes):
+    """Select only named saved evidence, with no company-specific defaults."""
     root = Path(root).resolve()
-    selected = []
-    directories = (*RESEARCH_DIRECTORIES, *(name for name in OPTIONAL_RESEARCH_DIRECTORIES if (root/name).exists()))
-    for relative in directories:
-        directory = root / relative
-        if directory.is_symlink() or not directory.is_dir():
-            raise ValueError("Required research directory missing or linked: " + relative)
-        for source in sorted(directory.rglob("*")):
+    if isinstance(includes, (str, Path)) or not includes:
+        raise ValueError("At least one explicit research include path is required")
+    selected = {}
+    for relative in includes:
+        path = research_path(root, relative)
+        if not path.exists():
+            raise ValueError("Required research path missing: " + str(relative))
+        for source in sorted(path.rglob("*")) if path.is_dir() else [path]:
             relative_path = source.relative_to(root)
             if source.is_symlink():
                 raise ValueError("Research symlinks are not archived: " + str(relative_path))
             if source.is_file() and not forbidden(relative_path):
-                selected.append((source, relative_path.as_posix()))
-    directory = root / "data/granges-walkthrough"
-    for source in sorted(directory.iterdir()):
-        if source.is_symlink():
-            raise ValueError("Research symlinks are not archived: " + str(source.relative_to(root)))
-        if source.is_file() and source.suffix in {".json", ".md"} and not forbidden(source.relative_to(root)):
-            selected.append((source, source.relative_to(root).as_posix()))
-    return selected
+                selected[relative_path.as_posix()] = source
+    if not selected:
+        raise ValueError("No eligible research files selected")
+    return [(source, name) for name, source in sorted(selected.items())]
 
 
 def git_identity(root):
@@ -97,7 +99,7 @@ def add_file(archive, source, name):
     return {"path": name, "bytes": before.st_size}
 
 
-def create_archive(root, destination):
+def create_archive(root, destination, includes, db_path="data/evidence/evidence.sqlite3"):
     root, destination = Path(root).resolve(), Path(destination).resolve()
     if not destination.name.endswith(".tar.gz"):
         raise ValueError("Archive filename must end in .tar.gz")
@@ -105,17 +107,30 @@ def create_archive(root, destination):
     index = destination.with_name(destination.name + ".manifest.json")
     if any(path.exists() for path in (destination, checksum, index)):
         raise FileExistsError("Archive or sidecar already exists; choose a new version")
-    files = source_files(root)
+    files = source_files(root, includes)
+    database = research_path(root, db_path)
+    if not database.is_file():
+        raise ValueError("Evidence database missing: " + str(db_path))
+    for relative in includes:
+        source = research_path(root, relative)
+        if source.is_relative_to(database.parent) or database.parent.is_relative_to(source):
+            raise ValueError("Select saved evidence separately; the live store is frozen through --db")
+        if destination == source or (source.is_dir() and destination.is_relative_to(source)):
+            raise ValueError("Archive output must be outside its input paths")
+    if destination.is_relative_to(database.parent):
+        raise ValueError("Archive output must be outside the evidence store")
+    store_relative = database.parent.relative_to(root)
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=".archive-", dir=destination.parent))
     try:
-        with EvidenceStore(root / "data/evidence/evidence.sqlite3", readonly=True) as store:
+        with EvidenceStore(database, readonly=True) as store:
             frozen = store.freeze(temporary / "canonical-evidence")
-        files.extend((source, "data/evidence/" + source.relative_to(frozen).as_posix())
+        files.extend((source, (store_relative / source.relative_to(frozen)).as_posix())
                      for source in sorted(frozen.rglob("*")) if source.is_file())
         manifest = {"created_at": datetime.now(timezone.utc).isoformat(),
-                    "git": git_identity(root), "source_directories": [*RESEARCH_DIRECTORIES, *(name for name in OPTIONAL_RESEARCH_DIRECTORIES if (root/name).exists())],
-                    "canonical_store": "data/evidence (consistent SQLite backup and verified blobs)",
+                    "git": git_identity(root), "source_paths": sorted({Path(p).as_posix() for p in includes}),
+                    "source_database": database.relative_to(root).as_posix(),
+                    "canonical_store": store_relative.as_posix() + " (consistent SQLite backup and verified blobs)",
                     "files": []}
         pending = temporary / destination.name
         with tarfile.open(pending, "w:gz", compresslevel=6) as archive:
@@ -147,8 +162,12 @@ def create_archive(root, destination):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--include", action="append", required=True, type=Path,
+                        help="Reviewed repository-relative saved research path; repeat for each selection")
+    parser.add_argument("--db", type=Path, default=Path("data/evidence/evidence.sqlite3"),
+                        help="Repository-relative live evidence database; frozen consistently, not copied directly")
     args = parser.parse_args()
-    print(json.dumps(create_archive(ROOT, args.output), indent=2))
+    print(json.dumps(create_archive(ROOT, args.output, args.include, args.db), indent=2))
 
 
 if __name__ == "__main__":

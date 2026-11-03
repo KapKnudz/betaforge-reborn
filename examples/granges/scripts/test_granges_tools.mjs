@@ -1,13 +1,13 @@
-// Usage: node scripts/test_granges_tools.mjs /path/to/pi-coding-agent [corpus-root]
+// Usage: node examples/granges/scripts/test_granges_tools.mjs /path/to/pi-coding-agent [corpus-root]
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const { loadExtensions } = await import(pathToFileURL(join(process.argv[2], "dist/core/extensions/loader.js")));
 const root = mkdtempSync(join(tmpdir(), "granges-tools-test-"));
-const extension = resolve("scripts/granges_tools.ts");
+const extension = fileURLToPath(new URL("./granges_tools.ts", import.meta.url));
 const report_id = "granges-annual-2021";
 let call = 0;
 async function load(data, output) {

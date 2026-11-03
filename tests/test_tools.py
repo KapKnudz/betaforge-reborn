@@ -29,6 +29,22 @@ class ToolsTests(unittest.TestCase):
     def tearDown(self):
         self.tools.store.close();self.temp.cleanup()
 
+    def test_packet_cannot_silently_select_a_company(self):
+        packet=json.loads(self.packet.read_text())
+        for value in (None,True,'426',0,-1):
+            with self.subTest(value=value):
+                changed=dict(packet)
+                if value is None:
+                    del changed['instrument_id']
+                else:
+                    changed['instrument_id']=value
+                self.packet.write_text(json.dumps(changed))
+                directory=self.root/'invalid-identity'
+                with self.assertRaisesRegex(ValueError,'explicit positive integer instrument_id'):
+                    EvidenceTools(self.packet,directory)
+                self.assertFalse(directory.exists())
+        self.packet.write_text(json.dumps(packet))
+
     def test_search_does_not_satisfy_reading_and_full_pages_do(self):
         self.tools.search_reports('revenue')
         self.assertFalse(self.tools.coverage()['complete'])

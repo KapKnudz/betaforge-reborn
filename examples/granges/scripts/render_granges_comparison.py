@@ -4,16 +4,17 @@ import json
 from pathlib import Path
 import shutil
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 DATA = ROOT / "data/granges-walkthrough"
+CASE_DATA = Path(__file__).resolve().parents[1] / "data"
 OUT = ROOT / ".lavish"
 esc = lambda value: html.escape(str(value))
 
 
 def main():
-    review = json.loads((DATA / "comparison-review.json").read_text())
+    review = json.loads((CASE_DATA / "comparison-review.json").read_text())
     metrics = json.loads((DATA / "runs/comparison-summary.json").read_text())
-    manifest = json.loads((DATA / "source-manifest.json").read_text())
+    manifest = json.loads((CASE_DATA / "source-manifest.json").read_text())
     OUT.mkdir(exist_ok=True)
     assets = OUT / "granges-assets"
     assets.mkdir(exist_ok=True)

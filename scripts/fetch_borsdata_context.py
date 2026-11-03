@@ -10,7 +10,9 @@ import time
 
 import requests
 
-from fetch_borsdata_granges import ROOT, BASE_URL, read_key, get_response, validate_response, http_diagnostic
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from betaforge.borsdata import BASE_URL, read_key, get_response, validate_response, http_diagnostic
 
 
 def retry_delay(header):
@@ -113,7 +115,7 @@ def acquire(directory, instrument, key, plan=None, pause=time.sleep):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--instrument", type=int, default=426)
+    parser.add_argument("--instrument", type=int, required=True)
     args = parser.parse_args()
     request_plan(args.instrument)
     key = read_key(ROOT / ".env.local")

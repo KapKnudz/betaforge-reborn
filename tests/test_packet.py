@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import prepare_codex_packet as packet
+from betaforge.tools import EvidenceTools
 
 
 class PacketTests(unittest.TestCase):
@@ -18,20 +19,18 @@ class PacketTests(unittest.TestCase):
         self.reports = self.root / "reports"
         (self.reports / "sources").mkdir(parents=True)
         (self.reports / "prepared").mkdir()
-        pdf = self.reports / "sources/granges-test.pdf"
+        pdf = self.reports / "sources/issuer-test.pdf"
         pdf.write_bytes(b"%PDF-test-evidence")
-        pages = self.reports / "prepared/granges-test.json"
+        pages = self.reports / "prepared/issuer-test.json"
         pages.write_text('[{"page":1,"text":"Revenue 10"}]')
-        self.index = {"reports": [{"report_id": "granges-test", "pages": 1,
+        self.index = {"reports": [{"report_id": "issuer-test", "pages": 1,
                                   "source_sha256": packet.digest(pdf), "prepared_sha256": packet.digest(pages)}]}
         (self.reports / "prepared/index.json").write_text(json.dumps(self.index))
         (self.reports / "source-manifest.json").write_text('{"documents":[]}')
-        (self.root / "docs/research").mkdir(parents=True)
-        (self.root / "docs/research/granges-mapping-resolution.md").write_text("Test mapping")
+        (self.root / "docs").mkdir()
         (self.root / "docs/analysis-policy.md").write_text("Test adopted policy")
         (self.root / "docs/calculations.md").write_text("Test explicit formulas")
-        (self.root / "data/granges-walkthrough").mkdir(parents=True)
-        self.prompt = self.root / "data/granges-walkthrough/analysis-questions-v1.md"
+        self.prompt = self.root / "company-prompt.md"
         self.prompt.write_text("Test prompt")
         self.facts = self.root / "facts.json"
         self.facts.write_text(json.dumps({"instrument_id": 426, "mapping_version": "test",
@@ -50,15 +49,16 @@ class PacketTests(unittest.TestCase):
 
     def build(self, **kwargs):
         with patch.object(packet, "ROOT", self.root):
-            return packet.prepare([self.input], self.root / "published", self.root / "store/evidence.sqlite3", self.facts, self.reports,
-                                  analysis_date=kwargs.pop("analysis_date", "2026-11-01"), **kwargs)
+            return packet.prepare([self.input], self.root / "published", self.root / "store/evidence.sqlite3", kwargs.pop("facts_path", self.facts), self.reports,
+                                  analysis_date=kwargs.pop("analysis_date", "2026-11-01"),
+                                  instrument_id=kwargs.pop("instrument_id", 426), prompt_path=kwargs.pop("prompt_path", self.prompt), **kwargs)
 
     def test_packet_preserves_independent_corpus_and_current_price(self):
         result = self.build()
         data = json.loads(result.read_text())
         self.assertIn('"metric": "price_close"', data["context"])
-        copied = result.parent / "reports/sources/granges-test.pdf"
-        original = self.reports / "sources/granges-test.pdf"
+        copied = result.parent / "reports/sources/issuer-test.pdf"
+        original = self.reports / "sources/issuer-test.pdf"
         self.assertEqual(packet.digest(copied), packet.digest(original))
         original.write_bytes(b"changed later")
         self.assertEqual(packet.digest(copied), self.index["reports"][0]["source_sha256"])
@@ -74,7 +74,7 @@ class PacketTests(unittest.TestCase):
             self.build()
 
     def test_corrupt_report_does_not_publish_partial_packet(self):
-        (self.reports / "sources/granges-test.pdf").write_bytes(b"not the frozen report")
+        (self.reports / "sources/issuer-test.pdf").write_bytes(b"not the frozen report")
         with self.assertRaises(ValueError):
             self.build()
         self.assertFalse((self.root / "published").exists())
@@ -103,7 +103,7 @@ class PacketTests(unittest.TestCase):
             "metric": "cash_capex", "value": "2", "unit": "SEK", "scale": "1000000",
             "report_type": "year", "year": 2025, "period": 5, "kind": "flow", "basis": "cash outflow",
             "status": "matched", "period_start": "2025-01-01", "period_end": "2025-12-31",
-            "evidence": {"report_id": "granges-test", "page": 1,
+            "evidence": {"report_id": "issuer-test", "page": 1,
                          "sha256": self.index["reports"][0]["source_sha256"]}}]}))
         result = self.build(instrument_id=777, analysis_date="2026-11-03", prompt_path=self.prompt, extra_facts=[extra])
         data = json.loads(result.read_text())
@@ -117,6 +117,29 @@ class PacketTests(unittest.TestCase):
         self.assertEqual(packet.digest(saved_extra), data["extra_report_facts"][0]["sha256"])
         with packet.EvidenceStore(result.parent / "snapshot/evidence.sqlite3", readonly=True) as store:
             self.assertEqual(store.query_financials(777, fields=["cash_capex"])[0]["value"], "2")
+        tools=EvidenceTools(result,self.root/'other-issuer-run')
+        try:
+            self.assertEqual(tools.catalogue()['instrument_id'],777)
+            self.assertEqual(tools.read_report('issuer-test',1)['delivered_pages'],[1])
+            rows=tools.get_financials(fields=['cash_capex'])['observations']
+            self.assertEqual([row['instrument_id'] for row in rows],[777])
+        finally:
+            tools.store.close()
+
+    def test_company_inputs_are_required_and_report_facts_can_be_absent(self):
+        for value in (None,True,0,'426'):
+            with self.subTest(instrument=value), self.assertRaisesRegex(ValueError,'Instrument ID'):
+                self.build(instrument_id=value)
+        with self.assertRaisesRegex(ValueError,'explicit company analysis prompt'):
+            self.build(prompt_path=None)
+        self.assertFalse((self.root/'published').exists())
+        self.assertFalse((self.root/'store').exists())
+        self.facts.unlink()
+        result=self.build(facts_path=None)
+        data=json.loads(result.read_text())
+        self.assertFalse((result.parent/'reconciled-facts.json').exists())
+        self.assertEqual(data['extra_report_facts'],[])
+        self.assertIn('No company-specific mapping note supplied',data['context'])
 
     def test_bad_date_or_wrong_company_fact_is_rejected_before_publication(self):
         with self.assertRaises(ValueError):

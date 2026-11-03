@@ -21,9 +21,9 @@ The illustrative valuation concludes roughly fair value under its base assumptio
 | Present value at a 10% required return, including interim dividends | 52.35 | 168.14 | 249.09 |
 | November 2029 target | 58.43 | 212.54 | 320.28 |
 
-The observed price was 172.20 SEK. These are conditional scenarios, not probability-weighted forecasts. The base case assumes 700 ktonnes volume, 3,600 SEK EBIT per tonne, an 11-times full EV/EBIT multiple and 350 MSEK annual retained cash after dividends and all other cash outflows. NCI uses a book-value proxy. [Full report, sections 9–11](../data/granges-codex/runs/20261101-full/answer.md).
+The observed price was 172.20 SEK. These are conditional scenarios, not probability-weighted forecasts. The base case assumes 700 ktonnes volume, 3,600 SEK EBIT per tonne, an 11-times full EV/EBIT multiple and 350 MSEK annual retained cash after dividends and all other cash outflows. NCI uses a book-value proxy. [Full report, sections 9–11](../../../data/granges-codex/runs/20261101-full/answer.md).
 
-The local [review page](../.lavish/granges-codex-walkthrough-export.html) exposes the saved report, calculation inputs, source inventory and coverage. It follows the existing Betaforge review design and does not initiate analysis.
+The local [review page](../../../.lavish/granges-codex-walkthrough-export.html) exposes the saved report, calculation inputs, source inventory and coverage. It follows the existing Betaforge review design and does not initiate analysis.
 
 ## Method and philosophy clarification — 3 November 2026
 
@@ -35,17 +35,17 @@ The 10% equity required return was an illustrative analyst assumption. The agree
 
 ## What is implemented
 
-The accepted [SQLite and immutable-file specification](adr/0002-local-evidence-storage.md) now has a working local implementation. Acquisition uses Python Requests, preserves raw responses and safe request metadata, and bounds retries. Storage retains exact decimals, units, scales, periods, currencies, source references and changed observations. Analysis packets freeze the database, source JSON, original PDFs and prepared page text.
+The accepted [SQLite and immutable-file specification](../../../docs/adr/0002-local-evidence-storage.md) now has a working local implementation. Acquisition uses Python Requests, preserves raw responses and safe request metadata, and bounds retries. Storage retains exact decimals, units, scales, periods, currencies, source references and changed observations. Analysis packets freeze the database, source JSON, original PDFs and prepared page text.
 
-The Python controller drives the authenticated desktop Codex app-server using GPT-6.1 Sol at high reasoning. Its tools query saved financials and contextual datasets, read complete report pages, search, inspect original PDF images, record sourced inputs or assumptions, and calculate from saved numeric IDs. The agent has no general shell, filesystem or web tool in this run. See [the integration contract](codex-integration.md).
+The Python controller drives the authenticated desktop Codex app-server using GPT-6.1 Sol at high reasoning. Its tools query saved financials and contextual datasets, read complete report pages, search, inspect original PDF images, record sourced inputs or assumptions, and calculate from saved numeric IDs. The agent has no general shell, filesystem or web tool in this run. See [the integration contract](../../../docs/codex-integration.md).
 
 The controller records reading coverage, activity, input selections and calculations; it enforces research closure and a two-hour model execution deadline. A separate live smoke established original-image access, scale-aware arithmetic, cancellation and continuation on the same Codex thread. Existing answers and invocation metadata are preserved on deliberate resume.
 
 ## Frozen evidence
 
-The [acquisition manifest](../data/borsdata/context/426/20261101T173056Z/manifest.json) records 86 HTTP 200 responses. The data includes 14 annual, 40 quarterly and 40 R12 statement rows, 3,036 daily price rows, selected KPI histories and summaries, definitions, classifications, insider/short/buyback data and calendars. This verifies the selected routes for Gränges and this account, not universal issuer coverage.
+The [acquisition manifest](../../../data/borsdata/context/426/20261101T173056Z/manifest.json) records 86 HTTP 200 responses. The data includes 14 annual, 40 quarterly and 40 R12 statement rows, 3,036 daily price rows, selected KPI histories and summaries, definitions, classifications, insider/short/buyback data and calendars. This verifies the selected routes for Gränges and this account, not universal issuer coverage.
 
-The [packet](../data/granges-codex/packet-20261101/packet.json) contains:
+The [packet](../../../data/granges-codex/packet-20261101/packet.json) contains:
 
 - 87 source versions: 86 provider responses plus the selected report-fact source.
 - 22,593 stored observation versions, of which 22,566 are current within this snapshot.
@@ -59,7 +59,7 @@ The original PDFs came from Gränges' issuer archive. MFN discovery found all ei
 
 ## Material input choices
 
-The [mapping resolution](research/granges-mapping-resolution.md) and [selected report facts](../data/granges-walkthrough/reconciled-facts.json) retain provider and issuer observations separately.
+The [mapping resolution](research/granges-mapping-resolution.md) and [selected report facts](../data/reconciled-facts.json) retain provider and issuer observations separately.
 
 | Issue | Treatment in the walkthrough |
 |---|---|
@@ -76,7 +76,7 @@ The deeper walkthrough also identified pensions of 229 MSEK on Q3 physical page 
 
 All 35 automated tests passed. They cover acquisition failures and redaction, bounded retry/defer behavior, revisions, missing values, company and currency identity, snapshot integrity, report source links, exact arithmetic, unit guards, research closure, prompt identity and runner lifecycle behavior. The independent implementation review found no remaining material blocker for the bounded Gränges run.
 
-All 326 model calculations were separately recomputed with Decimal and their 919 operands checked against frozen observations, saved inputs and earlier results. Every result and source value/scale matched. That validates arithmetic and selected source values; it cannot establish that a forecast, valuation multiple or accounting convention is economically correct. [Arithmetic check](../data/granges-codex/runs/20261101-full/calculation-verification.json), [independent output review](research/granges-codex-output-review.md).
+All 326 model calculations were separately recomputed with Decimal and their 919 operands checked against frozen observations, saved inputs and earlier results. Every result and source value/scale matched. That validates arithmetic and selected source values; it cannot establish that a forecast, valuation multiple or accounting convention is economically correct. [Arithmetic check](../../../data/granges-codex/runs/20261101-full/calculation-verification.json), [independent output review](research/granges-codex-output-review.md).
 
 Seven tool calls were rejected and recovered: invalid pagination, an unretrieved evidence ID, unsuitable output units and unresolved provider currency. They did not prevent completion. The audit preserves these attempts. It also preserves intermediate calculations: 77 calculation IDs are cited in the final report, while 249 are intermediate or uncited. An early gross-income label was corrected in the selected final answer; the history was not erased.
 
@@ -88,10 +88,10 @@ This implementation does not yet establish a general multiissuer production work
 
 ## Local records and reproduction
 
-- [Run metadata](../data/granges-codex/runs/20261101-full/run.json)
-- [Full model report](../data/granges-codex/runs/20261101-full/answer.md)
-- [Saved calculations](../data/granges-codex/runs/20261101-full/calculations.json)
-- [Saved inputs](../data/granges-codex/runs/20261101-full/inputs.json)
-- [Packet and corpus identity](../data/granges-codex/packet-20261101/packet.json)
+- [Run metadata](../../../data/granges-codex/runs/20261101-full/run.json)
+- [Full model report](../../../data/granges-codex/runs/20261101-full/answer.md)
+- [Saved calculations](../../../data/granges-codex/runs/20261101-full/calculations.json)
+- [Saved inputs](../../../data/granges-codex/runs/20261101-full/inputs.json)
+- [Packet and corpus identity](../../../data/granges-codex/packet-20261101/packet.json)
 
-The [README](../README.md) gives acquisition, preparation and execution commands. Preserve the existing packet and run; choose a new output directory for a deliberate new analysis. Local data and model traces are ignored by Git.
+The [README](../../../README.md) gives acquisition, preparation and execution commands. Preserve the existing packet and run; choose a new output directory for a deliberate new analysis. Local data and model traces are ignored by Git.

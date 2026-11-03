@@ -4,9 +4,9 @@ Prepared 3 November 2026. **Probability ownership is agreed; numerical Gränges 
 
 ## What is missing today
 
-The saved report supplies bear/base/bull assumptions and values, and expressly says they are not probability-weighted forecasts. Consequently, its 168.14 SEK base present value is not an expected value across possible outcomes. Its roughly-fair-value conclusion is conditional on that base case. [Saved answer, Executive assessment and section 9](../../data/granges-codex/runs/20261101-full/answer.md).
+The saved report supplies bear/base/bull assumptions and values, and expressly says they are not probability-weighted forecasts. Consequently, its 168.14 SEK base present value is not an expected value across possible outcomes. Its roughly-fair-value conclusion is conditional on that base case. [Saved answer, Executive assessment and section 9](../../../../data/granges-codex/runs/20261101-full/answer.md).
 
-The three present values are 52.35241848 / 168.14270678 / 249.08595434 SEK per share. They discount the corresponding November 2029 targets and assumed dividends at 10%. Future targets of 58.42706900 / 212.54394273 / 320.27940522 belong to a different date and must not be mixed with present values. [Answer section 9](../../data/granges-codex/runs/20261101-full/answer.md); final present-value calculations `calc:44251337e56efb345589`, `calc:791e2ac113fabdd105dc`, `calc:9e9577bc76984e4d0163`.
+The three present values are 52.35241848 / 168.14270678 / 249.08595434 SEK per share. They discount the corresponding November 2029 targets and assumed dividends at 10%. Future targets of 58.42706900 / 212.54394273 / 320.27940522 belong to a different date and must not be mixed with present values. [Answer section 9](../../../../data/granges-codex/runs/20261101-full/answer.md); final present-value calculations `calc:44251337e56efb345589`, `calc:791e2ac113fabdd105dc`, `calc:9e9577bc76984e4d0163`.
 
 ## Proposed meaning and process
 
@@ -30,7 +30,7 @@ Weighted present value
   + p_bull × bull present value
 ```
 
-The [illustration records](../../data/granges-walkthrough/probability-examples.json) use the original full-precision results. Holding bull probability at 20% and transferring weight between bear and base gives:
+The [illustration records](../../data/probability-examples.json) use the original full-precision results. Holding bull probability at 20% and transferring weight between bear and base gives:
 
 | Illustrative bear/base/bull weights | Weighted present value, SEK/share | Weighted November 2029 target, SEK/share |
 |---|---:|---:|
@@ -49,13 +49,13 @@ Using the saved 1 November evidence, the working proposal is **25% bear / 55% ba
 | Base | 55% | Completed expansion, 800 ktonnes capacity, improving recent profit per tonne and observed execution support a central recovery path. The 700-ktonne case is 87.5% of stated nameplate capacity, an analytical proxy rather than the issuer's plant-level utilization measure; management targets more than 90% utilization. Cash conversion must still improve. |
 | Bull | 20% | Higher utilization, better mix and Asian profitability offer a path, but 760 ktonnes, 4,200 SEK EBIT per tonne and 650 MSEK retained cash require several favorable developments together. |
 
-Evidence: [saved report sections 4,6,9–11](../../data/granges-codex/runs/20261101-full/answer.md). The weights are judgments about the combined narratives; the evidence does not statistically identify those percentages.
+Evidence: [saved report sections 4,6,9–11](../../../../data/granges-codex/runs/20261101-full/answer.md). The weights are judgments about the combined narratives; the evidence does not statistically identify those percentages.
 
-The resulting **indicative three-case weighted present value is 155.38 SEK/share**, at the original illustrative 10% discount rate. The weighted November 2029 target is 195.56 SEK/share; it excludes interim dividends from the target itself, while the present value includes their discounted payments. [Exact inputs and Decimal calculations](../../data/granges-walkthrough/probability-examples.json), `working_draft`.
+The resulting **indicative three-case weighted present value is 155.38 SEK/share**, at the original illustrative 10% discount rate. The weighted November 2029 target is 195.56 SEK/share; it excludes interim dividends from the target itself, while the present value includes their discounted payments. [Exact inputs and Decimal calculations](../../data/probability-examples.json), `working_draft`.
 
-This is conditional on the three modeled **going-concern** cases. Their point values are judgmental representatives rather than established conditional means. An explicit default or severe-dilution tail remains unquantified; the weighted value is not an exhaustive, calibrated expectation. Current profitability and net-debt/adjusted-EBITDA of 1.7 times do not indicate imminent distress in the saved report, while weak cash conversion prevents establishing that tail risk as zero. [Saved report sections 6,9,11](../../data/granges-codex/runs/20261101-full/answer.md).
+This is conditional on the three modeled **going-concern** cases. Their point values are judgmental representatives rather than established conditional means. An explicit default or severe-dilution tail remains unquantified; the weighted value is not an exhaustive, calibrated expectation. Current profitability and net-debt/adjusted-EBITDA of 1.7 times do not indicate imminent distress in the saved report, while weak cash conversion prevents establishing that tail risk as zero. [Saved report sections 6,9,11](../../../../data/granges-codex/runs/20261101-full/answer.md).
 
-Test joint alternative judgments of **35/50/15** for greater cash-conversion skepticism and **15/60/25** after convincing repair/cash recovery evidence. These produce approximately **139.76** and **171.01 SEK/share** respectively. They are sensitivity cases, not statistical confidence bounds. Updating the weights should follow new evidence rather than whichever value makes the investment attractive. [Illustration records, `weight_uncertainty_examples`](../../data/granges-walkthrough/probability-examples.json).
+Test joint alternative judgments of **35/50/15** for greater cash-conversion skepticism and **15/60/25** after convincing repair/cash recovery evidence. These produce approximately **139.76** and **171.01 SEK/share** respectively. They are sensitivity cases, not statistical confidence bounds. Updating the weights should follow new evidence rather than whichever value makes the investment attractive. [Illustration records, `weight_uncertainty_examples`](../../data/probability-examples.json).
 
 ## Return, risk and the agreed benchmark
 
@@ -67,9 +67,9 @@ Three useful measures should be named precisely:
 - Probability of failing the investment return hurdle.
 - Probability that the analyst's present value is below the market price.
 
-For example, the base future target exceeds the starting price, while its present value at the illustrative 10% rate is below that price. It therefore describes a positive nominal modeled outcome that misses 10%. Under this model's initial purchase followed by positive dividends and terminal equity proceeds, a present value below the purchase price at 10% is equivalent to a scenario IRR below 10%. Those two modeled probabilities are not independent risk measures. The actual future market price can also diverge from the scenario target. [Answer section 9, Future targets versus today's value](../../data/granges-codex/runs/20261101-full/answer.md).
+For example, the base future target exceeds the starting price, while its present value at the illustrative 10% rate is below that price. It therefore describes a positive nominal modeled outcome that misses 10%. Under this model's initial purchase followed by positive dividends and terminal equity proceeds, a present value below the purchase price at 10% is equivalent to a scenario IRR below 10%. Those two modeled probabilities are not independent risk measures. The actual future market price can also diverge from the scenario target. [Answer section 9, Future targets versus today's value](../../../../data/granges-codex/runs/20261101-full/answer.md).
 
-The agreed benchmark is Investor AB B's trailing ten-year annualized total return with dividends reinvested, as of the analysis date. Its data and calculation conventions remain to be verified. The walkthrough's 10% assumption did not implement that benchmark. [Planning foundation, Return hurdle](../planning/decisions.md#return-hurdle).
+The agreed benchmark is Investor AB B's trailing ten-year annualized total return with dividends reinvested, as of the analysis date. Its data and calculation conventions remain to be verified. The walkthrough's 10% assumption did not implement that benchmark. [Planning foundation, Return hurdle](../../../../docs/planning/decisions.md#return-hurdle).
 
 Missing the Investor B hurdle can differ from missing 10% if the measured benchmark or return convention differs. The opportunity-cost comparison and the valuation discount rate serve different purposes; this proposal does not require automatically setting both to the same number.
 
@@ -77,6 +77,6 @@ The annual return statistic also needs an explicit convention: the weighted mean
 
 ## Decision frontier
 
-**Q1 — Probability ownership: settled.** The user confirmed that the analyst proposes company-specific weights with evidence and uncertainty, editable by the user. The policy is recorded in [the planning foundation](../planning/decisions.md#scenario-probability-ownership). No particular numerical split was adopted by that reply.
+**Q1 — Probability ownership: settled.** The user confirmed that the analyst proposes company-specific weights with evidence and uncertainty, editable by the user. The policy is recorded in [the planning foundation](../../../../docs/planning/decisions.md#scenario-probability-ownership). No particular numerical split was adopted by that reply.
 
 Outcome definitions, numerical probability estimates, return-statistic conventions and probability-update rules remain to be made explicit. The Investor B benchmark identity is already agreed and does not need to be chosen again. No new ADR is necessary for the present explanatory proposal.

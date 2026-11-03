@@ -16,21 +16,22 @@ class ArchiveTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        for directory in backup.RESEARCH_DIRECTORIES:
+        self.includes = ["data/companies/777/reports", "data/runs/company-b"]
+        for directory in self.includes:
             source = self.root / directory
-            source.mkdir(parents=True, exist_ok=True)
+            source.mkdir(parents=True)
             (source / "evidence.txt").write_text("Preserved evidence\n")
         with backup.EvidenceStore(self.root / "data/evidence/evidence.sqlite3"):
             pass
         self.output = self.root / "data/backups/test.tar.gz"
 
-    def create(self):
+    def create(self, includes=None, output=None, db_path="data/evidence/evidence.sqlite3"):
         with patch.object(backup, "git_identity", return_value={"head_at_capture": "test", "tracked_changes": False, "untracked_project_files": False}):
-            return backup.create_archive(self.root, self.output)
+            return backup.create_archive(self.root, output or self.output,
+                                         self.includes if includes is None else includes, db_path)
 
-    def test_archive_preserves_bytes_freezes_store_and_excludes_credentials(self):
-        (self.root / ".env.local").write_text("not research")
-        selected = self.root / backup.RESEARCH_DIRECTORIES[1]
+    def test_explicit_company_paths_preserve_bytes_freeze_store_and_exclude_credentials(self):
+        selected = self.root / self.includes[1]
         (selected / ".env.local").write_text("not research")
         (selected / "auth.json").write_text("not research")
         result = self.create()
@@ -39,29 +40,36 @@ class ArchiveTests(unittest.TestCase):
             names = archive.getnames()
             self.assertIn("data/evidence/manifest.json", names)
             self.assertIn("data/evidence/evidence.sqlite3", names)
-            self.assertNotIn(str(selected.relative_to(self.root) / ".env.local"), names)
-            self.assertFalse(any("auth.json" in name for name in names))
+            self.assertFalse(any(".env" in name or "auth.json" in name for name in names))
             self.assertTrue(all(not name.startswith("/") and ".." not in Path(name).parts for name in names))
-            self.assertEqual(archive.extractfile(str(selected.relative_to(self.root) / "evidence.txt")).read(), b"Preserved evidence\n")
+            self.assertEqual(archive.extractfile(self.includes[1] + "/evidence.txt").read(), b"Preserved evidence\n")
             manifest = json.load(archive.extractfile("research-manifest.json"))
+            self.assertEqual(manifest["source_paths"], self.includes)
             self.assertEqual(len(manifest["files"]), result["files"])
         with self.assertRaises(FileExistsError):
             self.create()
 
     def test_missing_research_and_symlinks_fail_without_publishing(self):
-        source = self.root / backup.RESEARCH_DIRECTORIES[0] / "evidence.txt"
+        source = self.root / self.includes[0] / "evidence.txt"
         source.unlink()
         source.symlink_to(self.root / ".env.local")
         with self.assertRaisesRegex(ValueError, "symlinks"):
             self.create()
         self.assertFalse(self.output.exists())
         source.unlink()
-        (self.root / backup.RESEARCH_DIRECTORIES[0]).rmdir()
+        source.parent.rmdir()
         with self.assertRaisesRegex(ValueError, "missing"):
             self.create()
 
+    def test_symlink_in_an_include_parent_is_rejected(self):
+        folder = self.root / "data/linked"
+        folder.symlink_to(self.root / "data/companies", target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "symlinks"):
+            self.create(includes=["data/linked/777/reports"])
+        self.assertFalse(self.output.exists())
+
     def test_changed_source_does_not_publish_archive(self):
-        name = backup.RESEARCH_DIRECTORIES[0] + "/evidence.txt"
+        name = self.includes[0] + "/evidence.txt"
         original = tarfile.TarFile.addfile
         def change_after_read(archive, member, body=None):
             original(archive, member, body)
@@ -73,17 +81,42 @@ class ArchiveTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
         self.assertFalse(list(self.output.parent.glob(".archive-*")))
 
-    def test_new_quality_outputs_and_benchmarks_are_included_when_present(self):
-        for relative in backup.OPTIONAL_RESEARCH_DIRECTORIES:
-            folder=self.root/relative; folder.mkdir(parents=True,exist_ok=True)
-            (folder/'saved.json').write_text('{"saved":"exact evidence"}')
-        result=self.create()
-        with tarfile.open(self.output,'r:gz') as archive:
-            names=archive.getnames()
-            manifest=json.load(archive.extractfile('research-manifest.json'))
-            for relative in backup.OPTIONAL_RESEARCH_DIRECTORIES:
-                self.assertIn(relative+'/saved.json',names)
-                self.assertIn(relative,manifest['source_directories'])
+    def test_broad_outside_and_configuration_inputs_are_rejected(self):
+        for value in (".", "data", "../outside", str(self.root / "data/companies"),
+                      ".git", ".env.local", "data/backups", "examples/company-b", "docs", "data/private/auth.json"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                self.create(includes=[value])
+        with self.assertRaisesRegex(ValueError, "explicit research"):
+            self.create(includes=[])
+        self.assertFalse(self.output.exists())
+
+    def test_output_inside_input_and_direct_live_store_capture_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, "outside its input"):
+            self.create(output=self.root / self.includes[0] / "recursive.tar.gz")
+        with self.assertRaisesRegex(ValueError, "live store"):
+            self.create(includes=["data/evidence"])
+        blobs = self.root / "data/evidence/blobs"
+        (blobs / "source.json").write_text('{"preserved":"source"}')
+        with self.assertRaisesRegex(ValueError, "live store"):
+            self.create(includes=["data/evidence/blobs"])
+        self.assertFalse(self.output.exists())
+
+    def test_case_data_and_custom_store_work_without_an_issuer_default(self):
+        case = self.root / "examples/company-b/data"
+        case.mkdir(parents=True)
+        (case / "facts.json").write_text('{"instrument_id":777}')
+        db = "data/company-b-store/evidence.sqlite3"
+        with backup.EvidenceStore(self.root / db):
+            pass
+        result = self.create(includes=["examples/company-b/data", "examples/company-b/data/facts.json"], db_path=db)
+        with tarfile.open(self.output, "r:gz") as archive:
+            names = archive.getnames()
+            self.assertEqual(names.count("examples/company-b/data/facts.json"), 1)
+            self.assertIn("data/company-b-store/evidence.sqlite3", names)
+            self.assertNotIn("data/evidence/evidence.sqlite3", names)
+            manifest = json.load(archive.extractfile("research-manifest.json"))
+            self.assertEqual(manifest["source_database"], db)
+        self.assertGreater(result["files"], 1)
 
 
 if __name__ == "__main__":

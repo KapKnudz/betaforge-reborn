@@ -11,6 +11,7 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import fetch_borsdata_context as fetch
+from betaforge import borsdata
 
 
 def response(status, body=b'{"reports":[]}', headers=None):
@@ -22,6 +23,24 @@ def response(status, body=b'{"reports":[]}', headers=None):
 
 
 class AcquisitionTests(unittest.TestCase):
+    def test_shared_client_keeps_credentials_out_of_url_and_disables_redirects(self):
+        with patch.object(borsdata.requests,'get') as get:
+            borsdata.get_response('/v1/instruments/777/reports/year',{'original':1},'TEST_SECRET_VALUE')
+        self.assertEqual(get.call_args.args[0],borsdata.BASE_URL+'/v1/instruments/777/reports/year')
+        self.assertNotIn('TEST_SECRET_VALUE',get.call_args.args[0])
+        self.assertEqual(get.call_args.kwargs['params'],{'authKey':'TEST_SECRET_VALUE','original':1})
+        self.assertFalse(get.call_args.kwargs['allow_redirects'])
+
+    def test_quoted_credential_values_and_duplicate_key_rejection_survive_extraction(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'.env.local'
+            for value in ('TEST_SECRET_VALUE','"TEST_SECRET_VALUE"',"'TEST_SECRET_VALUE'"):
+                path.write_text('BORSDATA_API_KEY='+value+'\n')
+                self.assertEqual(borsdata.read_key(path),'TEST_SECRET_VALUE')
+            path.write_text('BORSDATA_API_KEY=first\nBORSDATA_API_KEY=second\n')
+            with self.assertRaisesRegex(ValueError,'exactly one'):
+                borsdata.read_key(path)
+
     def run_fetch(self, replies):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)

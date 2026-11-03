@@ -8,10 +8,20 @@ import time
 import unittest
 from unittest.mock import patch
 
-from betaforge.codex_runner import AppServer, child_environment, safe_event, verify_implementation, verify_prompt
+from betaforge.codex_runner import AppServer, child_environment, integration_smoke_prompt, safe_event, verify_implementation, verify_prompt
 
 
 class RunnerTests(unittest.TestCase):
+    def test_smoke_uses_supplied_report_without_company_or_period_assumptions(self):
+        prompt=integration_smoke_prompt(['other-issuer-annual-2030'])
+        self.assertIn('"other-issuer-annual-2030"',prompt)
+        self.assertIn('original page 1 image',prompt)
+        self.assertIn('revenue_ebit',prompt)
+        self.assertNotIn('granges',prompt.lower())
+        self.assertNotIn('Q3',prompt)
+        with self.assertRaisesRegex(ValueError,'supplied report'):
+            integration_smoke_prompt([])
+
     def test_child_environment_excludes_provider_credentials(self):
         with patch.dict(os.environ, {'BORSDATA_API_KEY':'test','OPENAI_API_KEY':'test','SOME_SECRET':'test','PATH':'ordinary'}):
             environment=child_environment()

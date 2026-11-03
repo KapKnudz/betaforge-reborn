@@ -126,6 +126,9 @@ class EvidenceTools:
         from betaforge.storage import EvidenceStore
         self.packet_path = Path(packet_path).resolve()
         self.packet = json.loads(self.packet_path.read_text())
+        if not isinstance(self.packet, dict) or type(self.packet.get('instrument_id')) is not int or self.packet['instrument_id'] <= 0:
+            raise ValueError('Packet requires an explicit positive integer instrument_id')
+        self.instrument = self.packet['instrument_id']
         self.run_dir = Path(run_dir).resolve()
         self.run_dir.mkdir(parents=True, exist_ok=True)
         def resolve(value):
@@ -133,7 +136,6 @@ class EvidenceTools:
             return path.resolve() if path.is_absolute() else (self.packet_path.parent / path).resolve()
         self.snapshot = resolve(self.packet['snapshot_dir'])
         self.report_dir = resolve(self.packet['reports_dir'])
-        self.instrument = int(self.packet.get('instrument_id', 426))
         manifest = json.loads((self.snapshot / 'manifest.json').read_text())
         if digest(self.snapshot / 'evidence.sqlite3') != manifest['database_sha256']:
             raise ValueError('Frozen database hash mismatch')

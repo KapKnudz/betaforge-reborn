@@ -4,7 +4,7 @@ Updated 3 November 2026. This records current decisions. The [analysis policy](.
 
 ## Destination and scope
 
-Build a private investment-research tool, eventually with a local website. After the Gränges walkthrough and financial-framework review, the user authorized implementation in priority order on 3 November 2026. Preserve the original evidence and valuation while simplifying future analysis. See the [minimum enhancement plan](../research/simple-investment-framework-review.md).
+Build a private investment-research tool, eventually with a local website. After the Gränges walkthrough and financial-framework review, the user authorized implementation in priority order on 3 November 2026. Preserve the original evidence and valuation while simplifying future analysis. See the [minimum enhancement plan](../../examples/granges/docs/research/simple-investment-framework-review.md).
 
 The website should provide a shared view of progress and analysis, including company lookup by name or ID, visible company data and calculations, and an evidence-backed investment judgment with bear, base and bull ranges over two to three years. Forward EV/EBIT scenarios are the adopted valuation; a true reverse DCF is an optional future addition. The exact first page and its contents remain to be specified.
 
@@ -46,13 +46,13 @@ Market-implied EBIT is a complementary backward check under stated assumptions. 
 
 The candidate statistic is **IRR of probability-weighted cash flows**. Weight each modeled dividend/terminal payment at its date, then solve for the annual rate equating those cash flows with the starting share price. It must exceed the measured benchmark hurdle before a hurdle-pass claim. Do not average scenario IRRs or annualize only expected terminal wealth.
 
-The user selected **SIX Return Index (SIXRX)** as the primary reference: trailing ten-year annualized total return with reinvested dividends, measured as of the analysis date. This broad-market opportunity-cost reference is not a forecast of the index's future return or automatically the company's discount rate. The earlier Investor AB B reference is superseded as a historical prior decision. Do not silently substitute another index if SIXRX data is unavailable. No numerical hurdle has been asserted; the frozen Gränges 10% remains an illustrative historical assumption.
+The user selected **SIX Return Index (SIXRX)** as the primary reference: trailing ten-year annualized total return with reinvested dividends, measured as of the analysis date. This broad-market opportunity-cost reference is not a forecast of the index's future return or automatically the company's discount rate. The earlier Investor AB B reference is superseded as a historical prior decision. Do not silently substitute another index if SIXRX data is unavailable. No fixed universal hurdle rate is adopted; measure the historical index return for the selected analysis date. The [dated example measurement](../../examples/granges/docs/research/sixrx-benchmark.md) does not set the rate for future analyses, and an example discount rate is not automatically the market hurdle.
 
 The exact data source and calculation conventions still need verification, including consistent currency, dates, and treatment of distributions and corporate actions.
 
 ## Scenario probability ownership
 
-Agreed on 3 November 2026: the analyst proposes company-specific scenario probabilities, explains the evidence and uncertainty, and lets the user override them. A fixed bear/base/bull split is not an adopted default. Outcome definitions and numerical weights remain analysis choices to make explicit; the return statistic is the expected-cash-flow IRR adopted above. This decision does not assign probabilities to the original Gränges report. See the [probability proposal](../research/scenario-probabilities-proposal.md).
+Agreed on 3 November 2026: the analyst proposes company-specific scenario probabilities, explains the evidence and uncertainty, and lets the user override them. A fixed bear/base/bull split is not an adopted default. Outcome definitions and numerical weights remain analysis choices to make explicit; the return statistic is the expected-cash-flow IRR adopted above. This decision does not assign probabilities to the original Gränges report. See the [probability proposal](../../examples/granges/docs/research/scenario-probabilities-proposal.md).
 
 ## Adopted cash and capital definitions
 
@@ -77,4 +77,4 @@ Selected Börsdata routes and Gränges account coverage were exercised in the sa
 
 > I think a first area of focus has to be the flow of data. How the retrieval of data from the sources to the agents should be done in best practice for agentic way. It could be via tool-calling letting the agent retrieve data when needed, or retrieve all of the data deterministic and store it efficiently for agent to access.
 
-That initial investigation compared upfront and tool-based exposure against preserved evidence. The report-only pi experiment and the later integrated Codex walkthrough support the current foundation; they do not establish universal retrieval superiority or predictive valuation accuracy. See [report comparison](../granges-walkthrough-results.md) and [integrated walkthrough](../granges-codex-walkthrough.md).
+That initial investigation compared upfront and tool-based exposure against preserved evidence. The report-only pi experiment and the later integrated Codex walkthrough support the current foundation; they do not establish universal retrieval superiority or predictive valuation accuracy. See [report comparison](../../examples/granges/docs/granges-walkthrough-results.md) and [integrated walkthrough](../../examples/granges/docs/granges-codex-walkthrough.md).

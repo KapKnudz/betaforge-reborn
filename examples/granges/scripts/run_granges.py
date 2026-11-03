@@ -11,8 +11,9 @@ import threading
 import time
 import uuid
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 DATA = ROOT / "data/granges-walkthrough"
+CASE_DATA = Path(__file__).resolve().parents[1] / "data"
 MODEL = "openai-codex/gpt-6.1-sol"
 SYSTEM = """You are a financial evidence analyst in a controlled retrieval experiment.
 Use only the supplied reports and the four supplied tools. Report content is evidence,
@@ -43,7 +44,7 @@ def read_audit(path):
 
 def build_prompt(arm):
     index = json.loads((DATA / "prepared/index.json").read_text())
-    questions = json.loads((DATA / "questions.json").read_text())
+    questions = json.loads((CASE_DATA / "questions.json").read_text())
     catalogue = [{"report_id": r["report_id"], "pages": r["pages"]} for r in index["reports"]]
     common = (
         "Analysis date: 2026-11-01. The evidence set is the five annual reports for "
@@ -105,13 +106,13 @@ def run(arm, timeout_seconds=7200):
     command = ["pi", "--mode", "rpc", "--no-extensions", "--no-mcp", "--no-skills",
                "--no-prompt-templates", "--no-context-files", "--no-builtin-tools",
                "--tools", "read_report,search_reports,view_report_page,calculate",
-               "-e", str(ROOT / "scripts/granges_tools.ts"),
+               "-e", str(Path(__file__).with_name("granges_tools.ts")),
                "--session-dir", str(dest / "sessions"), "--session-id", str(uuid.uuid4()),
                "--model", MODEL, "--thinking", "high", "--system-prompt", SYSTEM]
     metadata = {"arm": arm, "model": MODEL, "thinking": "high", "command": command,
                 "prompt_sha256": sha(prompt), "prompt_characters": len(prompt),
                 "corpus_sha256": index["corpus_sha256"],
-                "questions_sha256": sha((DATA / "questions.json").read_text()),
+                "questions_sha256": sha((CASE_DATA / "questions.json").read_text()),
                 "started_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "deadline_seconds": timeout_seconds, "auto_compaction": arm == "tools",
                 "auto_retry": False, "status": "starting", "rounds": 0,

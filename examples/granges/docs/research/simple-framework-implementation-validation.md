@@ -4,11 +4,11 @@
 
 ## What changed
 
-The [adopted policy](../analysis-policy.md) combines the supplied case philosophy with the user's earnings-quality principles. The [catalogue](../calculations.md) defines every valuation/diagnostic formula, units, assumptions and limits. New packets freeze both documents and selected source context. The primary valuation remains forward EV/EBIT, with one operating-driver formula and one complete bridge per case. A full reverse DCF remains unimplemented; market-implied EBIT is a separately labeled conditional check.
+The [adopted policy](../../../../docs/analysis-policy.md) combines the supplied case philosophy with the user's earnings-quality principles. The [catalogue](../../../../docs/calculations.md) defines every valuation/diagnostic formula, units, assumptions and limits. New packets freeze both documents and selected source context. The primary valuation remains forward EV/EBIT, with one operating-driver formula and one complete bridge per case. A full reverse DCF remains unimplemented; market-implied EBIT is a separately labeled conditional check.
 
 ## Saved deterministic review
 
-Final artifact: `data/financial-reviews/granges-20261103-quality-v2/review.{json,md}`. Source evidence is in the private research bundle; the [40 additional facts and three notes](../../data/granges-walkthrough/quality-facts-20261103.json) are compact, versioned extractions with PDF hashes/pages/quotes.
+Final artifact: `data/financial-reviews/granges-20261103-quality-v2/review.{json,md}`. Source evidence is in the private research bundle; the [40 additional facts and three notes](../../data/quality-facts-20261103.json) are compact, versioned extractions with PDF hashes/pages/quotes.
 
 | Check | Result and scope |
 |---|---|
@@ -36,6 +36,6 @@ All **78 tests passed** under the project virtual environment (`.venv/bin/python
 
 ## Preservation and limits
 
-Code/documents live on `feat/granges-walkthrough`. The [baseline private release](https://github.com/KapKnudz/betaforge-research-private/releases/tag/research-baseline-2026-11-03) preserves 432 exact research files from application commit `5678dd1`. GitHub's asset digest and a fresh download matched the local SHA256. A clean clone restored both evidence databases and their 87 blobs each, and rendered the saved completed result without fetching data or calling a model. See [handoff verification](../research-handoff.md#verified-private-checkpoint).
+Code/documents live on `feat/granges-walkthrough`. The [baseline private release](https://github.com/KapKnudz/betaforge-research-private/releases/tag/research-baseline-2026-11-03) preserves 432 exact research files from application commit `5678dd1`. GitHub's asset digest and a fresh download matched the local SHA256. A clean clone restored both evidence databases and their 87 blobs each, and rendered the saved completed result without fetching data or calling a model. See [handoff verification](../../../../docs/research-handoff.md#verified-private-checkpoint).
 
 The baseline bundle predates the new quality packet, review and benchmarks. The archive selection now explicitly includes those new directories when present; a separate versioned implementation bundle preserves them. No physical second Mac or live Codex conversation transfer was tested. Harmonized peer financials and an end-to-end full valuation under the new policy remain outside this execution check.

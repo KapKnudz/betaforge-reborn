@@ -1,19 +1,59 @@
 from copy import deepcopy
 from decimal import Decimal
 import json
+import hashlib
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from scripts.build_financial_review import build_review, load_market_benchmark, load_quality_facts, normalized, verify_packet, verify_quote
+from examples.granges.scripts.build_financial_review import build_review, load_market_benchmark, load_quality_facts, normalized, verify_packet, verify_quote
+from examples.granges.scripts import fetch_granges, prepare_granges
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKET = ROOT / "data/granges-codex/packet-20261101"
-FACTS = ROOT / "data/granges-walkthrough/quality-facts-20261103.json"
+FACTS = ROOT / "examples/granges/data/quality-facts-20261103.json"
 RUN = ROOT / "data/granges-codex/runs/20261101-full"
 BENCHMARK = ROOT / "data/benchmarks/sixrx/20261103T121617260724Z/context.json"
+
+
+class ExamplePreparationTests(unittest.TestCase):
+    def test_existing_prepared_evidence_is_not_overwritten(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            prepared = base / "prepared"
+            prepared.mkdir()
+            saved = prepared / "index.json"
+            saved.write_text('unchanged frozen evidence')
+            with patch.object(prepare_granges, "BASE", base):
+                with self.assertRaises(FileExistsError):
+                    prepare_granges.prepare()
+            self.assertEqual(saved.read_text(), 'unchanged frozen evidence')
+
+    def test_case_manifest_populates_private_corpus_without_network_or_replacement(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            base = root / "data/granges-walkthrough"
+            case = root / "example-data"
+            case.mkdir()
+            pdf = base / "sources/report.pdf"
+            pdf.parent.mkdir(parents=True)
+            pdf.write_bytes(b"%PDF-saved-fixture")
+            manifest = {"documents": [{"report_id": "granges-fixture", "local_path": "data/granges-walkthrough/sources/report.pdf",
+                         "source_url": "https://www.granges.com/fixture.pdf", "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest()}]}
+            content = json.dumps(manifest).encode()
+            (case / "source-manifest.json").write_bytes(content)
+            with patch.multiple(fetch_granges, ROOT=root, BASE=base, CASE_DATA=case), patch.object(fetch_granges, "urlopen") as network:
+                fetch_granges.fetch()
+                self.assertEqual((base / "source-manifest.json").read_bytes(), content)
+                (base / "source-manifest.json").write_text("different snapshot")
+                with self.assertRaisesRegex(ValueError, "manifest differs"):
+                    fetch_granges.fetch()
+                network.assert_not_called()
 
 
 class FinancialReviewTests(unittest.TestCase):
@@ -65,6 +105,18 @@ class FinancialReviewTests(unittest.TestCase):
                 normalized(record)
         with self.assertRaisesRegex(ValueError, "requires a reason"):
             build_review(PACKET, FACTS, operating_tax_rate=Decimal("0.2"))
+
+    def test_moved_example_cli_replays_from_outside_the_repository(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "review"
+            result = subprocess.run([
+                sys.executable, str(ROOT / "examples/granges/scripts/build_financial_review.py"),
+                "--output", str(output), "--scenario-weights", "0.25", "0.55", "0.20"],
+                cwd=temp, capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            review = json.loads((output / "review.json").read_text())
+            self.assertTrue(all(check for case in review["preserved_valuation"]["checks"].values() for check in case.values()))
+            self.assertEqual(Path(review["quality_facts"]), FACTS)
 
     def test_benchmark_checks_date_raw_sources_and_return_arithmetic(self):
         if not BENCHMARK.exists():

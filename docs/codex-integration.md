@@ -1,33 +1,34 @@
 # Codex evidence tools
 
-Implemented 2026-11-01. The local Python controller drives the desktop-bundled Codex app-server and dispatches client-owned tools over a frozen evidence packet. It uses exact `gpt-6.1-sol`, high reasoning and the existing Codex login. No Börsdata key is passed to the model process. The original pi experiment remains separate.
+The local Python controller drives the desktop-bundled Codex app-server and dispatches client-owned tools over a supplied frozen company packet. It uses exact `gpt-6.1-sol`, high reasoning and the workstation's existing Codex login. The analyst process receives no Börsdata key.
 
-## Entry point
+## Entry point and packet
 
 ```sh
-.venv/bin/python scripts/run_codex_granges.py \
+.venv/bin/python scripts/run_codex_analysis.py \
   --packet /absolute/path/packet.json \
-  --prompt /absolute/path/prompt.txt \
+  --prompt /absolute/path/prompt.md \
   --output /absolute/path/new-run-directory
 ```
 
-The output must be new unless `--resume` is explicitly supplied. Default deadline is 7,200 seconds; `--timeout` may reduce it. `--smoke` performs a short financial-query, report-read, original-image and calculation check, waiving complete report reading only for that check. `--codex` may select another explicitly tested executable; the default is `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.
+The output must be new unless `--resume` is explicit. Default deadline is 7,200 seconds; `--timeout` may reduce it. `--smoke` performs a bounded financial-query, first-report/page-image and calculation check using the supplied packet. It waives full reading only for that integration check; it does not expect a named company's report, page or earnings values. `--codex` can select another verified executable; the default is `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.
 
-Packet fields:
+A minimal packet has this shape; the numeric ID below is illustrative, never a runtime default:
 
 ```json
 {
   "snapshot_dir": "snapshot",
   "reports_dir": "reports",
-  "instrument_id": 426,
-  "required_reports": ["granges-annual-2021"],
-  "context": "Dated interpretation and reconciliation notes",
-  "initial_context": {},
+  "instrument_id": 777,
+  "required_reports": ["annual-2025"],
+  "context": "Dated company interpretation and reconciliation notes",
   "datasets": ["reports", "prices", "kpis"]
 }
 ```
 
-Paths resolve relative to the packet file. `required_reports` defaults to every report in `prepared/index.json`; `datasets` defaults to the frozen store's actual dataset names. Production Gränges packets require all eight existing reports, not the one-report illustrative list above. The index supplies PDF/prepared hashes and physical page counts. Initialization verifies the frozen database/blob hashes and every PDF/prepared file, then validates issuer-report observation links against document hash/page bounds.
+A valid selected instrument ID is required. Paths resolve relative to the packet. `required_reports` defaults to all reports in `prepared/index.json`; `datasets` defaults to the frozen store's names. The caller supplies the required annual/interim corpus. The index supplies original/prepared hashes and physical page counts. Initialization verifies the database/blob and PDF/prepared hashes, then validates that selected issuer's report facts against document hashes/page bounds.
+
+The packet builder additionally freezes the adopted policy/calculation catalogue and optional industry/market context with source-file hashes. It requires explicit company ID, report corpus, prompt and analysis date. Company reconciliations and extra sourced facts are optional explicit inputs, not issuer defaults. [Preparation command](../scripts/prepare_codex_packet.py), [retrieval contract](retrieval-design.md).
 
 ## Tool contract
 
@@ -38,7 +39,7 @@ Paths resolve relative to the packet file. `required_reports` defaults to every 
 - `record_input`: stores a report-derived number or an explicit assumption before arithmetic. Report inputs require a real report/page and a quote matching saved text; they remain marked analyst-extracted, not independently reconciled. A matching quote alone does not prove the numeric extraction. Prefer curated stored observations when available.
 - `get_calculation_definitions`: supplies the fixed formula registry and verified frozen policy/catalogue. Historical packets without an adopted contract are labeled legacy.
 - `calculate_financial`: preferred for the [named formulas](calculations.md). A single `valuation_case` record contains debt, EV, claims, common equity, target, dividends and PV. Inputs are named saved IDs; output references such as `calc:ID#future_target` reuse a result directly. Formula/version, normalized source inputs, assumptions, basis, missing inputs and warnings remain visible. Money is currently SEK. The wrapper rejects known incompatible units/currencies, mismatched paired periods, ordinary earnings multiples based on quarters/YTD, and stale opening capital dates. Undated assumptions and economic scope still need analyst judgment.
-- `calculate`: consumes saved observation/input/calculation IDs. It **multiplies each original value by its stored scale exactly once**, then calculates in base units using Decimal. A value of 546 with scale 1,000,000 becomes SEK 546,000,000. Shares with scale 1 remain actual shares. Outputs have scale 1; derived results are not rescaled again. Add/subtract/growth require compatible units and currency; multiplication/division propagate dimensions. The requested output label must match the inferred base unit. Percent is distinct from a fraction; rates such as 10% should be entered as 0.10 dimensionless, or converted explicitly. Unknown KPI units are readable but unavailable to arithmetic until mapped.
+- `calculate`: consumes saved observation/input/calculation IDs. It **multiplies each original value by its stored scale exactly once**, then calculates in base units using Decimal. A value of 100 with scale 1,000,000 becomes SEK 100,000,000. Shares with scale 1 remain actual shares. Outputs have scale 1; derived results are not rescaled again. Add/subtract/growth require compatible units and currency; multiplication/division propagate dimensions. The requested output label must match the inferred base unit. Percent is distinct from a fraction; rates such as 10% should be entered as 0.10 dimensionless, or converted explicitly. Unknown KPI units are readable but unavailable to arithmetic until mapped.
 - `finish_research_round`: after mandatory reading, records an investigation summary and retrieved evidence IDs. Ten rounds, two rounds with no newly cited retrieved evidence, or explicit finalization closes research. Further evidence reads are then denied. At most 200 finalization calls (saved-input calculations, input registration, catalogue/provenance and final round status) are permitted; the outer deadline remains active. Novelty is an auditable evidence-ID proxy, not a semantic guarantee that a round was useful.
 
 No arbitrary expression evaluator or shell tool is exposed through the client-owned tools. Codex is configured with no environment access and disabled shell, browser, app, delegation and hook features; unexpected native tool activity fails the run. These settings are per invocation/thread and do not modify global configuration. The protocol and exact build still need verification when the installed Codex binary changes.
@@ -62,18 +63,12 @@ Artifacts:
 
 The website can display these saved records without rerunning the model. This controller does not itself implement a website.
 
-## Protocol evidence and validation
+## Protocol and verification scope
 
-The [official app-server documentation](https://learn.chatgpt.com/docs/app-server#dynamic-tool-calls-experimental) identifies dynamic tools as experimental and describes their server-to-client request flow. The installed `0.165.0-alpha.1.2` binary's generated JSON schemas were inspected: function schemas are supplied on `thread/start`, calls arrive as `item/tool/call`, and results contain `inputText`/`inputImage` items. Durable dynamic tools are restored on `thread/resume`.
+The [official app-server documentation](https://learn.chatgpt.com/docs/app-server#dynamic-tool-calls-experimental) describes experimental dynamic tools and their server-to-client flow. The implementation supplies schemas on `thread/start`, handles `item/tool/call`, and returns `inputText`/`inputImage` items. Durable tools are restored on `thread/resume`. An installed Codex build change needs another integration check.
 
-Behavioral tests cover exact decimal/scale arithmetic, incompatible currencies, fabricated input references, quote/source/page validation, corrupted frozen files, persisted coverage, research closure, sanitized child environment, JSON-RPC responses and a silent-server timeout. A real smoke verified saved financial queries, complete-page text, native PDF image interpretation and calculations; A live turn was deliberately cancelled and resumed on the same durable thread; the resumed smoke correctly calculated an actual revenue observation with its million-currency scale. These smoke traces are separate from the full walkthrough. Smoke coverage is intentionally incomplete and must never be presented as the full walkthrough.
+Tests cover decimal/scale arithmetic, currency and period mismatches, fabricated references, source/quote/page validation, hash corruption, coverage and research closure, sanitized child environment, JSON-RPC responses, timeout and implementation identity on resume. Alternate synthetic instrument/report inputs exercise company selection; this does not establish source coverage for another real issuer.
 
-The [full Gränges walkthrough](granges-codex-walkthrough.md) subsequently completed in 23.2 minutes, delivering 921/921 required pages and saving 326 calculations across four research rounds. All 326 calculations and 919 operands passed separate arithmetic/source-value checks. The read-only output review found no material defect in the selected final valuation, while retaining the forecast and accounting-proxy limits. Seven tool rejections were recovered; no unexpected native tools were recorded. This is one-company execution evidence, not a general reliability claim.
+On 3 November 2026, the company-neutral CLI completed a live integration smoke against a supplied frozen example packet: `gpt-6.1-sol`/high, `codex-cli 0.166.0-alpha.5.1`, 50.764 seconds, 17 successful tool calls, zero tool errors or unexpected native tools, and four calculations. The first report/page came from the packet; no fixed interim-report assertion was used. Only 16 of 921 text pages were delivered because this was an integration smoke, not a valuation. The private saved run is `data/runs/generic-core-smoke-20261103`.
 
-## Current integration verification, 3 November 2026
-
-The new packet at `data/granges-codex/packet-quality-20261103` contains the versioned policy, 14 named formulas, eight reports/921 required pages, 40 extra report facts, four Damodaran workbooks and the exact SIXRX source bundle. It reuses the saved Börsdata responses; assembly made no new provider request. Provider ROIC 37 has an explicitly sourced percent unit in new ingestion, while the original frozen observation remains unchanged.
-
-Live GPT-6.1 Sol/high smoke on `codex-cli 0.166.0-alpha.5.1` completed in 43.232 seconds: 13 successful tool calls, zero errors, no unexpected native tools. It read the frozen policy/formula definitions, queried observations, interpreted Q3 p21 as reported EBIT 546/adjusted 596 MSEK, and calculated matched R12 reported EBIT margin 5.61139% with a named output. Only 16 text pages were delivered because full reading is waived for smoke; the run is `smoke_completed`, not a new valuation. Exact logs are in `data/granges-codex/runs/20261103-quality-smoke` in the private evidence bundle.
-
-Poppler 26.05.0 from the verified desktop runtime rendered the original images through `BETAFORGE_PDFTOPPM`. Set that variable to an executable path when `pdftoppm` is not on PATH. See [Mac setup and preservation](research-handoff.md) and the [bounded implementation review](research/simple-framework-implementation-review.md).
+Earlier full valuation, cancellation/resume and deterministic replay evidence is retained in the [worked example](../examples/granges/README.md). It establishes bounded execution/arithmetic behavior, not predictive accuracy, arbitrary-company coverage or cross-workstation live-thread migration. See [setup and private handoff](research-handoff.md).

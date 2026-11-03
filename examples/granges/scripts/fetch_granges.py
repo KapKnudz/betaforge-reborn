@@ -6,8 +6,9 @@ import tempfile
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 BASE = ROOT / "data/granges-walkthrough"
+CASE_DATA = Path(__file__).resolve().parents[1] / "data"
 
 
 def validate(content, expected_hash):
@@ -18,7 +19,14 @@ def validate(content, expected_hash):
 
 
 def fetch():
-    manifest = json.loads((BASE / "source-manifest.json").read_text())
+    manifest_bytes = (CASE_DATA / "source-manifest.json").read_bytes()
+    manifest = json.loads(manifest_bytes)
+    BASE.mkdir(parents=True, exist_ok=True)
+    saved_manifest = BASE / "source-manifest.json"
+    if saved_manifest.exists() and saved_manifest.read_bytes() != manifest_bytes:
+        raise ValueError("Private corpus manifest differs from this frozen example")
+    if not saved_manifest.exists():
+        saved_manifest.write_bytes(manifest_bytes)
     for report in manifest["documents"]:
         target = (ROOT / report["local_path"]).resolve()
         if not target.is_relative_to((BASE / "sources").resolve()):

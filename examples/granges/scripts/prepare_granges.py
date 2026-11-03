@@ -6,8 +6,9 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 BASE = ROOT / "data/granges-walkthrough"
+CASE_DATA = Path(__file__).resolve().parents[1] / "data"
 
 
 def clean(text):
@@ -16,9 +17,9 @@ def clean(text):
 
 
 def prepare():
-    manifest = json.loads((BASE / "source-manifest.json").read_text())
+    manifest = json.loads((CASE_DATA / "source-manifest.json").read_text())
     dest = BASE / "prepared"
-    dest.mkdir(exist_ok=True)
+    dest.mkdir(exist_ok=False)
     reports = []
     corpus = []
     for doc in manifest["documents"]:

@@ -1,17 +1,17 @@
 # Börsdata retrieval, retention and report mapping
 
-Research date: 2026-11-01. Status: accepted by the user as the starting implementation specification; see [ADR 0002](../adr/0002-local-evidence-storage.md). This research record describes the design, not by itself a completed implementation or validation. It applies first to Gränges and ordinary nonfinancial operating companies. Banks, insurers and investment companies need additional metric definitions and valuation methods.
+Research date: 2026-11-01. Status: accepted by the user as the starting implementation specification; see [ADR 0002](../adr/0002-local-evidence-storage.md). This research record describes the design, not by itself a completed implementation or validation. It applies to ordinary nonfinancial operating companies. Banks, insurers and investment companies need additional metric definitions and valuation methods.
 
 ## Recommendation
 
-Acquire complete statement history and source responses deterministically. Keep immutable JSON/PDF files and use a local SQLite database for identities, dated financial observations, mappings and analysis records. Give the analyst a compact financial view plus tools over the saved evidence. Storage coverage and model context are separate decisions. The initial [evidence-storage decision](../adr/0001-persist-company-evidence.md) left the database open; [ADR 0002](../adr/0002-local-evidence-storage.md) subsequently accepted SQLite. The [implemented walkthrough](../granges-codex-walkthrough.md) records validation and remaining limits.
+Acquire complete statement history and source responses deterministically. Keep immutable JSON/PDF files and use a local SQLite database for identities, dated financial observations, mappings and analysis records. Give the analyst a compact financial view plus tools over the saved evidence. Storage coverage and model context are separate decisions. The initial [evidence-storage decision](../adr/0001-persist-company-evidence.md) left the database open; [ADR 0002](../adr/0002-local-evidence-storage.md) subsequently accepted SQLite. The [implemented walkthrough](../../examples/granges/docs/granges-codex-walkthrough.md) records validation and remaining limits.
 
 Retain all source fields even when their meaning is unresolved. A raw provider value becomes a usable valuation input only after its period, unit, currency and financial basis are identified. Preserve Börsdata and issuer observations separately; record which one a calculation used and why. An unresolved field should trigger a focused follow-up or a disclosed assumption, not prevent all useful analysis. This follows the [agreed scope](../retrieval-design.md#agreed-scope).
 
 Companion evidence:
 
 - [Exact endpoint inventory and documentation conflicts](borsdata-endpoints.md).
-- [All report fields and Gränges reconciliation](granges-borsdata-mapping.md).
+- [All report fields and Gränges reconciliation](../../examples/granges/docs/research/granges-borsdata-mapping.md).
 - [Preserved public OpenAPI schema](../../data/bf-borsdata-research/swagger.json), [source hash](../../data/bf-borsdata-research/swagger-source.json).
 - [Saved statement snapshot](../../data/borsdata/granges/20261101T161712Z/manifest.json), [live metadata](../../data/borsdata/metadata/20261101T165621Z/manifest.json), [live KPI summaries](../../data/borsdata/granges-research/20261101T165729Z/manifest.json). These account responses are local ignored evidence.
 
@@ -43,7 +43,7 @@ Preserve every statement field; initially display the following financial groups
 
 | Group | First financial view | Supplement or qualification |
 |---|---|---|
-| Earnings and growth | Net sales, total revenue separately, provider gross-income measure, reported EBIT, profit before tax, profit attributable to shareholders, EPS | Gränges' provider gross income matches net sales less materials, not a report-labelled gross-profit subtotal. Add company-adjusted EBIT/EBITDA and bridges from reports. Never replace reported values silently. Volume, price/mix, segments and acquisitions usually require reports. |
+| Earnings and growth | Net sales, total revenue separately, provider gross-income measure, reported EBIT, profit before tax, profit attributable to shareholders, EPS | Verify the provider gross-income subtotal against the issuer report before calling it gross profit. Add company-adjusted EBIT/EBITDA and bridges from reports. Never replace reported values silently. Volume, price/mix, segments and acquisitions usually require reports. |
 | Cash generation and investment | Statutory CFO, investing cash flow, financing cash flow, period net cash flow, provider FCF | Obtain capex, acquisitions/disposals, working-capital changes, taxes, interest and D&A separately where material. Total investing cash flow is not automatically capex; provider FCF is not automatically cash flow to the firm. |
 | Financial position | Cash, net debt, equity, assets, current/noncurrent liabilities, tangible/intangible assets | Obtain gross borrowings, leases, pensions, debt maturities, covenants, goodwill and minority interests from reports where needed. Current assets minus current liabilities is not automatically operating working capital. |
 | Per-share and capital allocation | EPS, dividends, provider share count, verified latest outstanding shares | Keep basic/diluted weighted-average shares, issued shares and treasury shares distinct. EPS denominators and a current equity-value denominator serve different purposes. |
@@ -56,11 +56,9 @@ For operating analysis, preserve all returned summary groups and make a named se
 
 Current scope preserves all agreed data families. Technical indicators, rankings and other screener permutations remain available for question-driven retrieval; they are not required to establish the first valuation foundation. Any new fetched payload is retained in full.
 
-### What the live probes establish
+### Validation scope
 
-- Statement acquisition returned **14 annual rows (2012–2025), 40 quarter rows and 40 R12 rows (through Q3 2026)**. The saved JSON bodies total **103,010 bytes**, excluding their manifest. HTTP success demonstrates access, not financial reconciliation. [Statement manifest](../../data/borsdata/granges/20261101T161712Z/manifest.json).
-- Three metadata endpoints returned HTTP 200. Report metadata gives EPS/dividend format `CURR`, shares `MILL`, and statement amounts `MCURR`. Preserve the provider names and use reconciled units rather than following the wiki's inconsistent “Million” labels. [Report metadata](../../data/borsdata/metadata/20261101T165621Z/reports.json).
-- `year/summary?maxCount=20` returned **42 KPI groups, 15 rows each**. The first row is **2026 period 3** and its EPS matches the latest R12 series: this is not 15 completed annual reports. `r12/summary?maxCount=40` returned **27 groups, 40 rows each** and omits valuation ratios such as P/E and EV/EBIT. Therefore the summary cannot replace explicit valuation histories. Quarter summary and other account endpoints were not probed in this research. [Summary snapshots](../../data/borsdata/granges-research/20261101T165729Z/manifest.json).
+The [pilot acquisition history](../../examples/granges/docs/research/borsdata-retrieval-storage-history.md#what-the-live-probes-establish) records observed response shapes and coverage for one account and issuer. Verify coverage for each selected instrument; metadata membership alone does not establish availability or financial equivalence.
 
 ## Storage proposal
 
@@ -68,7 +66,7 @@ Current scope preserves all agreed data families. Technical indicators, rankings
 
 Keep original PDFs and JSON response bodies as immutable files addressed by content hash, with their original bytes preserved. Store extracted report pages separately with source hash, extractor version and physical PDF page number. SQLite holds searchable observations and source links. It is suitable as a starting design for one local user and a bounded watchlist; this is an engineering judgment, not a measured load-test result. No vector database is needed for numeric storage.
 
-Use a small set of logical records; exact SQL migrations are a later implementation task:
+Use a small set of logical records. The [implemented store](../../betaforge/storage.py) preserves the source information described below:
 
 | Record | Minimum information |
 |---|---|
@@ -101,13 +99,13 @@ This preserves **what our system observed from now on**. It cannot reconstruct w
 
 ### Expected size and request volume
 
-The measured Gränges statement response is about 0.10 MB; scaling the same shape to 100 instruments is roughly 10 MB per full changed set before database/index overhead. This is an illustrative estimate, not a forecast of all companies or all datasets. Twenty years × about 252 trading days × 100 instruments is about 504,000 daily price rows. PDF storage is likely to dominate initial bytes: the existing eight-report sample is roughly 56 MB. [Measured corpus](../granges-walkthrough-results.md#acquisition-and-pdf-findings), [statement manifest](../../data/borsdata/granges/20261101T161712Z/manifest.json).
+Measure response and report sizes for the selected company set. For scale context, twenty years × about 252 trading days × 100 instruments is about 504,000 daily price rows. Statement amounts, PDF sizes and actual available history vary; pilot measurements are retained in the [case history](../../examples/granges/docs/research/borsdata-retrieval-storage-history.md#expected-size-and-request-volume).
 
 At 100 instruments, a 50-instrument batch route needs two calls. Eight selected ratios × two report bases × three price bases × two batches would be at most 96 history calls if all those combinations are supported; unsupported/redundant variants are omitted. Summary routes are per instrument. Bootstrap this once, then use new dates and change signals, with periodic full reconciliation. Rate-limit centrally, honor `Retry-After`, and use bounded transport retries. The provider documents 100 calls per ten seconds and asks clients to stay below 10,000 daily calls. This scale does not justify an aggressive scraper or repeated model-triggered refetches. [API rate limits](https://github.com/Borsdata-Sweden/API#rate-limits).
 
 ## Mapping provider fields to report figures
 
-The [field-by-field mapping](granges-borsdata-mapping.md) is part of the specification. Do not implement a global rename such as `operating_Income → adjusted EBIT` or `free_Cash_Flow → FCFF`.
+The [field-by-field mapping](../../examples/granges/docs/research/granges-borsdata-mapping.md) is part of the specification. Do not implement a global rename such as `operating_Income → adjusted EBIT` or `free_Cash_Flow → FCFF`.
 
 Every mapping needs:
 
@@ -119,32 +117,22 @@ Every mapping needs:
 
 Keep a generic provider dictionary and issuer/period-specific reconciliation evidence. A numeric match in one quarter does not establish a universal rule. Preserve source-specific values and select valuation inputs explicitly, recording the reason for freshness overrides or report-derived substitutions.
 
-### Gränges findings that affect implementation
+### Issuer-specific reconciliations
 
-1. **Correction to the earlier chat:** Q3 2026 reported EBIT is **546 MSEK**, adjusted EBIT **596 MSEK**. Börsdata `operating_Income=546` matches reported EBIT. The prior explanation reversed these; the frozen Q7 reference rubric already has the correct order. [Q7 reference](../../data/granges-walkthrough/reference-rubric.md#q7--adjusted-versus-reported-earnings), [mapping evidence](granges-borsdata-mapping.md).
-2. **Cash-flow definitions differ.** Preserve statutory CFO, company-defined operating cash flow and provider FCF separately. Where provider FCF equals CFO plus total investing cash flow, that arithmetic still does not make it FCFF or maintenance-capex cash flow. [Mapping, cash-flow fields](granges-borsdata-mapping.md).
-3. **EPS/share count require follow-up.** Q3 API EPS is 3.64 while the report shows 3.63. Provider shares are 106.3241 million; the current report's weighted-basic shares differ. Do not silently choose one denominator for market cap or intrinsic value per share. [Mapping, share reconciliation](granges-borsdata-mapping.md).
-4. **Price summaries require follow-up.** Annual 2025 API high/low differ from the annual report's disclosed range. The values may have differing period/adjustment bases; their cause is not established. Obtain daily prices and split metadata before using these summaries for historical valuation. [Mapping, price fields](granges-borsdata-mapping.md).
+Keep detailed observed values and residuals in the selected company example or private research records. The [reference mapping](../../examples/granges/docs/research/granges-borsdata-mapping.md) demonstrates the procedure; its observed provider identities do not become global formulas.
 
 Aggregate only appropriate quantities. Sum non-overlapping comparable period flows; use ending balances for stocks; recompute ratios from compatible inputs. Do not sum four R12 rows, four balance sheets, or quarter share counts. Do not convert a cumulative interim cash-flow column into a standalone quarter without a documented subtraction and consistent reporting scope.
 
 ## Implementation sequence and acceptance checks
 
-1. Save metadata and implement source-preserving normalization for the existing statement snapshot. Validate instrument 426, fiscal dates, units, original-currency mode, null handling and unknown fields. Add meaningful fixtures for broken fiscal years, mixed annual/latest-R12 rows, batch errors and revisions.
+1. Save metadata and implement source-preserving normalization for the existing statement snapshot. Validate the explicitly selected instrument, fiscal dates, units, original-currency mode, null handling and unknown fields. Add meaningful fixtures for broken fiscal years, mixed annual/latest-R12 rows, batch errors and revisions.
 2. Acquire prices/splits, explicit historical valuation ratios and relevant event context. Verify real envelopes and per-company coverage. Record missing datasets without blocking unrelated financial analysis.
-3. Reconcile the material Gränges inputs against the PDFs. Use reported/adjusted bridges, cash-flow identities, balance-sheet totals, share-count basis and currency checks; allow explained rounding residuals instead of altering source numbers.
+3. Reconcile material issuer inputs against the PDFs. Use reported/adjusted bridges, cash-flow identities, balance-sheet totals, share-count basis and currency checks; allow explained rounding residuals instead of altering source numbers.
 4. Freeze a versioned company evidence packet. Initial agent context: all available annual core financial history, the latest eight quarters, latest R12, latest dated price, historical valuation summary, document index and mapping issues. Tools can read every stored field and period; this is a context policy proposal, not a storage limit.
-5. Wire report reads, page images, financial queries and explicit calculations into Codex. Require each material result to cite source observation IDs and report locations. Test one end-to-end analysis plus bounded cancellation/progress preservation, then run the authorized Gränges walkthrough with the retrieved numbers and reports.
+5. Wire report reads, page images, financial queries and explicit calculations into Codex. Require each material result to cite source observation IDs and report locations. Test one end-to-end analysis plus bounded cancellation/progress preservation, then verify another selected issuer with its own numbers and reports.
 
 This research does not rerun or alter the prior pi comparison. Nor does it establish that all endpoints, issuer types, provider corrections, price bases or report mappings are validated. Those limits are localized to the affected inputs; the next walkthrough can proceed with verified figures and explicit substitutions.
 
-## Independent read-only review
+## Historical review
 
-Reviewed on 2026-11-01 against the saved schema, metadata, manifests and source references. The reviewer made no edits, new API/model runs, tests, waivers or merges. Overall recommendation: use the bounded design as the implementation starting point; no remaining material defect was found after clarifying the gross-income label and separating definition/reconciliation statuses.
-
-| Finding | Verdict and reasoning | Missing evidence |
-|---|---|---|
-| Endpoints and retention | Supported by the saved schema and metadata; complete retained responses and changed versions suit repeated research. [Endpoint inventory](borsdata-endpoints.md#exact-endpoint-inventory). | Live prices, explicit ratio histories, holdings and event envelopes. |
-| Storage and dates | Sound proposal: preserves source revisions and separates period, publication and observed dates. [Storage proposal](#storage-proposal). | Implemented schema, recovery/restore checks and measured load. |
-| Mapping | Appropriately bounded to sample periods; preserves cash-flow, share-basis and stock/flow distinctions. [Mapping findings](granges-borsdata-mapping.md#findings-that-affect-valuation). | EPS/shares, price differences, earlier adjusted periods and original-page checks for each material valuation input. |
-| Consistency | Resolved: provider gross income is not labelled report gross profit; definition and reconciliation are separate statuses. [Financial view](#which-financials-the-analyst-should-see), [mapping record](#mapping-provider-fields-to-report-figures). | No further evidence needed for these wording corrections. |
+The original [read-only design review](../../examples/granges/docs/research/borsdata-retrieval-storage-history.md#independent-read-only-review) is retained with the pilot evidence. It is not proof that every issuer or endpoint is supported.

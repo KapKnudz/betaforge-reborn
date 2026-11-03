@@ -153,7 +153,7 @@ def copy_market_benchmark(context_path, destination, analysis_date=None):
 
 
 def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analysis_date,
-            instrument_id=426, extra_facts=(), prompt_path=None, resolution_path=None, benchmark_context=None,
+            instrument_id, prompt_path, extra_facts=(), resolution_path=None, benchmark_context=None,
             market_benchmark_context=None):
     if type(instrument_id) is not int or instrument_id <= 0:
         raise ValueError("Instrument ID must be a positive integer")
@@ -161,16 +161,18 @@ def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analys
         raise ValueError("Analysis date must be explicit YYYY-MM-DD")
     date.fromisoformat(analysis_date)
     reports_base = Path(reports_base).resolve()
-    fact_paths = [Path(facts_path).resolve(), *(Path(path).resolve() for path in extra_facts)]
+    primary_facts = Path(facts_path).resolve() if facts_path is not None else None
+    additional_facts = [Path(path).resolve() for path in extra_facts]
+    fact_paths = ([primary_facts] if primary_facts else []) + additional_facts
     for path in fact_paths:
         fact_instrument = json.loads(path.read_text()).get("instrument_id")
         if type(fact_instrument) is not int or fact_instrument != instrument_id:
             raise ValueError("Report fact instrument does not match the packet")
-    if prompt_path is None and instrument_id != 426:
-        raise ValueError("A company-specific prompt is required for instruments other than Gränges")
-    prompt_path = Path(prompt_path) if prompt_path is not None else ROOT / "data/granges-walkthrough/analysis-questions-v1.md"
+    if prompt_path is None:
+        raise ValueError("An explicit company analysis prompt is required")
+    prompt_path = Path(prompt_path)
     if resolution_path is None:
-        resolution = (ROOT / "docs/research/granges-mapping-resolution.md").read_text() if instrument_id == 426 else "No company-specific mapping note supplied. Verify material source definitions."
+        resolution = "No company-specific mapping note supplied. Verify material source definitions."
     else:
         resolution = Path(resolution_path).read_text()
     destination = Path(destination).resolve()
@@ -198,9 +200,10 @@ def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analys
         shutil.copyfile(index_path, copied / "prepared/index.json")
         shutil.copyfile(reports_base / "source-manifest.json", copied / "source-manifest.json")
         (temporary / "mapping-resolution.md").write_text(resolution)
-        shutil.copyfile(fact_paths[0], temporary / "reconciled-facts.json")
+        if primary_facts:
+            shutil.copyfile(primary_facts, temporary / "reconciled-facts.json")
         extra_metadata = []
-        for position, source in enumerate(fact_paths[1:], 1):
+        for position, source in enumerate(additional_facts, 1):
             target = temporary / "extra-report-facts" / f"{position:03d}-{source.name}"
             target.parent.mkdir(exist_ok=True)
             shutil.copyfile(source, target)
@@ -241,12 +244,12 @@ def main():
     parser.add_argument("snapshots", nargs="+", type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--db", type=Path, default=ROOT / "data/evidence/evidence.sqlite3")
-    parser.add_argument("--facts", type=Path, default=ROOT / "data/granges-walkthrough/reconciled-facts.json")
-    parser.add_argument("--reports", type=Path, default=ROOT / "data/granges-walkthrough")
-    parser.add_argument("--instrument", "--instrument-id", dest="instrument_id", type=int, default=426)
+    parser.add_argument("--facts", type=Path, help="Optional curated report facts for the selected company")
+    parser.add_argument("--reports", type=Path, required=True)
+    parser.add_argument("--instrument", "--instrument-id", dest="instrument_id", type=int, required=True)
     parser.add_argument("--analysis-date", required=True, help="Explicit analysis date, YYYY-MM-DD; source capture dates remain separate")
     parser.add_argument("--extra-facts", action="append", type=Path, default=[])
-    parser.add_argument("--prompt", type=Path)
+    parser.add_argument("--prompt", type=Path, required=True)
     parser.add_argument("--mapping-resolution", type=Path)
     parser.add_argument("--benchmark-context", type=Path)
     parser.add_argument('--market-benchmark-context',type=Path)

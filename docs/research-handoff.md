@@ -1,26 +1,12 @@
-# Move exact research between Macs
+# Private research and workstation handoff
 
-The public code repository preserves code, tests, decisions, policy and compact reports. The separate `KapKnudz/betaforge-research-private` repository must remain private and hosts the exact research release assets. Exact source evidence and saved runs travel in a separate private archive. Each Mac keeps its own Börsdata credential and Codex authentication; neither belongs in an archive or Git.
+The public code repository holds reusable code, policy, tests and reference examples. Exact PDFs, provider captures, frozen databases, watchlists and saved analyses belong in [the private research repository](https://github.com/KapKnudz/betaforge-research-private/releases), which must remain private. Credentials and Codex authentication stay local to each Mac and are excluded from both Git and bundles.
 
-On 3 November 2026, after the code repository became public, both research releases moved to the private storage repository. All nine archive/verification files matched their original sizes and SHA256 hashes. Their public attachments were removed, and anonymous checks returned 404 for the former archive URL and the private repository. Removing those attachments cannot recall copies already downloaded.
-
-## Verified private checkpoint
-
-The [private GitHub release `research-baseline-2026-11-03`](https://github.com/KapKnudz/betaforge-research-private/releases/tag/research-baseline-2026-11-03) preserves research from application source commit `5678dd1de282b7b5569ff6acc7c68ff72f7cc194`. Its `research-2026-11-03-foundation.tar.gz` contains 432 files, 456,847,456 source bytes and 226,352,173 compressed bytes. SHA256:
-
-```text
-9d77f82a592c184153e0f2e01e441276e0818ddf10f5228eaaae291579bb47d3
-```
-
-The GitHub digest and a fresh download matched that checksum. A clean clone restored all 432 files, verified both database manifests and their 87 blobs each, then rendered the completed 921-page/326-calculation walkthrough without fetching data or calling a model. This was a clean-directory test on the current Mac; a second physical Mac and live conversation migration were not tested. The outside Downloads watchlist is not included. The archive manifest inventories paths and sizes; its whole-archive digest covers the exact bytes, including saved outputs.
+The two original research releases were copied unchanged to private storage after the code repository became public. All nine archive/verification files matched their original sizes and SHA256 hashes; public attachments were removed. The [worked-example handoff record](../examples/granges/docs/granges-research-handoff.md) preserves exact checksums, source commits and restore results. Removing public attachments cannot recall prior downloads.
 
 ## Mac prerequisites
 
-The [current implementation release `research-quality-2026-11-03`](https://github.com/KapKnudz/betaforge-research-private/releases/tag/research-quality-2026-11-03) additionally preserves the new frozen policy packet, completed integration smoke, final quality review and benchmark source snapshots. Its archive is `research-2026-11-03-quality.tar.gz`; use its own checksum and manifest. The release notes and archive manifest identify the application source commit; storage-repository tags identify its own README history. The earlier baseline release remains the unchanged historical checkpoint.
-
-The current bundle also includes the exact user-supplied watchlist at `data/watchlists/20261103-original/Knudz_Watchlist.csv`, with a local manifest. It is 3,592 bytes, SHA256 `b84d9cdf998765a7cd2bdb8219d717daa5c034e9f5e152120df775602c761c6e`. The CSV stays outside Git history. Its original Downloads location is not required after restore; the historical baseline bundle did not include it.
-
-Python 3.14.7 is the tested version. Install Python and Poppler, create a local environment and install the complete pinned dependencies:
+Python 3.14.7 is the tested version. Install Python and Poppler, create the local environment and install the pinned dependencies:
 
 ```sh
 brew install python@3.14 poppler
@@ -29,61 +15,51 @@ python3.14 -m venv .venv
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Use the desktop Codex login on each Mac. The controller's default binary is `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`; use `--codex` if that Mac has a different verified installation. Do not transfer login files. Put only that Mac's Börsdata key in ignored `.env.local`; no key is needed to render saved evidence.
+The default Codex binary is `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`. Supply `--codex` for another verified local installation and authenticate separately on each workstation. Put the acquisition key in ignored `.env.local`. Saved-result viewing and deterministic replay need no provider credential.
 
-`pdftoppm` must be on PATH for original-page images. Alternatively set `BETAFORGE_PDFTOPPM` to a local Poppler executable. In the current managed environment, Homebrew's fontconfig post-install step failed, so the verified desktop runtime's Poppler 26.05.0 was used through that override. The renderer path is workstation setup, not research evidence.
+`pdftoppm` must be on PATH for original-page images, or set `BETAFORGE_PDFTOPPM` to its executable. The desktop runtime's Poppler 26.05.0 has also been exercised through that override. The executable path is workstation setup, not source evidence.
 
-Download the private release with an authenticated GitHub CLI:
+## Create a versioned private bundle
 
-```sh
-gh release download research-quality-2026-11-03 \
-  --repo KapKnudz/betaforge-research-private --dir /absolute/path/private-download
-```
-
-Choose the source commit for historical reproduction, or the current implementation branch `feat/granges-walkthrough` for the new policy and tools. The original evidence packet and saved result remain separate from newer runs.
-
-## Create an archive
-
-First stop acquisition and analysis writes. The archive command refuses to overwrite an existing version:
+Stop acquisition and analysis writes first. Explicitly select the saved company evidence and results to preserve; no company or dated run is included automatically:
 
 ```sh
 .venv/bin/python scripts/archive_research.py \
-  --output data/backups/research-2026-11-03.tar.gz
+  --include data/packets/company-snapshot \
+  --include data/runs/company-analysis \
+  --db data/evidence/evidence.sqlite3 \
+  --output data/backups/research-version.tar.gz
 ```
 
-It includes the existing Gränges frozen packet and completed Codex run, the original pi reports/preparation/runs/QA and compact research metadata, Börsdata captures, and a consistent snapshot of the canonical evidence database plus its source blobs. The live database is copied through the existing SQLite backup/freeze implementation. Research symlinks are rejected. Environment/configuration directories and credential filenames are excluded from the fixed selection.
+Repeat `--include` for captured sources, benchmarks, watchlists or `examples/<case>/data` as needed. Includes must be reviewed repository-relative research subpaths under `data/` or `examples/<case>/data`; the repository root, home directories, configuration paths, symlinks and backup output are rejected. Overlapping includes are deduplicated. The output must sit outside its selected inputs.
 
-The command writes three files:
+Pass the live store through `--db`, rather than including its directory. The existing SQLite freeze implementation creates a consistent database backup with verified source blobs, archived under the store's repository-relative parent. The default is `data/evidence/evidence.sqlite3`; a different company's store can be supplied explicitly. Do not place the archive inside that live store.
 
-- `research-2026-11-03.tar.gz`: exact selected research bytes, with a consistent canonical-store copy.
-- `research-2026-11-03.tar.gz.sha256`: checksum covering the whole archive, including saved answers and traces.
-- `research-2026-11-03.tar.gz.manifest.json`: source Git commit/worktree status, relative file inventory, sizes and archive checksum.
+The command refuses an existing archive or sidecar and writes:
 
-Keep all three privately. The archive is not encrypted by this command. It contains financial research and model traces, so use authenticated private storage. The source Git commit is the HEAD at capture; the manifest also flags local tracked/untracked work. A dirty checkpoint must not be presented as fully reproducible from that commit alone.
+- `.tar.gz`: selected exact files plus the consistent store freeze.
+- `.tar.gz.sha256`: SHA256 covering the whole archive, including saved outputs.
+- `.tar.gz.manifest.json`: application Git identity/worktree status, source paths/database, member paths/sizes and archive checksum.
 
-The fixed paths deliberately cover the existing research, not an arbitrary filesystem backup. Add an explicit reviewed path when another company/run needs preservation. Do not point this workflow at home directories, authentication stores or live research running on both Macs.
+The bundle is not encrypted by the command. Upload it only to private storage. A source checkpoint with local changes is recorded honestly and cannot be presented as reproducible from its HEAD commit alone. This is a selected research archive, not a filesystem backup.
 
-## Restore on the second Mac
+## Restore
 
-Clone the recorded source checkpoint, install its Python/PDF prerequisites and authenticate Codex separately. Download the archive and sidecars from the selected private storage. In the download directory, verify before extracting:
+Authenticate GitHub on the receiving Mac and download a selected release:
 
 ```sh
-shasum -a 256 -c research-2026-11-03.tar.gz.sha256
-tar -tzf research-2026-11-03.tar.gz
+gh release download "$RESEARCH_TAG" \
+  --repo KapKnudz/betaforge-research-private --dir /absolute/path/private-download
 ```
 
-Extract into a clean clone or a separate clean restore directory, never over a database or result directory currently in use:
+Use the application source commit from the archive manifest to check out code in the public code repository. Tags in the separate storage repository identify its README history, not application code. Verify the checksum before extraction:
 
 ```sh
-tar -xzf research-2026-11-03.tar.gz -C /absolute/path/to/clean/betaforge-reborn
+shasum -a 256 -c research-version.tar.gz.sha256
+tar -tzf research-version.tar.gz
+tar -xzf research-version.tar.gz -C /absolute/path/to/clean/betaforge-reborn
 ```
 
-The archive uses repository-relative paths, so existing packet/report paths resolve after restoration. Render the saved analysis without reacquiring data or running the model:
+Extract into a clean clone or separate clean restore directory, never over a store or analysis currently in use. Paths inside the archive remain repository-relative. Preserve the database, manifest and blobs together. Legacy bundles retain their original private data paths; use the corresponding [example replay commands](../examples/granges/README.md) with current code, or the recorded code checkpoint for historical reproduction.
 
-```sh
-.venv/bin/python scripts/render_codex_walkthrough.py
-```
-
-The original frozen packets stay unchanged. The canonical `data/evidence` restored from this archive is a consistent backup, with the freeze manifest alongside it. Preserve its database and blobs together.
-
-Moving completed evidence/results is separate from continuing an active Codex conversation: same-thread resume on a second Mac is not yet verified. Do not copy authentication files to make it work. See the [portability review](research/version-control-portability-review.md) and [Codex integration](codex-integration.md).
+Completed-result restoration and active Codex conversation migration are separate. A clean-clone restore/render/replay has passed on the current Mac. A physical second Mac and same-thread live resume there remain unverified. Do not transfer authentication files. See [Codex integration](codex-integration.md).

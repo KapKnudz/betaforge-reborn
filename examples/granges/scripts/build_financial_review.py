@@ -10,7 +10,9 @@ import json
 from pathlib import Path
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ROOT = Path(__file__).resolve().parents[3]
+CASE_DATA = Path(__file__).resolve().parents[1] / "data"
+sys.path.insert(0, str(ROOT))
 from betaforge.financials import VERSION, evaluate
 from betaforge.storage import EvidenceStore
 
@@ -309,7 +311,7 @@ def build_review(packet, facts_path, run=None, operating_tax_rate=None, tax_reas
                     dict(price=price, expected_annual_dividend_per_share=derived(weighted, "expected_annual_dividend_per_share"),
                          expected_future_target=derived(weighted, "expected_future_target"), years=prior("input:7211be03731c4f826fc4")))
                 probability_proposal = dict(weights={case: str(weight) for case, weight in zip(cases, scenario_weights)},
-                                            basis=proposal_reason, rationale_path="docs/research/scenario-probabilities-proposal.md")
+                                            basis=proposal_reason, rationale_path="examples/granges/docs/research/scenario-probabilities-proposal.md")
                 if market_benchmark_context is not None:
                     benchmark = load_market_benchmark(market_benchmark_context, "2026-11-01")
                     candidate_return = candidate["outputs"]["irr_percent"]["value"]
@@ -382,9 +384,9 @@ def render_markdown(review):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--packet", default="data/granges-codex/packet-20261101")
-    parser.add_argument("--facts", default="data/granges-walkthrough/quality-facts-20261103.json")
-    parser.add_argument("--original-run", default="data/granges-codex/runs/20261101-full")
+    parser.add_argument("--packet", type=Path, default=ROOT / "data/granges-codex/packet-20261101")
+    parser.add_argument("--facts", type=Path, default=CASE_DATA / "quality-facts-20261103.json")
+    parser.add_argument("--original-run", type=Path, default=ROOT / "data/granges-codex/runs/20261101-full")
     parser.add_argument("--output", required=True, help="New directory; existing outputs are never overwritten")
     parser.add_argument("--operating-tax-rate", type=Decimal)
     parser.add_argument("--tax-reason")

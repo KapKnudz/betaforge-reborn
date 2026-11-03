@@ -12,8 +12,9 @@ from pathlib import Path
 from urllib.parse import urljoin
 from urllib.request import urlopen
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 DATA = ROOT / "data/granges-walkthrough"
+CASE_DATA = Path(__file__).resolve().parents[1] / "data"
 ARCHIVE = "https://mfn.se/all/a/granges"
 PAGINATION_SOURCE = "https://mfn.se/assets/js/show-more_6IEBXRx0.js"
 SLUGS = {
@@ -38,7 +39,7 @@ def links(text):
 
 
 def main():
-    manifest_bytes = (DATA / "source-manifest.json").read_bytes()
+    manifest_bytes = (CASE_DATA / "source-manifest.json").read_bytes()
     original = {row["report_id"]: row for row in json.loads(manifest_bytes)["documents"]}
     found = {}
     archive_pages = []
@@ -92,7 +93,7 @@ def main():
         except Exception as error:
             row.update(status="release_fetch_or_parse_failed", error=str(error))
         print(report_id, row["status"], flush=True)
-    assert (DATA / "source-manifest.json").read_bytes() == manifest_bytes
+    assert (CASE_DATA / "source-manifest.json").read_bytes() == manifest_bytes
     for saved in original.values():
         assert hashlib.sha256((ROOT / saved["local_path"]).read_bytes()).hexdigest() == saved["sha256"]
     output = {

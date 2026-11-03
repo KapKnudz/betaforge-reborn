@@ -24,8 +24,8 @@ DATASETS = {
 }
 DEFINITIONS_URL = "https://pages.stern.nyu.edu/adamodar/New_Home_Page/datafile/variable.htm"
 CAVEATS = [
-    "Global industry aggregates, not company-level peer medians or a verified Gränges peer group.",
-    "A broad Metals & Mining row includes different business models and cannot set an exit multiple.",
+    "Global industry aggregates, not company-level peer medians or a verified comparison group for the selected issuer.",
+    "An industry label may combine different business models and cannot by itself set an exit multiple.",
     "Many source ratios use aggregate sector numerators and denominators; no peer median is inferred.",
     "The source analysis date, underlying financial periods and retrieval date are different; exact constituent reporting periods are not supplied here.",
     "Leases, R&D capitalization, taxes, stock compensation and invested-capital definitions may differ from issuer metrics; match column definitions before comparison.",

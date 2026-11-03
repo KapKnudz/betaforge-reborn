@@ -156,6 +156,25 @@ def verify_implementation(current, previous):
         raise ValueError('Resume implementation changed or lacks the complete formula identity; start a separately identified run')
 
 
+def integration_smoke_prompt(report_ids):
+    first = next(iter(report_ids), None)
+    if first is None:
+        raise ValueError('Integration smoke requires at least one supplied report')
+    return f'''Integration smoke only: call get_catalogue and get_calculation_definitions;
+get_financials fields ["revenues", "net_Sales", "operating_Income"] limit 10.
+Read report_id {json.dumps(first)} from page 1 and view its original page 1 image.
+State one visible heading or fact from that image, citing the supplied report and physical page.
+Save assumptions 2 and 3 (dimensionless) with record_input, then add them using calculate.
+Also save integration-test assumptions revenue 100 SEK and margin 0.10 dimensionless;
+call calculate_financial revenue_ebit and state its result and named output reference.
+If a saved monetary observation with a resolved unit is available, multiply it by the saved 2
+using calculate; report its source ID, unit and result with source scale applied once.
+If matching annual/R12 SEK revenue and operating-profit observations are available,
+use calculate_financial ebit_margin; otherwise state the exact missing evidence without inventing it.
+Respond SMOKE_COMPLETE with results and references. Full required-report reading is waived
+only for this integration check; do not finish research rounds or issue a valuation.'''
+
+
 def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAULT_CODEX, smoke=False, resume=False, cancel_after=None):
     if not 0 < timeout_seconds <= 7200:raise ValueError('Timeout must be >0 and <=7200 seconds')
     output=Path(output).resolve()
@@ -177,13 +196,7 @@ def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAU
     if resume: verify_implementation(state['implementation_sha256'], previous)
     prompt=Path(prompt_path).read_text() if prompt_path else ''
     if smoke:
-        first=next(iter(tools.reports))
-        prompt=f'''Integration smoke only: call get_catalogue and get_calculation_definitions; get_financials fields ["revenues", "operating_Income"] limit 10;
-read_report report_id {first} start_page 1; view_report_page report_id granges-q3-2026 page 21.
-Save assumptions 2 and 3 with record_input, then add them using calculate. Also multiply the first revenues observation by the saved assumption2 and report that result in SEK (observation scale applies automatically). Inspect the page image
-and state Q3 reported and adjusted operating profit. Call calculate_financial ebit_margin using matched revenue and operating profit observation IDs and state the named output reference.
-Respond SMOKE_COMPLETE with results and references.
-For this smoke only, full required-report reading is waived; do not finish research rounds.'''
+        prompt=integration_smoke_prompt(tools.reports)
     if not prompt.strip():raise ValueError('Prompt required')
     state['prompt_sha256']=verify_prompt({} if smoke else tools.packet,prompt,previous if not smoke else None)
     if resume:

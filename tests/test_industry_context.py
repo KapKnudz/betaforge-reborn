@@ -159,7 +159,7 @@ class AcquisitionTests(unittest.TestCase):
         directory = self.destination()
         with patch.object(fetch.requests, "get", side_effect=lambda *a, **kw: self.response(b"exact raw bytes")) as get:
             with patch.object(fetch, "parse_workbook", return_value={"source_analysis_date": "2026-01-09", "selected_rows": []}):
-                context = fetch.acquire(directory, ["Metals & Mining"])
+                context = fetch.acquire(directory, ["Software (System & Application)"])
         self.assertEqual(get.call_count, 4)
         for call in get.call_args_list:
             self.assertIn(call.args[0], [fetch.BASE + name for name in list(fetch.DATASETS.values())[:4]])
@@ -168,6 +168,9 @@ class AcquisitionTests(unittest.TestCase):
         manifest = json.loads((directory / "manifest.json").read_text())
         self.assertEqual(manifest["status"], "complete")
         self.assertEqual(context["manifest_sha256"], hashlib.sha256((directory / "manifest.json").read_bytes()).hexdigest())
+        self.assertEqual(context['industry_selections'], ['Software (System & Application)'])
+        self.assertNotIn('Metals & Mining',json.dumps(context))
+        self.assertNotIn('Gränges',json.dumps(context,ensure_ascii=False))
         for source in manifest["sources"]:
             self.assertEqual((directory / source["file"]).read_bytes(), b"exact raw bytes")
             self.assertEqual(source["sha256"], hashlib.sha256(b"exact raw bytes").hexdigest())
