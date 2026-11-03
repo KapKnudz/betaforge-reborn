@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-03T19:00:41+01:00",
+  "updated_at": "2026-11-03T19:14:58+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "expand-corpus-to-30",
@@ -303,17 +303,19 @@
         "Freeze, privately archive, clean-restore and verify a downloaded remote copy."
       ],
       "evidence": [
+        "scripts/fetch_borsdata_context.py",
+        "tests/test_acquisition.py",
         "scripts/verify_development_corpus.py",
         "docs/research/frozen-dataset-feasibility.md"
       ],
       "blocker": null,
-      "note": "Twenty additions were selected by a Luna/high scout and checked by an independent Sol/xhigh reviewer. Exact selection remains private; a currency/reporting transition is retained as a future mapping case."
+      "note": "Twenty additions independently selected and reviewed; exact selection stays private. Acquisition exposed intermittent connection failures: the existing three-attempt budget now retries transport failures with redacted diagnostics. Incomplete attempts are retained separately and must be reacquired before freeze; the original ten-company corpus is intact. Independent review accepts the bounded retry and private archive inventory/hash checks. Report-currency continuity remains a future mapping case."
     }
   ],
   "session": {
     "task": "expand-corpus-to-30",
     "summary": "Researched project routing is implemented and validated. Twenty approved API additions are being captured serially; the verified original ten remain intact.",
-    "next_step": "Finish acquisition, freeze all thirty chronologically, verify clean restore and private remote archive, then publish focused PR dependent on open PR #3."
+    "next_step": "Reacquire incomplete captures, finish the thirty-company freeze, verify a clean private archive restore and downloaded copy, then obtain a fresh PR #4 review. PR #4 targets the still-open PR #3 branch."
   },
   "references": [
     {

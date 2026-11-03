@@ -101,6 +101,14 @@ def acquire(directory, instrument, key, plan=None, pause=time.sleep):
                     else:
                         record["array_length"] = len(data)
                 break
+            except (requests.ConnectionError, requests.Timeout) as error:
+                # Keep only the class; transport messages may contain the authenticated URL.
+                record.setdefault("transport_errors", []).append(type(error).__name__)
+                if attempt < 2:
+                    pause(2)
+                    continue
+                record.update(status="failed", error=type(error).__name__)
+                break
             except (requests.RequestException, OSError, ValueError) as error:
                 # Exception messages can include the authenticated request URL.
                 record.update(status="failed", error=type(error).__name__)
