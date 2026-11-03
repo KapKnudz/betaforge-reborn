@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "subject": "Gränges AB",
+  "reviewed_on": "2026-11-03",
+  "status": "Candidate comparisons; no peer financials collected or valuation multiple inferred",
+  "selection_basis": [
+    "Aluminium rolling and fabrication, customer mix and recycling economics",
+    "Compare metal pass-through, volume and conversion pricing before comparing sales margins",
+    "Compare asset intensity, maintenance and growth investment, not domicile alone"
+  ],
+  "candidates": [
+    {
+      "name": "Constellium SE",
+      "listing": "NYSE: CSTM",
+      "role": "Listed candidate; requires metric and segment matching",
+      "observed_business": "Rolled and extruded aluminium for packaging, automotive, aerospace and industry; recycling operations.",
+      "reason": "Rolling and recycling offer useful operating comparisons; automotive and packaging overlap supports further review.",
+      "differences": "Aerospace plates, structural extrusions and the wider product mix differ from Gränges. Compare relevant segments and metal pass-through before whole-company margins or capital returns.",
+      "sources": [
+        {"url": "https://www.constellium.com/our-business-units", "supports": "Business mix and recycling"},
+        {"url": "https://www.constellium.com/news/constellium-reports-strong-third-quarter-2026-results-raises-full-year-2026-guidance", "supports": "Current issuer identity and NYSE CSTM listing"}
+      ]
+    },
+    {
+      "name": "UACJ Corporation",
+      "listing": "Tokyo Stock Exchange: 5741",
+      "role": "Listed candidate; requires metric and segment matching",
+      "observed_business": "Flat-rolled aluminium including can stock, automotive heat exchanger and air-conditioner fin materials; also extrusion, components, foil and aerospace/defence materials.",
+      "reason": "Heat exchanger and fin products offer a closer product comparison; rolling assets make reinvestment and utilization relevant.",
+      "differences": "Broader products and operating geographies require segment matching. Its business profit excludes metal-price lag and other items; do not equate that measure with unadjusted EBIT or assume reported ROIC has the same tax basis.",
+      "sources": [
+        {"url": "https://www.uacj.co.jp/english/company/business/", "supports": "Products and business mix"},
+        {"url": "https://www.uacj.co.jp/english/ir/stockinfo/stock.html", "supports": "Issuer and listing, as of 30 September 2026"},
+        {"url": "https://www.uacj.co.jp/english/sustainability/message.html", "supports": "Business profit adjustment and pre-tax ROIC definition"}
+      ]
+    },
+    {
+      "name": "Kaiser Aluminum Corporation",
+      "listing": "Nasdaq: KALU",
+      "role": "Listed candidate; requires metric and segment matching",
+      "observed_business": "North American fabricated aluminium plate, sheet, coil and extrusions serving aerospace, packaging, general engineering and automotive customers.",
+      "reason": "Fabrication, customer qualification and rolling investments offer operating comparisons. Metal-price pass-through and conversion revenue make revenue-denominator matching essential.",
+      "differences": "Aerospace/high-strength and extrusion exposure differ from Gränges. Conversion revenue subtracts hedged alloyed-metal cost and is not ordinary reported sales.",
+      "sources": [
+        {"url": "https://investors.kaiseraluminum.com/", "supports": "Current business and markets"},
+        {"url": "https://investors.kaiseraluminum.com/resources/faq", "supports": "Issuer and Nasdaq KALU listing"},
+        {"url": "https://investors.kaiseraluminum.com/sec-filings/all-sec-filings/content/0001193125-26-059575/kalu-20251231.htm", "supports": "Pricing, Metal Price Risk Management, and Hedging; Metal Pricing Policies"}
+      ]
+    },
+    {
+      "name": "Novelis Inc.",
+      "listing": null,
+      "role": "Operating reference only; wholly owned Hindalco subsidiary, not a standalone listed equity peer",
+      "observed_business": "Global aluminium rolling and recycling serving beverage packaging, automotive, aerospace and specialty markets.",
+      "reason": "Rolling, recycling and customer mix offer operating and capital-intensity context.",
+      "differences": "Scale, product mix and group financing differ. Do not substitute parent Hindalco's equity multiple for a Novelis standalone multiple.",
+      "sources": [
+        {"url": "https://novelis.com/about-us/", "supports": "Rolling, recycling, markets and geography"},
+        {"url": "https://www.hindalco.com/businesses/novelis", "supports": "Wholly owned subsidiary status"}
+      ]
+    }
+  ],
+  "missing_evidence": "No harmonized peer margins, ROIC, cash flow, maintenance capex or current market multiples have been collected. These candidates do not establish a peer median or justify a change to the Gränges exit multiple."
+}

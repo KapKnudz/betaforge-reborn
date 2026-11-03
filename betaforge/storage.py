@@ -431,6 +431,11 @@ class EvidenceStore:
         if kpi in VALUATION_MULTIPLES:
             result.update(unit="multiple", scale="1",
                           unit_definition="https://github.com/Borsdata-Sweden/API/wiki/KPI-History#kpi-table")
+        elif kpi == 37:
+            # Provider ROIC is profit / its own capital base, expressed in percent.
+            # It is not our NOPAT / average invested capital diagnostic.
+            result.update(unit="percent", scale="1", mapping_version="borsdata-kpi-v2",
+                          unit_definition="https://borsdata.se/info/nyckeltal/roic")
         return result
 
     def _kpis(self, endpoint, payload, instrument, source_id, observed_at):
@@ -501,7 +506,7 @@ class EvidenceStore:
                 self._observation(record, source_id, f"/facts/{i}", observed_at)
         return {"source_id": source_id, "facts": len(data["facts"])}
 
-    def validate_report_links(self, catalogue):
+    def validate_report_links(self, catalogue, instrument_id=None):
         """Check every saved report fact against an already verified PDF catalogue.
 
         Catalogue entries contain source_sha256 and physical page count (pages).
@@ -511,6 +516,8 @@ class EvidenceStore:
         for row in self.connection.execute("SELECT record FROM observations"):
             record = json.loads(row[0])
             if record.get("provider") != "issuer_report":
+                continue
+            if instrument_id is not None and record.get("instrument_id") != instrument_id:
                 continue
             evidence = record.get("evidence", {})
             report_id = evidence.get("report_id")

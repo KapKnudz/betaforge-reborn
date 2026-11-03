@@ -1,0 +1,80 @@
+# Betaforge analysis policy
+
+Version 1, adopted for implementation on 3 November 2026. This is the current project policy. Each new analysis freezes this file and the [calculation catalogue](calculations.md) with their hashes. Historical packets retain their original instructions and results.
+
+## Purpose and sources
+
+Understand the operating business, its earnings quality and the price paid for it. Use a few meaningful assumptions and explicit formulas that a reader can reconstruct. Collected data and arithmetic counts do not establish a stronger thesis.
+
+This policy combines the case-oriented principles in the [supplied Hedborg synthesis](planning/investment-philosophy-draft.md) with the user's Armitage-inspired financial-analysis brief. It is the project's interpretation, not an authenticated quotation or complete doctrine of either investor. The supplied synthesis remains a source; its proposed scores and thresholds are not adopted here.
+
+## Investment philosophy
+
+1. Separate business quality from attractiveness at the current price. State a two-to-three-year horizon and the mechanism that should create a return.
+2. Usually research profitable, understandable Nordic businesses. The local investment universe does not restrict economically comparable peers to Nordic countries.
+3. Identify three to five variables that drive earnings and cash. Separate each observed fact, interpretation and forecast assumption. Explain interactions rather than count one utilization or pricing benefit twice.
+4. Assess pricing power, competitive advantages and operating leverage from business mechanics and outcomes. Revenue growth, a gross-to-EBIT spread or a sector label alone does not prove scalability.
+5. Judge management through capital allocation, ownership alignment and important promises versus outcomes. Insider/ownership evidence provides context, not a mechanical trading signal.
+6. Test earnings against working capital, reinvestment and capital efficiency. Growth can consume capital or weaken per-share economics.
+7. Treat share compensation as an economic cost. Explain the expense, cash-flow addback, outstanding awards and prospective dilution without charging the same item twice.
+8. Require a defensible multiple and complete equity bridge. Historical multiples provide context; multiple expansion needs its own rationale and cannot rescue unsupported earnings.
+9. Name evidence that would weaken or invalidate the thesis. A price decline alone is not an operating thesis break, and an improving business does not justify any price.
+10. Produce useful conditional valuations when evidence is incomplete. Localize the missing input; do not invent it or block unrelated analysis.
+
+## Evidence and comparisons
+
+Start with the company's own five-to-ten-year history where available. Keep periods, currency, reporting scope and adjustments comparable. Identify acquisition, disposal, FX, seasonality and restatement effects. For metal-price pass-through businesses, volume and operating profit per tonne may explain performance better than nominal revenue.
+
+Then select a small global peer set by business model, customers, pricing, capital intensity and reinvestment economics. Give a reason for each inclusion and material difference. Country matters through actual tax, regulation, accounting, market structure or operating exposure, not listing domicile alone.
+
+Use industry datasets as a third layer of context. Preserve source date, period, coverage, accounting adjustments and aggregation. Sector aggregates are not peer medians. US tables and global workbooks have different coverage. Do not automatically copy an industry multiple into the valuation.
+
+Reuse Börsdata and prepared reports first. Add a report fact or provider only when it answers an identified question. Keep reported/adjusted EBIT, parent/group profit, share bases and source revisions distinct. Preserve discrepancies and rounding residuals.
+
+## Financial quality
+
+Use only diagnostics that explain the company, not a universal ratio scorecard:
+
+| Question | Selected analysis |
+|---|---|
+| Is profitability improving? | EBIT margin and history on a consistent reported or adjusted basis. |
+| Does extra revenue produce more profit? | Qualified incremental EBIT margin, showing both deltas and scope changes. |
+| Is growth capital efficient? | Operating ROIC with an explicit tax assumption and average capital; retain provider ROIC and issuer ROCE separately. |
+| Do earnings produce cash? | A cash bridge and group cash conversion after capex, outside-CFO cash interest and outside-CFO lease principal, before dividends. |
+| Is working capital absorbing cash? | Actual operating receivables, inventory and payables relative to annual/R12 sales, with average/closing basis stated. |
+| Is the price sensible? | EV/EBIT, diluted-EPS P/E and a defined cash yield when its scope is supportable. |
+| Are owners paying through shares? | Material compensation programs, expense treatment, current awards and plausible dilution. |
+
+Group cash conversion is a diagnostic, not parent-owner free cash flow. CFO already includes working-capital movement and cash taxes; expose those components or reverse them before normalization, never subtract them twice. Missing lease principal or gross cash interest stays missing. Show known earlier bridge amounts and the gap rather than inventing a final ratio. SBC addbacks remain separately visible; cash generation does not make share compensation free.
+
+Operating ROIC uses a selected operating-tax assumption and two-point average invested capital. It is not relabeled Börsdata ROIC or issuer ROCE. Do not compare it mechanically with an equity required return or the market-index investment hurdle. A precise economic-value-creation claim needs a comparable cost-of-capital basis.
+
+## Valuation methods
+
+**Primary: forward operating EV/EBIT scenarios.** Select one operating equation: normally revenue times EBIT margin, or a better company-specific equation such as tonnes times EBIT per tonne. Use bear/base/bull assumptions, a selected multiple and a full enterprise-to-common-equity bridge. Do not add two estimates of the same earnings upside.
+
+Show forecast operating earnings, EV, future debt, additional claims, common equity, forecast shares, future target and present value. State lease, pension, minority and non-operating-asset conventions explicitly. Cash already netted in debt is not added again. Retained cash reduces debt; dividends are valued separately, without using the same future cash twice.
+
+**Sanity checks:** EV/EBIT and P/E are standard. FCF yield is used only with an explicitly scoped cash numerator and matching equity value or EV. EV/EBITDA valuation is optional and must answer a specific question; EBITDA can still describe an issuer/lender leverage convention. A related multiple check sharing the forecasts is not independent confirmation.
+
+**Complement: market-implied EBIT.** Work backward from the observed price under stated multiple, claims, dividends and required return. This is a conditional operating requirement, not the market's unique forecast or a reverse DCF.
+
+A full reverse DCF is not implemented by this policy. It would need an explicit cash-flow, reinvestment, tax and terminal model. No simulation system, automatic industry valuation or hidden quality score is required.
+
+## Probabilities and returns
+
+The analyst proposes company-specific probabilities, evidence and uncertainty; the user can override them. There is no fixed default split. Define outcomes and representative values. If material tails are omitted or values are representative points rather than conditional means, label the weighted result indicative/conditional rather than a calibrated full-distribution expectation.
+
+Weight comparable values at the same date and ownership scope. Base-case value is not expected value, evidence confidence is not outcome probability, and a positive nominal return can still miss the investment hurdle.
+
+The agreed hurdle is the **SIX Return Index (SIXRX)** trailing ten-year annualized total return with reinvested dividends, measured as of the analysis date. It is a historical broad-market opportunity-cost reference, not a forecast of the index return or automatically the company's cost of equity. Verify the exact series, dates and source conventions before a hurdle verdict. Do not silently substitute another index when SIXRX data is missing.
+
+The candidate annual-return statistic is **IRR of probability-weighted cash flows**: weight each scenario's dividend/terminal payment at each date, then solve for the annual rate that equates those cash flows with the starting share price. Do not average scenario IRRs or annualize only the expected exit price. Label the result conditional/indicative when the scenarios omit tails or use representative points. A missing benchmark measurement prevents a hurdle-pass claim, not useful scenario targets and present values. The frozen Gränges 10% remains its historical illustrative assumption, not a universal rate.
+
+## Output and calculation discipline
+
+Lead with a concise case summary: thesis/horizon; three to five drivers; a small quality table and cash bridge; one scenario assumption table and valuation bridge; one or two modest disappointment checks; and two or three disconfirming observations with the next evidence to review.
+
+Show the supporting observation, interpretation and assumption for each material forecast. Pricing power, moat and management conclusions are interpretations. Put detailed formulas, input IDs/values, report pages and reconciliations in a readable appendix.
+
+Use the named [calculation catalogue](calculations.md). Normalize source scale once, use Decimal and round only for display. Reuse common facts and results. Converting SEK to displayed millions is formatting, not another valuation assumption or economic calculation. Preserve historical audits and mark superseded outputs; do not rebuild unnecessary bridges merely to create more records.

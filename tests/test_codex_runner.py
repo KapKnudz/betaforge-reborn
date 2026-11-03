@@ -8,7 +8,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from betaforge.codex_runner import AppServer, child_environment, safe_event, verify_prompt
+from betaforge.codex_runner import AppServer, child_environment, safe_event, verify_implementation, verify_prompt
 
 
 class RunnerTests(unittest.TestCase):
@@ -25,6 +25,15 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(verify_prompt({'prompt_sha256':signature},'original'),signature)
         with self.assertRaises(ValueError):verify_prompt({'prompt_sha256':signature},'changed')
         with self.assertRaises(ValueError):verify_prompt({},'changed',{'prompt_sha256':signature})
+
+    def test_resume_requires_same_formula_and_tool_implementation(self):
+        current={'tools.py':'a','financials.py':'b','storage.py':'c','codex_runner.py':'d'}
+        verify_implementation(current,{'implementation_sha256':dict(current)})
+        changed=dict(current,**{'financials.py':'changed'})
+        with self.assertRaisesRegex(ValueError,'separately identified'):
+            verify_implementation(changed,{'implementation_sha256':current})
+        with self.assertRaisesRegex(ValueError,'complete formula identity'):
+            verify_implementation(current,{'implementation_sha256':{'tools.py':'a'}})
 
     def test_event_log_does_not_duplicate_image_data(self):
         result=safe_event({'content':[{'imageUrl':'data:image/png;base64,TEST'}]})

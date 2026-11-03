@@ -2,6 +2,8 @@
 
 Reviewed 3 November 2026. This was a read-only inspection of Git metadata, source, documentation and file metadata. No files were staged, committed or pushed; no tests, acquisition, model or valuation runs were started. Only this findings note was written. Credential values were not read or printed.
 
+This is the historical review that preceded implementation. The user subsequently selected private GitHub release assets. Source checkpoint `5678dd1` and its verified private evidence release now exist; a clean clone restore/render succeeded on the current Mac. See [the current handoff guide](../research-handoff.md) for exact checks and the remaining second-Mac/live-thread limits.
+
 ## Recommendation
 
 Create a reviewed source checkpoint before adding more functionality. The current remote `main` preserves only the initial planning foundation. Keep source and decisions in Git, and preserve exact company evidence and completed analysis records as separate private bundles. This reuses the existing frozen-packet design; a new storage architecture is unnecessary. [Git inventory](#git-inventory), [accepted storage decision](../adr/0002-local-evidence-storage.md), [packet preparation](../../scripts/prepare_codex_packet.py#L45).

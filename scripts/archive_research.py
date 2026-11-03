@@ -25,6 +25,12 @@ RESEARCH_DIRECTORIES = (
     "data/granges-walkthrough/qa",
     "data/borsdata",
 )
+OPTIONAL_RESEARCH_DIRECTORIES = (
+    "data/granges-codex/packet-quality-20261103",
+    "data/granges-codex/runs/20261103-quality-smoke",
+    "data/financial-reviews",
+    "data/benchmarks",
+)
 FORBIDDEN_PARTS = {".git", ".idea", ".venv", "node_modules", "__pycache__"}
 
 
@@ -46,7 +52,8 @@ def source_files(root):
     """An explicit selection keeps secrets and unrelated workspace files out."""
     root = Path(root).resolve()
     selected = []
-    for relative in RESEARCH_DIRECTORIES:
+    directories = (*RESEARCH_DIRECTORIES, *(name for name in OPTIONAL_RESEARCH_DIRECTORIES if (root/name).exists()))
+    for relative in directories:
         directory = root / relative
         if directory.is_symlink() or not directory.is_dir():
             raise ValueError("Required research directory missing or linked: " + relative)
@@ -106,7 +113,7 @@ def create_archive(root, destination):
         files.extend((source, "data/evidence/" + source.relative_to(frozen).as_posix())
                      for source in sorted(frozen.rglob("*")) if source.is_file())
         manifest = {"created_at": datetime.now(timezone.utc).isoformat(),
-                    "git": git_identity(root), "source_directories": list(RESEARCH_DIRECTORIES),
+                    "git": git_identity(root), "source_directories": [*RESEARCH_DIRECTORIES, *(name for name in OPTIONAL_RESEARCH_DIRECTORIES if (root/name).exists())],
                     "canonical_store": "data/evidence (consistent SQLite backup and verified blobs)",
                     "files": []}
         pending = temporary / destination.name

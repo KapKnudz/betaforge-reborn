@@ -1,0 +1,21 @@
+# Independent review of the simpler financial framework
+
+Reviewed 3 November 2026 by a separate read-only agent against the implementation after source checkpoint `5678dd1`. The reviewer inspected source, tests and saved outputs. It made no code changes and ran no tests, provider requests, model jobs or valuation jobs. Execution results are recorded separately in [implementation validation](simple-framework-implementation-validation.md).
+
+## Overall recommendation
+
+Proceed with the implementation checkpoint after execution checks. No remaining must-fix issue was found in the reviewed scope. The supported claim is transparent formulas, continuity with the original scenarios and verified evidence integration. This is not validation of forecasts, calibrated probabilities or a new full analyst valuation. Evidence: [formula registry](../../betaforge/financials.py), [saved quality review](../../data/financial-reviews/granges-20261103-quality-v2/review.md), [packet preparation](../../scripts/prepare_codex_packet.py).
+
+## Findings and boundaries
+
+| Finding | Verdict and reasoning | Larger claim and missing evidence |
+|---|---|---|
+| Financial formulas and original valuation | Supported within scope. Each scenario exposes earnings, claims, shares, dividends and PV. The saved review records exact target/PV parity for all three cases. [Registry, valuation_case](../../betaforge/financials.py); [review, original-case parity](../../data/financial-reviews/granges-20261103-quality-v2/review.md). | Arithmetic continuity does not establish forecast validity or a new full analyst valuation. |
+| Period and resume defects raised during review | Resolved in source. Ordinary earnings multiples reject known quarterly/YTD denominators; capital diagnostics check opening dates; resume rejects changed/incomplete implementation hashes. Tests are present; the reviewer did not execute them. [Tools, _financial_periods](../../betaforge/tools.py); [runner, verify_implementation](../../betaforge/codex_runner.py); [tests](../../tests/test_tools.py), [runner tests](../../tests/test_codex_runner.py). | Undated assumptions, economic scope and adjustment choices still need analyst judgment. |
+| Probabilities and market comparison | Supported conditionally. The review labels 25/55/20 as editable analyst proposals. Expected-cash-flow IRR is 6.2264%, versus historical SIXRX CAGR 11.6078%, with horizon/reinvestment limits. The reviewer inspected the original saved HTML table's selected dates and levels. [Review, Historical market comparison](../../data/financial-reviews/granges-20261103-quality-v2/review.md#historical-market-comparison); [benchmark evidence](sixrx-benchmark.md#window-and-calculation). | These are not calibrated probabilities, expected realized annual returns or forecasts of future index performance. |
+| Evidence integration | Resolved in source. The market-context copier accepts the actual source schema, checks the company analysis date and preserves the calculation script. [Packet builder, copy_market_benchmark](../../scripts/prepare_codex_packet.py). | Final live integration and restored-bundle results are implementer execution checks, outside this read-only review. |
+| Incomplete cash evidence | Handled locally. Known cash intermediates remain available; undisclosed principal prevents the final conversion ratio. Group cash is not presented as parent-owner FCF. [Review, cash bridge](../../data/financial-reviews/granges-20261103-quality-v2/review.md); [catalogue, group_cash_conversion](../calculations.md#implemented-named-formulas). | A complete post-lease ratio needs verified lease principal and, for Q3, gross outside-CFO interest. |
+
+## Remaining evidence limits
+
+The current evidence does not establish general peer equivalence, predictive valuation accuracy, physical second-Mac handoff or live-thread migration. Candidate peer reasons are recorded without harmonized peer financials; the restored result and live integration smoke have narrower scopes. [Industry context, candidate comparisons](../industry-context.md#gränges-candidate-comparisons); [handoff guide](../research-handoff.md#verified-private-checkpoint); [integration verification](../codex-integration.md#current-integration-verification-3-november-2026).

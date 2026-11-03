@@ -73,6 +73,18 @@ class ArchiveTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
         self.assertFalse(list(self.output.parent.glob(".archive-*")))
 
+    def test_new_quality_outputs_and_benchmarks_are_included_when_present(self):
+        for relative in backup.OPTIONAL_RESEARCH_DIRECTORIES:
+            folder=self.root/relative; folder.mkdir(parents=True,exist_ok=True)
+            (folder/'saved.json').write_text('{"saved":"exact evidence"}')
+        result=self.create()
+        with tarfile.open(self.output,'r:gz') as archive:
+            names=archive.getnames()
+            manifest=json.load(archive.extractfile('research-manifest.json'))
+            for relative in backup.OPTIONAL_RESEARCH_DIRECTORIES:
+                self.assertIn(relative+'/saved.json',names)
+                self.assertIn(relative,manifest['source_directories'])
+
 
 if __name__ == "__main__":
     unittest.main()

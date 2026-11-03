@@ -24,7 +24,12 @@ read every page of every required report through read_report. Search snippets do
 Use physical PDF page citations. Use get_financials/get_dataset/get_source to inspect saved
 Börsdata observations and their definitions, periods and source revisions. Preserve source
 differences and report-derived substitutions. Use record_input for report figures or explicitly
-labelled assumptions, then calculate with saved IDs for all material arithmetic. The calculate tool automatically multiplies original values by their stored scales, so its results
+labelled assumptions. Read get_calculation_definitions and the supplied versioned policy.
+Use calculate_financial with saved IDs for valuation and quality diagnostics: one valuation_case
+record contains the complete EV/EBIT bridge, dividends and present value. Reuse named outputs.
+Use the scalar calculate tool only for reconciliation or arithmetic not covered by a named formula.
+Display conversions and rounding belong in presentation, not extra economic calculations.
+The tools automatically multiply original values by their stored scales, so their results
 are in base units (SEK and actual shares). Do not multiply by the scale again. Specify record_input
 scale explicitly when extracting a report value in millions. Reconcile currencies and units. View original page images for material
 tables/extraction ambiguity. Cite source observation IDs, calculation IDs and report pages.
@@ -146,6 +151,11 @@ def verify_prompt(packet, prompt, previous=None):
     return fingerprint
 
 
+def verify_implementation(current, previous):
+    if previous.get('implementation_sha256') != current:
+        raise ValueError('Resume implementation changed or lacks the complete formula identity; start a separately identified run')
+
+
 def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAULT_CODEX, smoke=False, resume=False, cancel_after=None):
     if not 0 < timeout_seconds <= 7200:raise ValueError('Timeout must be >0 and <=7200 seconds')
     output=Path(output).resolve()
@@ -157,18 +167,22 @@ def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAU
     state_path=output/'run.json'
     previous=json.loads(state_path.read_text()) if resume else {}
     state={'status':'starting','model':MODEL,'reasoning_effort':'high','started_at':datetime.now(timezone.utc).isoformat(),
+           'codex_version':subprocess.run([executable,'--version'],capture_output=True,text=True,timeout=10,check=True,env=child_environment()).stdout.strip(),
+           'analysis_contract_status':'versioned' if tools.analysis_contract else 'legacy_packet_without_adopted_policy',
            'packet':str(Path(packet_path).resolve()),'identity':tools.identity,'smoke':smoke,
-           'timeout_seconds':timeout_seconds,'implementation_sha256':{name:hashlib.sha256((Path(__file__).parent/name).read_bytes()).hexdigest() for name in ('tools.py','codex_runner.py','storage.py')},'thread_id':previous.get('thread_id'),
+           'timeout_seconds':timeout_seconds,'implementation_sha256':{name:hashlib.sha256((Path(__file__).parent/name).read_bytes()).hexdigest() for name in ('tools.py','financials.py','codex_runner.py','storage.py')},'thread_id':previous.get('thread_id'),
            'turn_id':None,'turns':previous.get('turns',[]),'usage':previous.get('usage',[]),
            'unexpected_tools':[],'resume_count':previous.get('resume_count',0)+int(resume)}
     if resume and previous.get('identity') != tools.identity:raise ValueError('Run evidence changed')
+    if resume: verify_implementation(state['implementation_sha256'], previous)
     prompt=Path(prompt_path).read_text() if prompt_path else ''
     if smoke:
         first=next(iter(tools.reports))
-        prompt=f'''Integration smoke only: call get_catalogue; get_financials fields ["revenues"] limit 2;
+        prompt=f'''Integration smoke only: call get_catalogue and get_calculation_definitions; get_financials fields ["revenues", "operating_Income"] limit 10;
 read_report report_id {first} start_page 1; view_report_page report_id granges-q3-2026 page 21.
 Save assumptions 2 and 3 with record_input, then add them using calculate. Also multiply the first revenues observation by the saved assumption2 and report that result in SEK (observation scale applies automatically). Inspect the page image
-and state Q3 reported and adjusted operating profit. Respond SMOKE_COMPLETE with result and references.
+and state Q3 reported and adjusted operating profit. Call calculate_financial ebit_margin using matched revenue and operating profit observation IDs and state the named output reference.
+Respond SMOKE_COMPLETE with results and references.
 For this smoke only, full required-report reading is waived; do not finish research rounds.'''
     if not prompt.strip():raise ValueError('Prompt required')
     state['prompt_sha256']=verify_prompt({} if smoke else tools.packet,prompt,previous if not smoke else None)
@@ -237,6 +251,7 @@ For this smoke only, full required-report reading is waived; do not finish resea
         if response['model']!=MODEL:raise RuntimeError('Exact requested model not selected')
         state['thread_id']=response['thread']['id'];state['status']='running';persist()
         text=prompt+'\nFROZEN EVIDENCE CATALOGUE\n'+json.dumps(tools.catalogue(),ensure_ascii=False)
+        text+='\nADOPTED ANALYSIS CONTRACT\n'+json.dumps(tools.get_calculation_definitions(),ensure_ascii=False)
         if resume:text+='\nContinue from existing evidence notes and tool state. Do not claim unread pages are read.'
         attempts=0
         while True:

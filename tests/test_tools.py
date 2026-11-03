@@ -62,6 +62,79 @@ class ToolsTests(unittest.TestCase):
         value=self.tools.record_input('10.25','Revenue','MSEK','report','example',1,'Net revenue was 10.25 million SEK.')
         self.assertEqual(value['status'],'analyst_extracted_not_independently_reconciled')
 
+    def test_named_formula_scales_once_and_reuses_intermediate_without_new_arithmetic(self):
+        revenue = self.tools.get_financials(fields=['revenues'])['observations'][0]
+        margin = self.tools.record_input('0.10','Forecast operating margin','fraction','assumption')
+        result = self.tools.calculate_financial('revenue_ebit', {'revenue':revenue['id'],'ebit_margin':margin['id']},
+                                                'Forecast EBIT','FY2025 source revenue; explicit forecast margin')
+        self.assertEqual(Decimal(result['result']), Decimal('1025000'))
+        named = self.tools.resolve_input(result['id']+'#ebit')
+        self.assertEqual(named['value'], result['result'])
+        self.assertEqual(named['scale'],'1')
+        self.assertEqual(len(self.tools.state['calculations']),1)
+        wrong = self.tools.record_input('10','Percent is not a fraction','percent','assumption')
+        with self.assertRaisesRegex(ValueError,'fraction/percent'):
+            self.tools.calculate_financial('revenue_ebit', {'revenue':revenue['id'],'ebit_margin':wrong['id']},'Bad margin','Explicit basis')
+        usd = self.tools.record_input('10','USD revenue','USD','assumption')
+        with self.assertRaisesRegex(ValueError,'currency'):
+            self.tools.calculate_financial('revenue_ebit', {'revenue':usd['id'],'ebit_margin':margin['id']},'Bad currency','Explicit basis')
+
+    def test_missing_cash_input_keeps_known_intermediate_but_cannot_reuse_missing_primary(self):
+        cfo = self.tools.record_input('10','CFO','SEK','assumption')
+        capex = self.tools.record_input('3','Cash capex magnitude','SEK','assumption')
+        result = self.tools.calculate_financial('group_cash_conversion', {'cfo':cfo['id'],'cash_capex':capex['id']},
+                                                'Group cash conversion','Test group flow; interest and lease principal unresolved')
+        self.assertIsNone(result['result'])
+        self.assertEqual(self.tools.resolve_input(result['id']+'#cash_after_capex')['value'],'7')
+        with self.assertRaisesRegex(ValueError,'primary output is unavailable'):
+            self.tools.resolve_input(result['id'])
+        with self.assertRaisesRegex(ValueError,'unavailable named'):
+            self.tools.resolve_input(result['id']+'#conversion_percent')
+
+    def test_known_period_mismatch_rejected_before_financial_formula(self):
+        first={'field':'ebit','period_start':'2025-01-01','period_end':'2025-12-31'}
+        second={'field':'revenue','period_start':'2026-01-01','period_end':'2026-12-31'}
+        with self.assertRaisesRegex(ValueError,'incompatible period'):
+            self.tools._financial_periods('ebit_margin',[first,second])
+        for formula,field in [('pe','diluted_eps'),('ev_ebit','ebit')]:
+            with self.subTest(formula=formula), self.assertRaisesRegex(ValueError,'annual or R12'):
+                self.tools._financial_periods(formula,[{'field':field,'report_type':'quarter'}])
+        annual={'field':'ebit','report_type':'year','period_start':'2025-01-01','period_end':'2025-12-31'}
+        closing={'field':'invested_capital_end','period_end':'2025-12-31'}
+        opening={'field':'invested_capital_start','period_end':'2021-12-31'}
+        with self.assertRaisesRegex(ValueError,'Opening capital date'):
+            self.tools._financial_periods('operating_roic',[annual,closing,opening])
+        opening['period_end']='2024-12-31'
+        self.tools._financial_periods('operating_roic',[annual,closing,opening])
+
+    def test_policy_contract_is_verified_and_available_to_analyst(self):
+        self.tools.store.close()
+        policy=self.root/'policy.md';policy.write_text('Adopted policy v1')
+        calculations=self.root/'calculations.md';calculations.write_text('Named formulas v1')
+        packet=json.loads(self.packet.read_text())
+        packet['analysis_contract']={name:{'path':path.name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+                                     for name,path in [('policy',policy),('calculations',calculations)]}
+        self.packet.write_text(json.dumps(packet))
+        self.tools=EvidenceTools(self.packet,self.root/'policy-run')
+        self.assertEqual(self.tools.get_calculation_definitions()['analysis_contract']['policy'],'Adopted policy v1')
+        self.assertIn('analysis_contract', self.tools.identity)
+        policy.write_text('Changed policy')
+        with self.assertRaisesRegex(ValueError,'contract hash'):
+            EvidenceTools(self.packet,self.root/'tampered-policy-run')
+
+    def test_market_context_is_verified_before_use_or_resume(self):
+        self.tools.store.close()
+        market=self.root/'market.json'; market.write_text('{"series":"SIXRX"}')
+        packet=json.loads(self.packet.read_text())
+        packet['market_benchmark_context']={'context_path':'market.json','files':[
+            {'path':'market.json','sha256':hashlib.sha256(market.read_bytes()).hexdigest()}]}
+        self.packet.write_text(json.dumps(packet))
+        self.tools=EvidenceTools(self.packet,self.root/'market-run')
+        self.assertIn('market_benchmark_context',self.tools.identity)
+        market.write_text('{"series":"other"}')
+        with self.assertRaisesRegex(ValueError,'Benchmark context hash'):
+            EvidenceTools(self.packet,self.root/'bad-market-run')
+
     def test_fractional_power_supports_annualized_return_with_unit_guards(self):
         one=self.tools.record_input('1','One','ratio','assumption')
         three=self.tools.record_input('3','Years','ratio','assumption')

@@ -3,6 +3,7 @@ import argparse
 import base64
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation, localcontext
+import hashlib
 import html
 import json
 from pathlib import Path
@@ -132,8 +133,10 @@ def render(run_dir, packet_file, output, allow_incomplete=False):
                 record['source_provenance'] = source_by_id[item['source_id']]
             evidence.append(record)
         identifiers = [item.get('id', 'unspecified') for item in calc.get('inputs', [])]
-        formula = str(calc.get('operation', 'unknown')) + '(' + ', '.join(identifiers) + ')'
-        calc_rows.append(f'<tr id="calculation-{position}"><td class="calc-label"><strong>{esc(calc.get("label", "Untitled"))}</strong><br><code>{esc(calc.get("id", ""))}</code><br><span class="citation-badge {badge_class}">{citation_status}</span></td><td class="num">{esc(display_number(calc.get("result", "")))}<br><span class="muted">{esc(calc.get("unit", ""))}</span></td><td class="formula"><code>{esc(formula)}</code></td><td class="provenance">{details("Inputs and source provenance", evidence)}{details("Saved calculation", calc)}</td></tr>')
+        formula = calc.get('formula_text') or (str(calc.get('operation', 'unknown')) + '(' + ', '.join(identifiers) + ')')
+        result = 'Unavailable' if calc.get('result') is None else display_number(calc.get('result', ''))
+        outputs = details('Named outputs and limits', {key:calc[key] for key in ('outputs','warnings','missing_inputs','basis','version') if key in calc}) if calc.get('outputs') else ''
+        calc_rows.append(f'<tr id="calculation-{position}"><td class="calc-label"><strong>{esc(calc.get("label", "Untitled"))}</strong><br><code>{esc(calc.get("id", ""))}</code><br><span class="citation-badge {badge_class}">{citation_status}</span></td><td class="num">{esc(result)}<br><span class="muted">{esc(calc.get("unit", ""))}</span>{outputs}</td><td class="formula"><code>{esc(formula)}</code></td><td class="provenance">{details("Inputs and source provenance", evidence)}{details("Saved calculation", calc)}</td></tr>')
     status = str(run.get('status', 'unknown'))
     headline = 'Gränges, from evidence to valuation.' if final else 'Gränges analysis is still in progress.'
     description = ('The saved full walkthrough is complete. Review its report, required-page delivery and calculation inputs below. Completion is a run status, not an independent endorsement of the valuation.' if final else f'This is a progress snapshot. Saved run status: {status}. No final valuation is presented; regenerate from saved records after completion.')
@@ -146,6 +149,16 @@ def render(run_dir, packet_file, output, allow_incomplete=False):
         downloads.insert(0, download('Full report Markdown', 'answer.md', answer, 'text/markdown'))
     if review:
         downloads.append(download('Reviewed summary', 'review-summary.json', review))
+    contract_text = ''
+    for role, entry in packet.get('analysis_contract', {}).items():
+        path = (packet_dir / entry['path']).resolve()
+        if not path.is_relative_to(packet_dir):
+            raise ValueError('Analysis contract path outside packet')
+        if hashlib.sha256(path.read_bytes()).hexdigest() != entry['sha256']:
+            raise ValueError('Analysis contract hash mismatch')
+        body = path.read_text()
+        downloads.append(download('Analysis '+role, role+'.md', body, 'text/markdown'))
+        contract_text += details('Adopted '+role, body)
     answer_block = ('<details><summary>Read the full saved report</summary>' + report_html(answer) + '</details>') if answer else '<p class="notice">The final answer is not available in this artifact. No scenario figures have been inferred from intermediate calculations.</p>'
     generated = datetime.now(timezone.utc).isoformat(timespec='seconds')
     document = f'''<!doctype html>
@@ -153,7 +166,7 @@ def render(run_dir, packet_file, output, allow_incomplete=False):
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css"><style>{STYLE}</style></head><body><main>
 <header><div class="eyebrow">Betaforge / saved walkthrough / {esc(packet.get('analysis_date', 'undated'))}</div><h1>{headline}</h1><p>{esc(description)}</p><p class="muted small">Generated {esc(generated)}. This page reads saved files only. It never refreshes data or starts an analysis.</p><nav><a class="btn" href="#report">Report</a><a class="btn" href="#calculations">Calculations</a><a class="btn" href="#coverage">Reading coverage</a><a class="btn" href="#sources">Sources</a></nav></header>
 <section class="grid" aria-label="Run summary"><div class="panel"><div class="eyebrow">Saved run status</div><div class="number">{esc(status.replace('_', ' '))}</div><p class="muted">{esc(run.get('model', 'Unknown model'))} / {esc(run.get('reasoning_effort', 'unknown'))} reasoning</p></div><div class="panel"><div class="eyebrow">Required text pages delivered</div><div class="number">{delivered:,} / {total:,}</div><p class="muted">{len(coverage_rows)} required reports. Delivery does not prove comprehension.</p></div><div class="panel"><div class="eyebrow">Audited calculations</div><div class="number">{len(calculations):,}</div><p class="muted">{len(inputs):,} saved analyst inputs and assumptions. Original observation scales are applied once.</p></div></section>
-<section id="report"><h2>The saved analysis</h2>{reviewed_summary(review)}{answer_block}</section>
+<section id="report"><h2>The saved analysis</h2>{reviewed_summary(review)}{answer_block}{contract_text}</section>
 <section id="calculations"><h2>Trace each calculation</h2><p class="muted">Values below use base units, rounded to at most six decimal places for display. Exact saved decimals remain in the details. Expand a row to inspect original values, scales, selected sources and assumptions. Badges mark exact calculation IDs cited in the final report. Uncited does not mean wrong: intermediate work can include abandoned interpretations, so use the final report for endorsed conclusions.</p><div class="filters"><label for="calc-search">Find a calculation</label><input id="calc-search" type="search" placeholder="Label, value, unit or input ID"><span id="calc-count" class="muted" aria-live="polite"></span></div><div class="tablewrap"><table><thead><tr><th scope="col">Calculation</th><th scope="col">Result / unit</th><th scope="col">Operation and input IDs</th><th scope="col">Evidence</th></tr></thead><tbody id="calc-rows">{''.join(calc_rows)}</tbody></table></div><p id="no-calculations" class="muted" hidden>No matching calculations.</p></section>
 <section id="coverage"><h2>Required reports and reading coverage</h2><p class="muted">Five annual reports and the three 2026 interim reports. Search snippets and page images do not substitute for complete text delivery.</p><div class="tablewrap"><table><thead><tr><th scope="col">Report</th><th scope="col">Pages delivered / total</th><th scope="col">Status</th><th scope="col">Frozen source identity</th></tr></thead><tbody>{''.join(coverage_rows)}</tbody></table></div></section>
 <section id="mapping" class="panel"><h2>How conflicting figures were handled</h2><pre class="report">{esc(mapping_summary)}</pre>{details('Read all saved mapping decisions', mapping)}</section>

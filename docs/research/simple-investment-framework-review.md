@@ -2,6 +2,8 @@
 
 Reviewed 3 November 2026. **Review complete; changes below are proposed.** No valuation, model instructions, application code or accepted philosophy was changed. No tests, company-data acquisition, model runs, commits or pushes were started. Public benchmark-source research and read-only repository inspection support this assessment.
 
+This note records the completed pre-implementation review. The user subsequently authorized its priorities. Current rules are in the adopted [analysis policy](../analysis-policy.md) and [calculation catalogue](../calculations.md); preservation is recorded in [the handoff guide](../research-handoff.md). SIXRX superseded the earlier Investor B benchmark. The original Gränges result remains frozen.
+
 The user confirmed **Macs first** and **exact source evidence plus saved analyses** for workstation handoff. Git should preserve source and documents; separate private frozen bundles should preserve research bytes. The bundle destination and live-conversation migration remain open.
 
 ## Recommendation

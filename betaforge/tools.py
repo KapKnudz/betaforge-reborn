@@ -5,12 +5,16 @@ import base64
 from decimal import Decimal, InvalidOperation, localcontext
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import threading
 import time
 from datetime import datetime, timezone
+
+from betaforge.financials import FORMULAS, evaluate
 
 READ_LIMIT = 45000
 
@@ -93,10 +97,20 @@ TOOL_SCHEMAS = [
     schema('get_source', 'Resolve a frozen source ID to provenance, endpoint, nonsecret parameters and original file hash.',
            {'source_id': STRING}, ['source_id']),
     schema('get_catalogue', 'Return report catalogue, frozen dataset catalogue, reading coverage, and saved calculation/input IDs.', {}),
+    schema('get_calculation_definitions', 'Show the fixed financial formulas, required base units, options, outputs and limitations. Use these grouped formulas for valuation and diagnostics.', {}),
     schema('record_input', 'Save a numeric input before calculation. Specify base unit and scale (1000000 for a value stated in millions); calculation multiplies value by scale. Assumptions require a clear label. Report inputs require physical page and a verbatim quote present in saved text; label remains an analyst extraction, not independently verified. Prefer saved observation IDs when available.',
            {'value': STRING, 'label': STRING, 'unit': STRING, 'scale': STRING,
             'kind': {'type': 'string', 'enum': ['assumption', 'report']},
             'report_id': STRING, 'page': INT, 'quote': STRING}, ['value', 'label', 'unit', 'kind']),
+    schema('calculate_financial', 'Evaluate one named financial formula using saved IDs. Each source scale is applied once. One record contains the full formula, named inputs, all intermediate outputs and gaps. Cite calc:ID#output_name to reuse a named output. Money currently requires SEK. State period, ownership scope and reported/adjusted basis explicitly.',
+           {'formula': {'type':'string','enum':list(FORMULAS)},
+            'input_ids': {'type':'object','additionalProperties':STRING,'maxProperties':24},
+            'options': {'type':'object','properties': {
+                'comparable_periods':{'type':'boolean'}, 'revenue_passthrough':{'type':'boolean'},
+                'balance_basis':{'type':'string','enum':['average','closing']},
+                'cash_flow_scope':{'type':'string','enum':['parent_common','firm']},
+                'denominator_scope':{'type':'string','enum':['market_cap','enterprise_value']}}, 'additionalProperties':False},
+            'label':STRING,'basis':STRING}, ['formula','input_ids','label','basis']),
     schema('calculate', 'Calculate using saved observation/input/calculation IDs, not prose numbers. Observation values are AUTOMATICALLY multiplied by stored scale; saved calculations are already in base units (SEK, actual shares). Do not apply scale again. Operations add/multiply accept 2-100 IDs; subtract/divide/growth_percent/power exactly two. Output unit is explicit and audited; reconcile units before calling.',
            {'operation': {'type': 'string', 'enum': ['add', 'subtract', 'multiply', 'divide', 'growth_percent', 'power']},
             'input_ids': {'type': 'array', 'items': STRING, 'minItems': 2, 'maxItems': 100},
@@ -145,9 +159,34 @@ class EvidenceTools:
         self.required = self.packet.get('required_reports', list(self.reports))
         if not set(self.required) <= set(self.reports):
             raise ValueError('Required report missing')
-        self.store.validate_report_links({r['report_id']:{'source_sha256':r['source_sha256'],'pages':r['pages']} for r in self.index['reports']})
+        self.store.validate_report_links({r['report_id']:{'source_sha256':r['source_sha256'],'pages':r['pages']} for r in self.index['reports']}, instrument_id=self.instrument)
         self.identity = {'packet_sha256': digest(self.packet_path), 'database_sha256': digest(self.snapshot / 'evidence.sqlite3'),
                          'reports': {r['report_id']: [r['source_sha256'], r['prepared_sha256']] for r in self.index['reports']}}
+        self.analysis_contract = {}
+        for name, entry in self.packet.get('analysis_contract', {}).items():
+            if name not in {'policy','calculations'}:
+                raise ValueError('Unknown analysis contract document')
+            path = (self.packet_path.parent / entry['path']).resolve()
+            if Path(entry['path']).is_absolute() or not path.is_relative_to(self.packet_path.parent) or digest(path) != entry['sha256']:
+                raise ValueError('Analysis contract hash or path mismatch')
+            self.analysis_contract[name] = path.read_text()
+        if self.analysis_contract:
+            if set(self.analysis_contract) != {'policy','calculations'}:
+                raise ValueError('Analysis contract requires policy and calculations')
+            self.identity['analysis_contract'] = self.packet['analysis_contract']
+        for benchmark_name in ('benchmark_context','market_benchmark_context'):
+            benchmark = self.packet.get(benchmark_name)
+            if not benchmark:
+                continue
+            verified = set()
+            for entry in benchmark['files']:
+                path = (self.packet_path.parent / entry['path']).resolve()
+                if Path(entry['path']).is_absolute() or not path.is_relative_to(self.packet_path.parent) or digest(path) != entry['sha256']:
+                    raise ValueError('Benchmark context hash or path mismatch')
+                verified.add(entry['path'])
+            if benchmark['context_path'] not in verified:
+                raise ValueError('Benchmark context file is not verified')
+            self.identity[benchmark_name] = benchmark
         self.state_path = self.run_dir / 'tool-state.json'
         self.lock = threading.RLock()
         if resume:
@@ -191,6 +230,10 @@ class EvidenceTools:
                 'coverage': self.coverage(), 'saved_input_ids': list(self.state['inputs']),
                 'calculation_ids': list(self.state['calculations']), 'research_rounds': self.state['rounds']}
 
+    def get_calculation_definitions(self):
+        return {'formulas': FORMULAS, 'analysis_contract': self.analysis_contract,
+                'contract_status': 'versioned' if self.analysis_contract else 'legacy_packet_without_adopted_policy'}
+
     def read_report(self, report_id, start_page):
         self.page(report_id, start_page)
         text, delivered = '', []
@@ -231,7 +274,10 @@ class EvidenceTools:
         prefix = directory / f'{report_id}-p{page}'
         image = prefix.with_suffix('.png')
         if not image.exists():
-            subprocess.run(['pdftoppm', '-f', str(page), '-l', str(page), '-singlefile', '-r', '110', '-png',
+            renderer = os.environ.get('BETAFORGE_PDFTOPPM') or shutil.which('pdftoppm')
+            if not renderer or not Path(renderer).is_file():
+                raise ValueError('PDF renderer unavailable: install Poppler or set BETAFORGE_PDFTOPPM to its pdftoppm executable')
+            subprocess.run([renderer, '-f', str(page), '-l', str(page), '-singlefile', '-r', '110', '-png',
                             str(self.report_dir/'sources'/(report_id+'.pdf')), str(prefix)],
                            check=True, timeout=max(0.1,min(60,getattr(self,'deadline',float('inf'))-time.monotonic())), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # Original image is evidence; image inspection alone does not satisfy full text reading.
@@ -287,7 +333,17 @@ class EvidenceTools:
             return self.state['inputs'][identifier]
         if identifier in self.state['calculations']:
             r = self.state['calculations'][identifier]
-            return {'id':identifier,'value':r['result'],'unit':r['unit'],'kind':'calculation','scale':'1'}
+            if r['result'] is None:
+                raise ValueError('Calculation primary output is unavailable; inspect missing inputs')
+            return {'id':identifier,'value':r['result'],'unit':r['unit'],'kind':'calculation','scale':'1',
+                    **{key:r[key] for key in ('period_start','period_end','report_type') if key in r}}
+        if '#' in identifier:
+            calculation, output = identifier.split('#', 1)
+            r = self.state['calculations'].get(calculation, {})
+            if output not in r.get('outputs', {}) or r['outputs'][output]['value'] is None:
+                raise ValueError('Unknown or unavailable named calculation output')
+            return {'id':identifier, **r['outputs'][output], 'kind':'calculation','scale':'1',
+                    **{key:r[key] for key in ('period_start','period_end','report_type') if key in r}}
         try:
             record = self.store.get_observation(identifier)
         except (KeyError, ValueError, TypeError):
@@ -297,6 +353,99 @@ class EvidenceTools:
         if int(record['instrument_id']) != self.instrument:
             raise ValueError('Observation outside selected instrument')
         return record
+
+    def calculate_financial(self, formula, input_ids, label, basis, options=None):
+        if formula not in FORMULAS or not isinstance(input_ids, dict) or len(input_ids) > 24:
+            raise ValueError('Use a named formula and a bounded mapping of input fields to saved IDs')
+        if not all(isinstance(k,str) and isinstance(v,str) for k,v in input_ids.items()):
+            raise ValueError('Formula inputs must be saved IDs')
+        if not isinstance(label,str) or not label.strip() or len(label)>500 or not isinstance(basis,str) or not basis.strip() or len(basis)>2000:
+            raise ValueError('Provide a concise label and explicit period, scope and earnings basis')
+        definition = FORMULAS[formula]
+        fields = {**definition['required_fields'], **definition['optional_fields']}
+        if set(input_ids) - set(fields):
+            raise ValueError('Unknown financial formula input fields')
+        inputs, values = [], {}
+        for field, identifier in input_ids.items():
+            item = dict(self.resolve_input(identifier))
+            if unit_dimensions(item) != unit_dimensions({'unit':fields[field]}):
+                raise ValueError(f'Input {field} requires base unit {fields[field]}; currency and fraction/percent must match')
+            factor = decimal(item.get('scale','1'))
+            if factor <= 0:
+                raise ValueError('Input scale must be positive')
+            if item['value'] is not None:
+                with localcontext() as context:
+                    context.prec = 40
+                    values[field] = decimal(item['value']) * factor
+                item['calculation_value'] = str(values[field])
+            item['field'] = field
+            inputs.append(item)
+        period_warnings, period = self._financial_periods(formula, inputs)
+        result = evaluate(formula, values, options)
+        primary = result['outputs'].get(result['primary_output'])
+        record = {**result, 'operation':'financial_formula', 'label':label, 'basis':basis,
+                  'inputs':inputs, 'input_ids':dict(input_ids), 'options':options or {},
+                  'result':primary['value'] if primary else None,
+                  'unit':definition['output_units'][result['primary_output']], 'scale':'1', **period}
+        record['warnings'].extend(period_warnings)
+        identifier = 'calc:' + hashlib.sha256(json.dumps(record,sort_keys=True).encode()).hexdigest()[:20]
+        record['id'] = identifier
+        self.state['calculations'][identifier] = record
+        return record
+
+    @staticmethod
+    def _financial_periods(formula, inputs):
+        """Reject known mismatches; do not invent dates for analyst assumptions."""
+        records = {item['field']:item for item in inputs}
+        warnings = []
+        def matching(fields):
+            selected = [records[k] for k in fields if k in records]
+            for key in ('period_start','period_end'):
+                known = {r[key] for r in selected if r.get(key)}
+                if len(known)>1:
+                    raise ValueError('Financial formula inputs have incompatible '+key)
+            if any(not r.get('period_end') for r in selected):
+                warnings.append('Some input periods are analyst-declared in basis; dates are not independently verified')
+        if formula in {'ebit_margin','group_cash_conversion','invested_capital'}:
+            matching(records)
+        elif formula == 'incremental_ebit_margin':
+            matching(('ebit_current','revenue_current'))
+            matching(('ebit_previous','revenue_previous'))
+            current, prior = records.get('revenue_current',{}), records.get('revenue_previous',{})
+            if current.get('period_end') and prior.get('period_end') and current['period_end'] <= prior['period_end']:
+                raise ValueError('Incremental-margin current period must follow the prior period')
+            if all(r.get('period_start') and r.get('period_end') for r in (current,prior)):
+                durations = [(datetime.fromisoformat(r['period_end'])-datetime.fromisoformat(r['period_start'])).days for r in (current,prior)]
+                if abs(durations[0]-durations[1])>14:
+                    raise ValueError('Incremental-margin periods have incompatible durations')
+        elif formula in {'working_capital_to_sales','operating_roic'}:
+            flow = records.get('revenue' if formula=='working_capital_to_sales' else 'ebit',{})
+            if flow.get('report_type') and flow['report_type'] not in {'year','r12'}:
+                raise ValueError('Use annual or R12 flow for the capital diagnostic')
+            closing = records.get('balance_end' if formula=='working_capital_to_sales' else 'invested_capital_end',{})
+            if closing.get('period_end') and flow.get('period_end') and closing['period_end']!=flow['period_end']:
+                raise ValueError('Closing capital date must match the flow period end')
+            opening = records.get('balance_start' if formula=='working_capital_to_sales' else 'invested_capital_start',{})
+            if opening.get('period_end') and flow.get('period_start'):
+                gap = (datetime.fromisoformat(flow['period_start'])-datetime.fromisoformat(opening['period_end'])).days
+                if gap != 1:
+                    raise ValueError('Opening capital date must be the day before the flow period starts')
+            warnings.append('Opening/closing capital, group scope and tax basis require the stated source reconciliation')
+        elif formula in {'pe','ev_ebit'}:
+            earnings = records.get('diluted_eps' if formula=='pe' else 'ebit',{})
+            if earnings.get('report_type') and earnings['report_type'] not in {'year','r12'}:
+                raise ValueError('Ordinary P/E and EV/EBIT require annual or R12 earnings; do not use an unannualized quarter/YTD')
+            if not earnings.get('report_type'):
+                warnings.append('Annual earnings period is analyst-declared in basis, not independently verified')
+            if formula=='pe' and earnings.get('metric')=='earnings_Per_Share' and 'unresolved' in earnings.get('basis','').lower():
+                raise ValueError('Provider EPS basic/diluted basis is unresolved; select a verified diluted EPS input')
+        ends = {r.get('period_end') for r in inputs if r.get('period_end')}
+        starts = {r.get('period_start') for r in inputs if r.get('period_start')}
+        period = {}
+        if formula in {'ebit_margin','group_cash_conversion','invested_capital'}:
+            if len(ends)==1: period['period_end']=next(iter(ends))
+            if len(starts)==1 and formula!='invested_capital': period['period_start']=next(iter(starts))
+        return list(dict.fromkeys(warnings)), period
 
     def calculate(self, operation, input_ids, label, unit):
         if not isinstance(input_ids,list) or not 2 <= len(input_ids) <= 100 or not all(isinstance(i,str) for i in input_ids):
@@ -386,7 +535,7 @@ class EvidenceTools:
                 if name not in allowed: raise ValueError('Unknown tool')
                 if not isinstance(arguments,dict): raise ValueError('Tool arguments must be an object')
                 if self.state.get('research_closed'):
-                    if name not in {'calculate','record_input','get_catalogue','get_source','finish_research_round'}:
+                    if name not in {'calculate','calculate_financial','get_calculation_definitions','record_input','get_catalogue','get_source','finish_research_round'}:
                         raise ValueError('Research is closed by the round limit or finalization decision; use saved evidence and finalize')
                     self.state['finalization_calls']=self.state.get('finalization_calls',0)+1
                     if self.state['finalization_calls']>200:
@@ -399,7 +548,7 @@ class EvidenceTools:
                 if name=='view_report_page':
                     content.append({'type':'inputImage','imageUrl':'data:image/png;base64,'+base64.b64encode(Path(result['image_path']).read_bytes()).decode()})
                 return {'contentItems':content,'success':True}
-            except (ValueError,KeyError,TypeError,InvalidOperation,subprocess.SubprocessError) as error:
+            except (ValueError,KeyError,TypeError,OSError,InvalidOperation,subprocess.SubprocessError) as error:
                 self.save()
                 self.audit({'event':'error','tool':name,'call_id':call_id,'error':str(error)})
                 return {'contentItems':[{'type':'inputText','text':str(error)}],'success':False}

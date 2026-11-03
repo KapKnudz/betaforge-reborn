@@ -192,7 +192,7 @@ class StorageTests(unittest.TestCase):
             {"kpiId": 62, "format": "MCURR", "isString": False},
             {"kpiId": 49, "format": None, "isString": False}]}
         self.store.ingest_snapshot(self.snapshot(definitions, "/v1/instruments/kpis/metadata", {}))
-        payload = {"instrument": 426, "kpis": [{"kpiId": kpi, "values": [{"y": 2025, "p": 5, "v": 12.5}]} for kpi in [2, 3, 4, 10, 11, 15, 76, 29, 62, 49]]}
+        payload = {"instrument": 426, "kpis": [{"kpiId": kpi, "values": [{"y": 2025, "p": 5, "v": 12.5}]} for kpi in [2, 3, 4, 10, 11, 15, 76, 29, 37, 62, 49]]}
         self.store.ingest_snapshot(self.snapshot(payload, "/v1/instruments/426/kpis/year/summary", {}))
         records = {r["metric"]: r for r in self.store.query_financials(426)}
         for kpi in [2, 3, 4, 10, 11, 15, 76]:
@@ -205,6 +205,8 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(records["kpi_62"]["scale"], "1000000")
         self.assertIsNone(records["kpi_62"]["currency"])
         self.assertEqual(records["kpi_49"]["unit"], "provider_defined")
+        self.assertEqual(records["kpi_37"]["unit"], "percent")
+        self.assertEqual(records["kpi_37"]["mapping_version"], "borsdata-kpi-v2")
         self.assertEqual(self.store.get_source(records["kpi_29"]["metadata_source_id"])["endpoint"], "/v1/instruments/kpis/metadata")
 
     def test_report_links_reject_missing_stale_hash_and_page_bounds(self):
@@ -214,6 +216,13 @@ class StorageTests(unittest.TestCase):
         path = self.root / "facts.json"; path.write_text(json.dumps(data))
         self.store.add_report_facts(path)
         self.assertEqual(self.store.validate_report_links({"q3": {"source_sha256": digest, "pages": 21}}), {"validated_report_observations": 1})
+        # A company packet must not demand unrelated issuers' PDFs from a shared store.
+        other = dict(data, instrument_id=999, facts=[dict(fact, evidence={"report_id": "other", "page": 1, "sha256": "c" * 64})])
+        other_path = self.root / "other-facts.json"; other_path.write_text(json.dumps(other))
+        self.store.add_report_facts(other_path)
+        self.assertEqual(self.store.validate_report_links({"q3": {"source_sha256": digest, "pages": 21}}, instrument_id=426), {"validated_report_observations": 1})
+        with self.assertRaisesRegex(ValueError, 'absent report: other'):
+            self.store.validate_report_links({"q3": {"source_sha256": digest, "pages": 21}})
         for catalogue in [{}, {"q3": {"source_sha256": "b" * 64, "pages": 21}}, {"q3": {"source_sha256": digest, "pages": 20}}]:
             with self.assertRaises(ValueError):
                 self.store.validate_report_links(catalogue)

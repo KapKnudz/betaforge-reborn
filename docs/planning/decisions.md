@@ -1,12 +1,14 @@
-# Betaforge reborn: agreed planning foundation
+# Betaforge: adopted planning decisions
+
+Updated 3 November 2026. This records current decisions. The [analysis policy](../analysis-policy.md) and [calculation catalogue](../calculations.md) define the rules frozen into new analysis packets; dated research notes retain their evidence and proposal status.
 
 ## Destination and scope
 
-Produce a lean, implementation-ready specification for the first useful version of a private investment-research website. Planning is authorized. The user subsequently authorized a bounded Gränges retrieval experiment, including local preparation and comparison scripts; application implementation and deployment remain outside that experiment. See [retrieval design discussion](../retrieval-design.md) for the agreed data scope and experiment decisions.
+Build a private investment-research tool, eventually with a local website. After the Gränges walkthrough and financial-framework review, the user authorized implementation in priority order on 3 November 2026. Preserve the original evidence and valuation while simplifying future analysis. See the [minimum enhancement plan](../research/simple-investment-framework-review.md).
 
-The website should provide a tangible shared view of progress and analysis, including company lookup by name or ID, visible company data, reverse DCF results, and eventually an evidence-backed investment judgment with bear, neutral/base, and bull ranges over two to three years. The exact first page and its contents remain to be specified.
+The website should provide a shared view of progress and analysis, including company lookup by name or ID, visible company data and calculations, and an evidence-backed investment judgment with bear, base and bull ranges over two to three years. Forward EV/EBIT scenarios are the adopted valuation; a true reverse DCF is an optional future addition. The exact first page and its contents remain to be specified.
 
-The product is initially for one person's own use. Avoid overengineering; combine deterministic processing with agent reasoning and tools where useful. No technology stack, agent topology, storage system, or retrieval architecture has been selected.
+The product is initially for one person's own use. Python acquisition/preparation, immutable source files, SQLite evidence, frozen packets and Codex tools are implemented. Acquisition is separate from what the analyst reads; a saved result does not rerun the analyst. A complete website, automated refresh and general multiissuer production workflow remain future work. See [ADR 0001](../adr/0001-persist-company-evidence.md), [ADR 0002](../adr/0002-local-evidence-storage.md), [retrieval design](../retrieval-design.md) and [Codex integration](../codex-integration.md).
 
 ## Research focus
 
@@ -17,46 +19,62 @@ The product is initially for one person's own use. Avoid overengineering; combin
 
 ## Philosophy
 
-The starting input is the [unchanged investment-philosophy draft](investment-philosophy-draft.md), a supplied synthesis of Petter Hedborg's investment approach.
+The [unchanged investment-philosophy draft](investment-philosophy-draft.md) remains a supplied synthesis of Petter Hedborg's investment approach. The user's Armitage-inspired principles add earnings-quality, cash, capital-efficiency and compensation discipline. Neither is represented as an authenticated quotation or complete doctrine of either investor.
 
-It is a draft, not an independently verified transcript analysis. Its source-backed philosophy must remain distinct from proposed agent implementation choices. Its suggested scores, weights, thresholds, continuous watchlists, and extensive ownership analysis are not automatically first-version requirements.
+The adopted project interpretation is the short [analysis policy](../analysis-policy.md): a falsifiable two-to-three-year case, three to five earnings drivers, business quality, management execution, cash-backed earnings, defensible valuation and disconfirming evidence. Separate facts, interpretations and assumptions. Suggested scores and thresholds in the supplied draft are not adopted, and extensive ownership analysis is not a compulsory checklist.
+
+New packets freeze the policy and calculation catalogue with relative paths and SHA256 hashes. Historical packets retain their original instructions and results.
 
 Business quality and investment attractiveness at today's price are separate judgments. An excellent business is not currently investable when its price demands performance the outlook does not support.
 
 ## Valuation roles
 
-The preferred primary model is the draft's simple scenario approach:
+The primary model is a simple forward operating EV/EBIT scenario approach:
 
 - revenue growth;
 - EBIT-margin development;
 - a defensible EV/EBIT multiple;
 - net debt/cash and share-count effects in the equity and per-share valuation.
 
-This preference is conditional on confirming that the model is straightforward to implement appropriately. Reverse DCF is complementary: it should examine what operating performance the current price requires under explicitly stated assumptions.
+For some businesses, a company-specific equation such as sales volume multiplied by EBIT per tonne is more useful than nominal revenue multiplied by margin. Show the full enterprise-to-common-equity bridge, forecast shares, future target, present value and dividends explicitly.
 
-Scenario construction and the detailed investability decision rules remain to be specified.
+P/E and a properly scoped FCF yield are sanity checks. EV/EBITDA valuation is optional; it can remain relevant to an issuer/lender leverage convention. A related multiple using the same forecasts is not independent confirmation.
+
+Market-implied EBIT is a complementary backward check under stated assumptions. A full reverse DCF remains a separate, unimplemented cash-flow model and must not be implied by that check. No simulation system, universal quality score or automatic industry-multiple valuation is required. Detailed formulas and non-use conditions are in the [catalogue](../calculations.md).
 
 ## Return hurdle
 
-The expected annualized return of a candidate must exceed the benchmark hurdle.
+The candidate statistic is **IRR of probability-weighted cash flows**. Weight each modeled dividend/terminal payment at its date, then solve for the annual rate equating those cash flows with the starting share price. It must exceed the measured benchmark hurdle before a hurdle-pass claim. Do not average scenario IRRs or annualize only expected terminal wealth.
 
-The agreed reference is Investor AB's B share's trailing ten-year annualized total return, including reinvested dividends, measured as of the analysis date. This historical reference is a hurdle, not a forecast of Investor B's future return. No numerical return threshold has been asserted.
+The user selected **SIX Return Index (SIXRX)** as the primary reference: trailing ten-year annualized total return with reinvested dividends, measured as of the analysis date. This broad-market opportunity-cost reference is not a forecast of the index's future return or automatically the company's discount rate. The earlier Investor AB B reference is superseded as a historical prior decision. Do not silently substitute another index if SIXRX data is unavailable. No numerical hurdle has been asserted; the frozen Gränges 10% remains an illustrative historical assumption.
 
 The exact data source and calculation conventions still need verification, including consistent currency, dates, and treatment of distributions and corporate actions.
 
 ## Scenario probability ownership
 
-Agreed on 3 November 2026: the analyst proposes company-specific scenario probabilities, explains the evidence and uncertainty, and lets the user override them. A fixed bear/base/bull split is not an adopted default. Outcome definitions, numerical weights and the return statistic remain analysis choices to make explicit; this decision does not assign probabilities to the original Gränges report. See the [probability proposal](../research/scenario-probabilities-proposal.md).
+Agreed on 3 November 2026: the analyst proposes company-specific scenario probabilities, explains the evidence and uncertainty, and lets the user override them. A fixed bear/base/bull split is not an adopted default. Outcome definitions and numerical weights remain analysis choices to make explicit; the return statistic is the expected-cash-flow IRR adopted above. This decision does not assign probabilities to the original Gränges report. See the [probability proposal](../research/scenario-probabilities-proposal.md).
+
+## Adopted cash and capital definitions
+
+The user selected **group cash conversion before dividends**: statutory group CFO less cash capex, cash interest outside CFO and lease principal outside CFO, divided by consolidated group net income. CFO already contains cash taxes and working-capital movement. Missing gross outside-CFO interest or lease principal stays missing; known earlier bridge amounts remain visible. SBC addbacks are separately disclosed. This group diagnostic is not parent-common FCF or the issuer's own cash-conversion APM.
+
+The user selected **operating ROIC** using an explicit operating-tax assumption and average opening/closing invested capital. The selected book-capital proxy is group equity plus gross debt including leases and additional net pension liabilities, less cash and identified non-operating assets. Goodwill/NCI already in group equity and leases already in gross debt are not added again. Provider ROIC and issuer ROCE keep their own labels. See the [implemented formula definitions](../calculations.md).
+
+## Preservation and Mac handoff
+
+The user selected Macs first and exact evidence plus saved analyses for workstation handoff. Preserve source, tests, setup, policy and documents in the existing private GitHub repository, and exact research in private versioned archives outside ordinary Git history. Archive digests cover saved outputs as well as input evidence.
+
+Each Mac has its own local credentials and Codex authentication. Completed-result restoration and active conversation migration are separate capabilities; cross-Mac live resume remains unverified. See [research handoff](../research-handoff.md).
 
 ## Available or proposed sources
 
 - Börsdata API.
 - Company reports potentially retrieved from mfn.se.
 
-Exact coverage, account entitlements, permitted access methods, and source limitations have not yet been established. Credentials must not be committed.
+Selected Börsdata routes and Gränges account coverage were exercised in the saved walkthrough. Original PDFs came from issuer IR; MFN discovery succeeded while attachment downloads were blocked. This is not universal issuer coverage. Use company history first, then economically comparable global peers, then industry context; add a provider only for an identified gap. Credentials stay local.
 
-## First investigation
+## Historical first investigation
 
 > I think a first area of focus has to be the flow of data. How the retrieval of data from the sources to the agents should be done in best practice for agentic way. It could be via tool-calling letting the agent retrieve data when needed, or retrieve all of the data deterministic and store it efficiently for agent to access.
 
-The requested deliverable is a source-backed comparison and recommendation, not implementation. The alternatives include agent-requested retrieval, deterministic retrieval with stored access, and any justified combination. No alternative has been selected.
+That initial investigation compared upfront and tool-based exposure against preserved evidence. The report-only pi experiment and the later integrated Codex walkthrough support the current foundation; they do not establish universal retrieval superiority or predictive valuation accuracy. See [report comparison](../granges-walkthrough-results.md) and [integrated walkthrough](../granges-codex-walkthrough.md).
