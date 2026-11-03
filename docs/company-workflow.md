@@ -14,6 +14,8 @@ Select a positive Börsdata instrument ID; commands have no issuer default:
 
 Each acquisition writes a new dated directory under `data/borsdata/context/<instrument-id>/`. It preserves original response bytes, hashes and safe diagnostics. History, source dates, currencies and revisions remain distinct. See the [endpoint inventory](research/borsdata-endpoints.md) and [retrieval/retention specification](research/borsdata-retrieval-storage.md).
 
+Financial queries and new packets show period dates, the provider's report date, first source capture and last successful source check separately. A source check records retrieval; definition and accounting validation remain separate. [Date and revision semantics](research/borsdata-retrieval-storage.md#identity-revisions-and-retention).
+
 ## 2. Prepare frozen evidence
 
 Prepare the selected company's original PDFs and physical-page text/index first. General report discovery/OCR remains future work; the [Gränges example](../examples/granges/README.md) supplies a concrete preparation workflow.

@@ -106,45 +106,56 @@ class EvidenceStore:
             self.connection = sqlite3.connect(self.db_path.as_uri() + "?mode=ro", uri=True)
         else:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            self.blob_dir.mkdir(parents=True, exist_ok=True)
             self.connection = sqlite3.connect(self.db_path)
-        self.connection.row_factory = sqlite3.Row
-        self.connection.execute("PRAGMA foreign_keys=ON")
-        if not readonly:
-            self.connection.executescript("""
-            CREATE TABLE IF NOT EXISTS sources (
-                id TEXT PRIMARY KEY, provider TEXT NOT NULL, endpoint TEXT NOT NULL,
-                parameters TEXT NOT NULL, sha256 TEXT NOT NULL, blob_path TEXT NOT NULL,
-                observed_at TEXT NOT NULL, metadata TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS acquisitions (
-                id TEXT PRIMARY KEY, source_id TEXT REFERENCES sources(id), endpoint TEXT NOT NULL,
-                observed_at TEXT NOT NULL, status TEXT NOT NULL, details TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS observations (
-                id TEXT PRIMARY KEY, logical_key TEXT NOT NULL, source_id TEXT NOT NULL REFERENCES sources(id),
-                instrument_id INTEGER NOT NULL, report_type TEXT NOT NULL, metric TEXT NOT NULL,
-                year INTEGER, period INTEGER, period_start TEXT, period_end TEXT,
-                observed_at TEXT NOT NULL, record TEXT NOT NULL);
-            CREATE INDEX IF NOT EXISTS observations_lookup ON observations(instrument_id,report_type,metric);
-            CREATE TABLE IF NOT EXISTS current_observations (
-                logical_key TEXT PRIMARY KEY, observation_id TEXT NOT NULL REFERENCES observations(id),
-                observed_at TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS observation_sources (
-                observation_id TEXT REFERENCES observations(id), source_id TEXT REFERENCES sources(id),
-                pointer TEXT NOT NULL, PRIMARY KEY(observation_id,source_id,pointer));
-            CREATE TABLE IF NOT EXISTS revisions (
-                id INTEGER PRIMARY KEY, logical_key TEXT NOT NULL, previous_id TEXT,
-                observation_id TEXT NOT NULL, source_id TEXT NOT NULL, observed_at TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS datasets (
-                id TEXT PRIMARY KEY, dataset TEXT NOT NULL, instrument_id INTEGER,
-                source_id TEXT NOT NULL REFERENCES sources(id), pointer TEXT NOT NULL, payload TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS instrument_versions (
-                id TEXT PRIMARY KEY, instrument_id INTEGER NOT NULL, source_id TEXT NOT NULL REFERENCES sources(id),
-                observed_at TEXT NOT NULL, payload TEXT NOT NULL);
-            PRAGMA user_version=1;
-            """)
-            self.connection.commit()
-        if self.connection.execute("PRAGMA user_version").fetchone()[0] != SCHEMA_VERSION:
-            raise ValueError("Unsupported storage schema")
+        try:
+            self.connection.row_factory = sqlite3.Row
+            version = self.connection.execute("PRAGMA user_version").fetchone()[0]
+            has_schema = self.connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE name NOT GLOB 'sqlite_*' LIMIT 1"
+            ).fetchone()
+            if version != SCHEMA_VERSION and (readonly or version != 0 or has_schema):
+                raise ValueError("Unsupported storage schema")
+            self.connection.execute("PRAGMA foreign_keys=ON")
+            if not readonly:
+                self.blob_dir.mkdir(parents=True, exist_ok=True)
+                self.connection.executescript("""
+                CREATE TABLE IF NOT EXISTS sources (
+                    id TEXT PRIMARY KEY, provider TEXT NOT NULL, endpoint TEXT NOT NULL,
+                    parameters TEXT NOT NULL, sha256 TEXT NOT NULL, blob_path TEXT NOT NULL,
+                    observed_at TEXT NOT NULL, metadata TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS acquisitions (
+                    id TEXT PRIMARY KEY, source_id TEXT REFERENCES sources(id), endpoint TEXT NOT NULL,
+                    observed_at TEXT NOT NULL, status TEXT NOT NULL, details TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS observations (
+                    id TEXT PRIMARY KEY, logical_key TEXT NOT NULL, source_id TEXT NOT NULL REFERENCES sources(id),
+                    instrument_id INTEGER NOT NULL, report_type TEXT NOT NULL, metric TEXT NOT NULL,
+                    year INTEGER, period INTEGER, period_start TEXT, period_end TEXT,
+                    observed_at TEXT NOT NULL, record TEXT NOT NULL);
+                CREATE INDEX IF NOT EXISTS observations_lookup ON observations(instrument_id,report_type,metric);
+                CREATE TABLE IF NOT EXISTS current_observations (
+                    logical_key TEXT PRIMARY KEY, observation_id TEXT NOT NULL REFERENCES observations(id),
+                    observed_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS observation_sources (
+                    observation_id TEXT REFERENCES observations(id), source_id TEXT REFERENCES sources(id),
+                    pointer TEXT NOT NULL, PRIMARY KEY(observation_id,source_id,pointer));
+                CREATE TABLE IF NOT EXISTS revisions (
+                    id INTEGER PRIMARY KEY, logical_key TEXT NOT NULL, previous_id TEXT,
+                    observation_id TEXT NOT NULL, source_id TEXT NOT NULL, observed_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS datasets (
+                    id TEXT PRIMARY KEY, dataset TEXT NOT NULL, instrument_id INTEGER,
+                    source_id TEXT NOT NULL REFERENCES sources(id), pointer TEXT NOT NULL, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS instrument_versions (
+                    id TEXT PRIMARY KEY, instrument_id INTEGER NOT NULL, source_id TEXT NOT NULL REFERENCES sources(id),
+                    observed_at TEXT NOT NULL, payload TEXT NOT NULL);
+                CREATE INDEX IF NOT EXISTS datasets_lookup ON datasets(dataset,source_id);
+                CREATE INDEX IF NOT EXISTS instrument_versions_lookup ON instrument_versions(instrument_id,observed_at DESC,id DESC);
+                CREATE INDEX IF NOT EXISTS acquisitions_source_check ON acquisitions(source_id,status,observed_at);
+                PRAGMA user_version=1;
+                """)
+                self.connection.commit()
+        except BaseException:
+            self.connection.close()
+            raise
 
     def close(self):
         self.connection.close()
@@ -244,6 +255,7 @@ class EvidenceStore:
             # Interpret values with definitions from this same acquisition even
             # when the caller listed metadata after financial endpoints.
             ordered = sorted(prepared, key=lambda item: 0 if "metadata" in item[1]["endpoint"].lower() else 1)
+            metadata_source_id = None
             for index, request, body, payload in ordered:
                 endpoint = request["endpoint"]
                 parameters = request.get("parameters", {})
@@ -251,15 +263,17 @@ class EvidenceStore:
                 if body is not None:
                     source_id = self._source("borsdata", endpoint, parameters, body, observed_at,
                                              {"schema_version": SCHEMA_VERSION, "manifest_sha256": _hash(manifest_body)})
+                    if endpoint.lower().endswith("/kpis/metadata"):
+                        metadata_source_id = source_id
                     self._normalize(endpoint, parameters, payload, source_id, observed_at,
-                                    manifest.get("instrument_id"))
+                                    manifest.get("instrument_id"), metadata_source_id)
                 acquisition_id = "acq_" + _hash(manifest_body + str(index).encode())[:24]
                 self.connection.execute("INSERT OR IGNORE INTO acquisitions VALUES (?,?,?,?,?,?)",
                                         (acquisition_id, source_id, endpoint, observed_at,
                                          "saved" if source_id else "failed", _json({"http_status": request.get("http_status"), "parameters": parameters})))
         return {"directory": str(directory), "requests": len(prepared), "database_changes": self.connection.total_changes - before, **self.stats()}
 
-    def _normalize(self, endpoint, parameters, payload, source_id, observed_at, expected_id):
+    def _normalize(self, endpoint, parameters, payload, source_id, observed_at, expected_id, metadata_source_id=None):
         path = endpoint.lower()
         match = re.search(r"/instruments/(\d+)/", path)
         path_id = int(match[1]) if match else expected_id
@@ -326,7 +340,7 @@ class EvidenceStore:
                                        "status": "unreviewed", "currency_mode": "quote"}, source_id, f"/stockPricesList/{i}/{short}", observed_at)
             return
         if "/kpis/" in path and (path.endswith("/summary") or path.endswith("/history")):
-            self._kpis(endpoint, payload, instrument, source_id, observed_at)
+            self._kpis(endpoint, payload, instrument, source_id, observed_at, metadata_source_id)
             return
         # Full event/lookup payloads remain queryable even before specialized mapping.
         dataset = "holdings_" + path.rsplit("/", 1)[-1] if "/holdings/" in path else path.strip("/").replace("/", "_")
@@ -408,10 +422,24 @@ class EvidenceStore:
                           "basis": basis, "status": "unreviewed", "mapping_version": "borsdata-report-v1"}
                 self._observation(record, source_id, f"{prefix}/{i}/{metric}", observed_at)
 
-    def _kpi_units(self, kpi, observed_at):
+    def _kpi_units(self, kpi, observed_at, metadata_source_id=None):
         result = {"unit": "provider_defined", "scale": "1", "currency": None,
                   "mapping_version": "borsdata-kpi-v1"}
-        rows = self.connection.execute("SELECT d.payload,d.source_id FROM datasets d JOIN sources s ON s.id=d.source_id WHERE d.dataset='metadata' AND s.endpoint LIKE '%/kpis/metadata' AND s.observed_at<=? ORDER BY s.observed_at DESC,d.id DESC", (observed_at,))
+        if metadata_source_id is not None:
+            # Deduplicated sources retain their first ingested timestamp. Bind the
+            # actual capture's metadata directly, including older imports/reversions.
+            rows = self.connection.execute("SELECT payload,source_id FROM datasets WHERE dataset='metadata' AND source_id=?", (metadata_source_id,))
+        else:
+            # A repeated metadata body may have been acquired before or after a
+            # changed definition; source first-ingested time cannot order checks.
+            rows = self.connection.execute(
+                "SELECT d.payload,d.source_id FROM datasets d JOIN sources s ON s.id=d.source_id "
+                "LEFT JOIN acquisitions a ON a.source_id=s.id AND a.status='saved' "
+                "WHERE d.dataset='metadata' AND s.endpoint LIKE '%/kpis/metadata' "
+                "AND COALESCE(a.observed_at,s.observed_at)<=? "
+                "AND (a.id IS NOT NULL OR NOT EXISTS (SELECT 1 FROM acquisitions history WHERE history.source_id=s.id)) "
+                "GROUP BY d.id ORDER BY MAX(COALESCE(a.observed_at,s.observed_at)) DESC,d.id DESC",
+                (observed_at,))
         for row in rows:
             payload = json.loads(row["payload"])
             definitions = _row_get(payload, "kpiHistoryMetadatas", default=[])
@@ -438,7 +466,7 @@ class EvidenceStore:
                           unit_definition="https://borsdata.se/info/nyckeltal/roic")
         return result
 
-    def _kpis(self, endpoint, payload, instrument, source_id, observed_at):
+    def _kpis(self, endpoint, payload, instrument, source_id, observed_at, metadata_source_id=None):
         if not isinstance(payload, dict):
             raise ValueError("KPI response must be an object")
         parts = endpoint.lower().strip("/").split("/")
@@ -463,7 +491,7 @@ class EvidenceStore:
             values = _row_get(group, "values")
             if not isinstance(kpi, int) or not isinstance(values, list):
                 raise ValueError("Invalid KPI group")
-            units = self._kpi_units(kpi, observed_at)
+            units = self._kpi_units(kpi, observed_at, metadata_source_id)
             for i, row in enumerate(values):
                 year, period = row.get("y"), row.get("p")
                 if not isinstance(year, int) or period not in range(1, 6):
@@ -534,6 +562,33 @@ class EvidenceStore:
             count += 1
         return {"validated_report_observations": count}
 
+    def _freshness(self, identifiers, observations=False):
+        """Derive raw-source capture/check dates, preserving immutable records.
+
+        A raw body can support different metadata interpretations. These dates
+        describe its acquisition history, not confirmation of a definition.
+        """
+        if not identifiers:
+            return {}
+        if observations:
+            origin = "observation_sources os JOIN sources s ON s.id=os.source_id"
+            key = "os.observation_id"
+        else:
+            origin, key = "sources s", "s.id"
+        rows = self.connection.execute(
+            f"SELECT {key} AS id, MIN(COALESCE(a.observed_at,s.observed_at)) AS source_first_captured_at, "
+            "MAX(a.observed_at) AS source_last_successful_check_at "
+            f"FROM {origin} LEFT JOIN acquisitions a ON a.source_id=s.id AND a.status='saved' "
+            f"WHERE {key} IN (" + ",".join("?" for _ in identifiers) + f") GROUP BY {key}",
+            identifiers)
+        return {row["id"]: {field: row[field] for field in
+                ("source_first_captured_at", "source_last_successful_check_at")} for row in rows}
+
+    def _observation_records(self, rows):
+        records = [json.loads(row[0]) for row in rows]
+        freshness = self._freshness([record["id"] for record in records], observations=True)
+        return [{**record, **freshness[record["id"]]} for record in records]
+
     def query_financials(self, instrument_id, report_type=None, fields=None, limit=200, offset=0):
         if not isinstance(limit, int) or not 1 <= limit <= 5000 or offset < 0:
             raise ValueError("limit must be 1–5000 and offset nonnegative")
@@ -544,20 +599,20 @@ class EvidenceStore:
             if not isinstance(fields, (list, tuple)) or not all(isinstance(x, str) for x in fields):
                 raise ValueError("fields must be a list of names")
             where.append("o.metric IN (" + ",".join("?" for _ in fields) + ")"); args.extend(fields)
-        rows = self.connection.execute("SELECT o.record FROM observations o JOIN current_observations c ON c.observation_id=o.id WHERE " + " AND ".join(where) + " ORDER BY o.year DESC,o.period DESC,o.period_end DESC,o.metric,o.id LIMIT ? OFFSET ?", [*args, limit, offset])
-        return [json.loads(row[0]) for row in rows]
+        rows = self.connection.execute("SELECT o.record FROM observations o JOIN current_observations c ON c.logical_key=o.logical_key AND c.observation_id=o.id WHERE " + " AND ".join(where) + " ORDER BY o.year DESC,o.period DESC,o.period_end DESC,o.metric,o.id LIMIT ? OFFSET ?", [*args, limit, offset])
+        return self._observation_records(rows)
 
     def get_observation(self, observation_id):
         row = self.connection.execute("SELECT record FROM observations WHERE id=?", (observation_id,)).fetchone()
         if row is None:
             raise KeyError("Unknown observation")
-        return json.loads(row[0])
+        return self._observation_records([row])[0]
 
     def get_source(self, source_id):
         row = self.connection.execute("SELECT * FROM sources WHERE id=?", (source_id,)).fetchone()
         if row is None:
             raise KeyError("Unknown source")
-        result = dict(row)
+        result = {**dict(row), **self._freshness([source_id])[source_id]}
         result["parameters"] = json.loads(result["parameters"])
         result["metadata"] = json.loads(result["metadata"])
         result["blob_path"] = "blobs/" + result["blob_path"]
@@ -570,9 +625,13 @@ class EvidenceStore:
         if instrument_id is not None:
             where.append("(d.instrument_id=? OR d.instrument_id IS NULL)"); args.append(instrument_id)
         rows = self.connection.execute("SELECT d.*,s.observed_at FROM datasets d JOIN sources s ON s.id=d.source_id WHERE " + " AND ".join(where) + " ORDER BY s.observed_at DESC,d.id LIMIT ? OFFSET ?", [*args, limit, offset])
+        rows = list(rows)
+        freshness = self._freshness(list({row["source_id"] for row in rows}))
         result = []
         for row in rows:
-            value = dict(row); value["payload"] = json.loads(value["payload"]); result.append(value)
+            value = {**dict(row), **freshness[row["source_id"]]}
+            value["payload"] = json.loads(value["payload"])
+            result.append(value)
         return result
 
     def list_datasets(self):
