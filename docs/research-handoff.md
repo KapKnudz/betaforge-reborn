@@ -1,10 +1,12 @@
 # Move exact research between Macs
 
-Git preserves code, tests, decisions, policy and compact reports. Exact source evidence and saved runs travel in a separate private archive. Each Mac keeps its own Börsdata credential and Codex authentication; neither belongs in an archive or Git.
+The public code repository preserves code, tests, decisions, policy and compact reports. The separate `KapKnudz/betaforge-research-private` repository must remain private and hosts the exact research release assets. Exact source evidence and saved runs travel in a separate private archive. Each Mac keeps its own Börsdata credential and Codex authentication; neither belongs in an archive or Git.
+
+On 3 November 2026, after the code repository became public, both research releases moved to the private storage repository. All nine archive/verification files matched their original sizes and SHA256 hashes. Their public attachments were removed, and anonymous checks returned 404 for the former archive URL and the private repository. Removing those attachments cannot recall copies already downloaded.
 
 ## Verified private checkpoint
 
-The [private GitHub release `research-baseline-2026-11-03`](https://github.com/KapKnudz/betaforge-reborn/releases/tag/research-baseline-2026-11-03) targets source commit `5678dd1de282b7b5569ff6acc7c68ff72f7cc194`. Its `research-2026-11-03-foundation.tar.gz` contains 432 files, 456,847,456 source bytes and 226,352,173 compressed bytes. SHA256:
+The [private GitHub release `research-baseline-2026-11-03`](https://github.com/KapKnudz/betaforge-research-private/releases/tag/research-baseline-2026-11-03) preserves research from application source commit `5678dd1de282b7b5569ff6acc7c68ff72f7cc194`. Its `research-2026-11-03-foundation.tar.gz` contains 432 files, 456,847,456 source bytes and 226,352,173 compressed bytes. SHA256:
 
 ```text
 9d77f82a592c184153e0f2e01e441276e0818ddf10f5228eaaae291579bb47d3
@@ -14,7 +16,7 @@ The GitHub digest and a fresh download matched that checksum. A clean clone rest
 
 ## Mac prerequisites
 
-The [current implementation release `research-quality-2026-11-03`](https://github.com/KapKnudz/betaforge-reborn/releases/tag/research-quality-2026-11-03) additionally preserves the new frozen policy packet, completed integration smoke, final quality review and benchmark source snapshots. Its archive is `research-2026-11-03-quality.tar.gz`; use its own checksum and manifest. The release tag identifies the corresponding source commit. The earlier baseline release remains the unchanged historical checkpoint.
+The [current implementation release `research-quality-2026-11-03`](https://github.com/KapKnudz/betaforge-research-private/releases/tag/research-quality-2026-11-03) additionally preserves the new frozen policy packet, completed integration smoke, final quality review and benchmark source snapshots. Its archive is `research-2026-11-03-quality.tar.gz`; use its own checksum and manifest. The release notes and archive manifest identify the application source commit; storage-repository tags identify its own README history. The earlier baseline release remains the unchanged historical checkpoint.
 
 The current bundle also includes the exact user-supplied watchlist at `data/watchlists/20261103-original/Knudz_Watchlist.csv`, with a local manifest. It is 3,592 bytes, SHA256 `b84d9cdf998765a7cd2bdb8219d717daa5c034e9f5e152120df775602c761c6e`. The CSV stays outside Git history. Its original Downloads location is not required after restore; the historical baseline bundle did not include it.
 
@@ -35,7 +37,7 @@ Download the private release with an authenticated GitHub CLI:
 
 ```sh
 gh release download research-quality-2026-11-03 \
-  --repo KapKnudz/betaforge-reborn --dir /absolute/path/private-download
+  --repo KapKnudz/betaforge-research-private --dir /absolute/path/private-download
 ```
 
 Choose the source commit for historical reproduction, or the current implementation branch `feat/granges-walkthrough` for the new policy and tools. The original evidence packet and saved result remain separate from newer runs.
