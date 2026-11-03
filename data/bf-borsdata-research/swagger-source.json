@@ -1,0 +1,9 @@
+{
+  "source_url": "https://apidoc.borsdata.se/swagger/v1/swagger.json",
+  "retrieved_on": "2026-11-01",
+  "sha256": "88e267aaadd57f57fc1b44b6d8da8a4a1833511ee9f9ffd47ce783e202757260",
+  "bytes": 115751,
+  "http_status": 200,
+  "authentication": "none",
+  "local_file": "swagger.json"
+}

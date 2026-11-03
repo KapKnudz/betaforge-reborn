@@ -1,0 +1,22 @@
+# Local credentials
+.env
+.env.*
+!.env.example
+
+# Downloaded reports and model-run artifacts are reproducible local data.
+data/granges-walkthrough/sources/
+data/granges-walkthrough/prepared/
+data/granges-walkthrough/qa/*.png
+data/granges-walkthrough/preflight/
+data/granges-walkthrough/runs/
+.lavish/
+__pycache__/
+*.pyc
+.venv/
+.idea/
+.DS_Store
+data/backups/
+data/borsdata/
+data/granges-walkthrough/codex-integration-check/
+data/evidence/
+data/granges-codex/

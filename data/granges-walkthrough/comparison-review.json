@@ -1,0 +1,28 @@
+{
+  "headline": "Both approaches answered the eight test questions correctly",
+  "recommendation": "Keep deterministic acquisition and reusable, page-linked reports. Both upfront loading and sequential tool reading are viable for this corpus; the experiment found no answer-quality winner. Preserve original-page checks and explicit calculations in either workflow.",
+  "scores": {"upfront": 40, "tools": 40},
+  "scoring_basis": "Independent read-only reviewer; frozen source-based rubric; complete final answers scored; no deductions",
+  "questions": [
+    {"id":"Q1","topic":"Five-year financial series","upfront":5,"tools":5,"finding":"All 20 figures, units and cumulative-growth calculations matched. Alternative financial/APM page citations were valid."},
+    {"id":"Q2","topic":"Revenue versus physical demand","upfront":5,"tools":5,"finding":"Both distinguished volume, currency, fabrication revenue, aluminium pass-through and other revenue."},
+    {"id":"Q3","topic":"Strategy across five annuals","upfront":5,"tools":5,"finding":"Both cited year-specific milestones and distinguished completed projects from expectations."},
+    {"id":"Q4","topic":"Sustainability comparability","upfront":5,"tools":5,"finding":"Both preserved volume/share and absolute/intensity distinctions, plus reporting-perimeter qualifications."},
+    {"id":"Q5","topic":"Cash-flow definitions","upfront":5,"tools":5,"finding":"Both preserved the published totals and exposed the residual. Tools wording was slightly too certain about rounding."},
+    {"id":"Q6","topic":"Fire effects and forecast changes","upfront":5,"tools":5,"finding":"Both separated realized effects, changing expectations and unrecognized insurance recovery."},
+    {"id":"Q7","topic":"Adjusted earnings reconciliation","upfront":5,"tools":5,"finding":"Both retained the source's rounded-value discrepancy and reconciled cumulative costs."},
+    {"id":"Q8","topic":"Conflicting acquisition chronology","upfront":5,"tools":5,"finding":"Both preserved the conflicting dates and break-even statements without inventing a resolution."}
+  ],
+  "quality_winner": null,
+  "material_errors_in_scored_claims": [],
+  "minor_wording_note": "Tools Q5 calls the unexplained difference a rounding residual. Prefer residual consistent with rounding; the exact cause was not established. Original candidate answers are preserved unchanged.",
+  "limitations": [
+    "One company, one run per workflow and eight known questions. A 40/40 score applies to this rubric, not every possible fact or valuation conclusion.",
+    "The company is classified as Large Cap. Smaller-company reporting and open-ended risk discovery remain untested.",
+    "Upfront compaction was disabled; tool-reading compaction was enabled and occurred once. This is not an isolated causal test of exposure method alone.",
+    "All prepared text pages were supplied in both modes. That proves exposure, not comprehension. Selectively skipping documents was not tested.",
+    "Representative extraction QA found split digits and altered reading order. Original-page checks remain necessary for material numeric inputs.",
+    "The original acquisition used issuer IR PDFs. Separate MFN discovery found all eight releases, but attachment downloads returned 403. Börsdata ingestion was not part of either model run.",
+    "The installed Codex CLI rejected GPT-6.1 Sol; both successful trials used the existing pi route with that exact model. The future website/Codex SDK integration was not tested."
+  ]
+}

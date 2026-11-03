@@ -2,7 +2,7 @@
 
 ## Destination and scope
 
-Produce a lean, implementation-ready specification for the first useful version of a private investment-research website. Planning is authorized; application implementation and deployment are not yet authorized.
+Produce a lean, implementation-ready specification for the first useful version of a private investment-research website. Planning is authorized. The user subsequently authorized a bounded Gränges retrieval experiment, including local preparation and comparison scripts; application implementation and deployment remain outside that experiment. See [retrieval design discussion](../retrieval-design.md) for the agreed data scope and experiment decisions.
 
 The website should provide a tangible shared view of progress and analysis, including company lookup by name or ID, visible company data, reverse DCF results, and eventually an evidence-backed investment judgment with bear, neutral/base, and bull ranges over two to three years. The exact first page and its contents remain to be specified.
 
@@ -43,6 +43,10 @@ The expected annualized return of a candidate must exceed the benchmark hurdle.
 The agreed reference is Investor AB's B share's trailing ten-year annualized total return, including reinvested dividends, measured as of the analysis date. This historical reference is a hurdle, not a forecast of Investor B's future return. No numerical return threshold has been asserted.
 
 The exact data source and calculation conventions still need verification, including consistent currency, dates, and treatment of distributions and corporate actions.
+
+## Scenario probability ownership
+
+Agreed on 3 November 2026: the analyst proposes company-specific scenario probabilities, explains the evidence and uncertainty, and lets the user override them. A fixed bear/base/bull split is not an adopted default. Outcome definitions, numerical weights and the return statistic remain analysis choices to make explicit; this decision does not assign probabilities to the original Gränges report. See the [probability proposal](../research/scenario-probabilities-proposal.md).
 
 ## Available or proposed sources
 
