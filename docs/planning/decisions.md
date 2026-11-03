@@ -6,9 +6,15 @@ Updated 3 November 2026. This records current decisions. The [analysis policy](.
 
 Build a private investment-research tool, eventually with a local website. After the Gränges walkthrough and financial-framework review, the user authorized implementation in priority order on 3 November 2026. Preserve the original evidence and valuation while simplifying future analysis. See the [minimum enhancement plan](../../examples/granges/docs/research/simple-investment-framework-review.md).
 
-The website should provide a shared view of progress and analysis, including company lookup by name or ID, visible company data and calculations, and an evidence-backed investment judgment with bear, base and bull ranges over two to three years. Forward EV/EBIT scenarios are the adopted valuation; a true reverse DCF is an optional future addition. The exact first page and its contents remain to be specified.
+The website should provide a shared view of progress and analysis, including company lookup by name or ID, visible company data and calculations, and an evidence-backed investment judgment with bear, base and bull ranges over two to three years. Forward EV/EBIT scenarios are the adopted valuation; a true reverse DCF is an optional future addition.
+
+The user subsequently confirmed ordinary operating companies for the first validated release, with banks, insurers, property companies and holding companies outside that first scope. The first website milestone reviews saved analyses, sources, mappings, assumptions and charts; analysis launch/progress controls follow later. The detailed page design remains proposed. See the [readiness review](../research/system-readiness-review.md) and [frozen-corpus feasibility](../research/frozen-dataset-feasibility.md).
 
 The product is initially for one person's own use. Python acquisition/preparation, immutable source files, SQLite evidence, frozen packets and Codex tools are implemented. Acquisition is separate from what the analyst reads; a saved result does not rerun the analyst. A complete website, automated refresh and general multiissuer production workflow remain future work. See [ADR 0001](../adr/0001-persist-company-evidence.md), [ADR 0002](../adr/0002-local-evidence-storage.md), [retrieval design](../retrieval-design.md) and [Codex integration](../codex-integration.md).
+
+## Project workflow
+
+The user selected session-based plan maintenance and user review/merge of agent-prepared PRs. Repository [agent instructions](../../AGENTS.md) define the working loop; [work/plan.json](../../work/plan.json) holds current tasks and handoff, with a read-only local progress dashboard. This progress display is separate from the planned saved-analysis viewer. [Architecture](../architecture.md) owns module boundaries and [CONTRIBUTING.md](../../CONTRIBUTING.md) owns PR procedures. No unattended agent execution is part of this first workflow.
 
 ## Research focus
 
