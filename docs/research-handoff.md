@@ -16,6 +16,8 @@ The GitHub digest and a fresh download matched that checksum. A clean clone rest
 
 The [current implementation release `research-quality-2026-11-03`](https://github.com/KapKnudz/betaforge-reborn/releases/tag/research-quality-2026-11-03) additionally preserves the new frozen policy packet, completed integration smoke, final quality review and benchmark source snapshots. Its archive is `research-2026-11-03-quality.tar.gz`; use its own checksum and manifest. The release tag identifies the corresponding source commit. The earlier baseline release remains the unchanged historical checkpoint.
 
+The current bundle also includes the exact user-supplied watchlist at `data/watchlists/20261103-original/Knudz_Watchlist.csv`, with a local manifest. It is 3,592 bytes, SHA256 `b84d9cdf998765a7cd2bdb8219d717daa5c034e9f5e152120df775602c761c6e`. The CSV stays outside Git history. Its original Downloads location is not required after restore; the historical baseline bundle did not include it.
+
 Python 3.14.7 is the tested version. Install Python and Poppler, create a local environment and install the complete pinned dependencies:
 
 ```sh

@@ -30,6 +30,7 @@ OPTIONAL_RESEARCH_DIRECTORIES = (
     "data/granges-codex/runs/20261103-quality-smoke",
     "data/financial-reviews",
     "data/benchmarks",
+    "data/watchlists",
 )
 FORBIDDEN_PARTS = {".git", ".idea", ".venv", "node_modules", "__pycache__"}
 
