@@ -1,0 +1,202 @@
+{
+  "prepared_on": "2026-11-03",
+  "status": "Sensitivity examples plus a separately labeled subjective analyst draft; no numerical weights adopted in the frozen analysis",
+  "source_analysis_date": "2026-11-01",
+  "source_run": "data/granges-codex/runs/20261101-full",
+  "present_value_rate": "0.10",
+  "future_target_date": "November 2029",
+  "formula": "sum(weight_percent / 100 * saved scenario value)",
+  "precision": "Decimal 40 significant digits",
+  "examples": [
+    {
+      "name": "Low bear illustration",
+      "inputs": [
+        {
+          "case": "bear",
+          "weight_percent": 1,
+          "present_value": "52.35241848395442453011238892362927870520",
+          "present_value_id": "calc:44251337e56efb345589",
+          "future_target": "58.42706900214333904957958965735056995662",
+          "future_target_id": "calc:58483a4265ad1711632e"
+        },
+        {
+          "case": "base",
+          "weight_percent": 79,
+          "present_value": "168.1427067831807167247976810184844809024",
+          "present_value_id": "calc:791e2ac113fabdd105dc",
+          "future_target": "212.5439427284135339607057134356028440811",
+          "future_target_id": "calc:ec089d26955fb8159230"
+        },
+        {
+          "case": "bull",
+          "weight_percent": 20,
+          "present_value": "249.0859543378626463305784147911480517590",
+          "present_value_id": "calc:9e9577bc76984e4d0163",
+          "future_target": "320.2794052236951822659998700870180568913",
+          "future_target_id": "calc:8bb04786888b2fb17641"
+        }
+      ],
+      "weighted_present_value_sek_per_share": "183.1734534111248397240069748520686430518",
+      "weighted_future_target_sek_per_share": "232.5498664902071616726532835281033639020"
+    },
+    {
+      "name": "Balanced illustration",
+      "inputs": [
+        {
+          "case": "bear",
+          "weight_percent": 25,
+          "present_value": "52.35241848395442453011238892362927870520",
+          "present_value_id": "calc:44251337e56efb345589",
+          "future_target": "58.42706900214333904957958965735056995662",
+          "future_target_id": "calc:58483a4265ad1711632e"
+        },
+        {
+          "case": "base",
+          "weight_percent": 50,
+          "present_value": "168.1427067831807167247976810184844809024",
+          "present_value_id": "calc:791e2ac113fabdd105dc",
+          "future_target": "212.5439427284135339607057134356028440811",
+          "future_target_id": "calc:ec089d26955fb8159230"
+        },
+        {
+          "case": "bull",
+          "weight_percent": 25,
+          "present_value": "249.0859543378626463305784147911480517590",
+          "present_value_id": "calc:9e9577bc76984e4d0163",
+          "future_target": "320.2794052236951822659998700870180568913",
+          "future_target_id": "calc:8bb04786888b2fb17641"
+        }
+      ],
+      "weighted_present_value_sek_per_share": "159.4309465970446260775715414379365730672",
+      "weighted_future_target_sek_per_share": "200.9485899206663973092477216538935787526"
+    },
+    {
+      "name": "High bear illustration",
+      "inputs": [
+        {
+          "case": "bear",
+          "weight_percent": 50,
+          "present_value": "52.35241848395442453011238892362927870520",
+          "present_value_id": "calc:44251337e56efb345589",
+          "future_target": "58.42706900214333904957958965735056995662",
+          "future_target_id": "calc:58483a4265ad1711632e"
+        },
+        {
+          "case": "base",
+          "weight_percent": 30,
+          "present_value": "168.1427067831807167247976810184844809024",
+          "present_value_id": "calc:791e2ac113fabdd105dc",
+          "future_target": "212.5439427284135339607057134356028440811",
+          "future_target_id": "calc:ec089d26955fb8159230"
+        },
+        {
+          "case": "bull",
+          "weight_percent": 20,
+          "present_value": "249.0859543378626463305784147911480517590",
+          "present_value_id": "calc:9e9577bc76984e4d0163",
+          "future_target": "320.2794052236951822659998700870180568913",
+          "future_target_id": "calc:8bb04786888b2fb17641"
+        }
+      ],
+      "weighted_present_value_sek_per_share": "126.4362121445039565486111817255895939751",
+      "weighted_future_target_sek_per_share": "157.0325983643347661662014828767597495809"
+    }
+  ],
+  "working_draft": {
+    "name": "Subjective analyst draft: representative going-concern scenarios",
+    "inputs": [
+      {
+        "case": "bear",
+        "weight_percent": 25,
+        "present_value": "52.35241848395442453011238892362927870520",
+        "present_value_id": "calc:44251337e56efb345589",
+        "future_target": "58.42706900214333904957958965735056995662",
+        "future_target_id": "calc:58483a4265ad1711632e"
+      },
+      {
+        "case": "base",
+        "weight_percent": 55,
+        "present_value": "168.1427067831807167247976810184844809024",
+        "present_value_id": "calc:791e2ac113fabdd105dc",
+        "future_target": "212.5439427284135339607057134356028440811",
+        "future_target_id": "calc:ec089d26955fb8159230"
+      },
+      {
+        "case": "bull",
+        "weight_percent": 20,
+        "present_value": "249.0859543378626463305784147911480517590",
+        "present_value_id": "calc:9e9577bc76984e4d0163",
+        "future_target": "320.2794052236951822659998700870180568913",
+        "future_target_id": "calc:8bb04786888b2fb17641"
+      }
+    ],
+    "weighted_present_value_sek_per_share": "155.3837842193105295972825047493033945244",
+    "weighted_future_target_sek_per_share": "195.5618167959023148939830138213228181121",
+    "scope": "Indicative three-case weighted present value; scenario values are not established conditional means and an explicit distress/dilution tail is not modeled",
+    "basis": "Judgment based on final report sections4,6,9\u201311; not statistically calibrated or a reusable default"
+  },
+  "weight_uncertainty_examples": [
+    {
+      "name": "More cash-conversion skepticism",
+      "inputs": [
+        {
+          "case": "bear",
+          "weight_percent": 35,
+          "present_value": "52.35241848395442453011238892362927870520",
+          "present_value_id": "calc:44251337e56efb345589",
+          "future_target": "58.42706900214333904957958965735056995662",
+          "future_target_id": "calc:58483a4265ad1711632e"
+        },
+        {
+          "case": "base",
+          "weight_percent": 50,
+          "present_value": "168.1427067831807167247976810184844809024",
+          "present_value_id": "calc:791e2ac113fabdd105dc",
+          "future_target": "212.5439427284135339607057134356028440811",
+          "future_target_id": "calc:ec089d26955fb8159230"
+        },
+        {
+          "case": "bull",
+          "weight_percent": 15,
+          "present_value": "249.0859543378626463305784147911480517590",
+          "present_value_id": "calc:9e9577bc76984e4d0163",
+          "future_target": "320.2794052236951822659998700870180568913",
+          "future_target_id": "calc:8bb04786888b2fb17641"
+        }
+      ],
+      "weighted_present_value_sek_per_share": "139.7575930116538038975249388511846957618",
+      "weighted_future_target_sek_per_share": "174.7633562985112129876056936109268300591"
+    },
+    {
+      "name": "Repair and cash recovery confirmed",
+      "inputs": [
+        {
+          "case": "bear",
+          "weight_percent": 15,
+          "present_value": "52.35241848395442453011238892362927870520",
+          "present_value_id": "calc:44251337e56efb345589",
+          "future_target": "58.42706900214333904957958965735056995662",
+          "future_target_id": "calc:58483a4265ad1711632e"
+        },
+        {
+          "case": "base",
+          "weight_percent": 60,
+          "present_value": "168.1427067831807167247976810184844809024",
+          "present_value_id": "calc:791e2ac113fabdd105dc",
+          "future_target": "212.5439427284135339607057134356028440811",
+          "future_target_id": "calc:ec089d26955fb8159230"
+        },
+        {
+          "case": "bull",
+          "weight_percent": 25,
+          "present_value": "249.0859543378626463305784147911480517590",
+          "present_value_id": "calc:9e9577bc76984e4d0163",
+          "future_target": "320.2794052236951822659998700870180568913",
+          "future_target_id": "calc:8bb04786888b2fb17641"
+        }
+      ],
+      "weighted_present_value_sek_per_share": "171.0099754269672552970400706474220932870",
+      "weighted_future_target_sek_per_share": "216.3602772932934168003603340317188061650"
+    }
+  ]
+}

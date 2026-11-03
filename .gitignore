@@ -1,0 +1,26 @@
+# Local credentials
+.env
+.env.*
+!.env.example
+
+# Source evidence and saved runs travel in private release archives.
+data/granges-walkthrough/sources/
+data/granges-walkthrough/prepared/
+data/granges-walkthrough/qa/*.png
+data/granges-walkthrough/qa/*.txt
+data/granges-walkthrough/preflight/
+data/granges-walkthrough/runs/
+.lavish/
+__pycache__/
+*.pyc
+.venv/
+.idea/
+.DS_Store
+data/backups/
+data/borsdata/
+data/granges-walkthrough/codex-integration-check/
+data/evidence/
+data/granges-codex/
+data/financial-reviews/
+data/benchmarks/
+data/watchlists/

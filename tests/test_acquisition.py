@@ -1,0 +1,65 @@
+import contextlib
+import io
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+import requests
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+import fetch_borsdata_context as fetch
+
+
+def response(status, body=b'{"reports":[]}', headers=None):
+    result = requests.Response()
+    result.status_code = status
+    result._content = body
+    result.headers.update(headers or {})
+    return result
+
+
+class AcquisitionTests(unittest.TestCase):
+    def run_fetch(self, replies):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        destination = Path(temp.name) / "snapshot"
+        output = io.StringIO()
+        with patch.object(fetch, "get_response", side_effect=replies) as get, contextlib.redirect_stdout(output):
+            result = fetch.acquire(destination, 426, "TEST_SECRET_VALUE",
+                                   [("one", "/v1/one", {}), ("two", "/v1/two", {})], pause=lambda _: None)
+        return destination, result, get.call_count, output.getvalue()
+
+    def test_access_failure_stops_and_redacts(self):
+        path, manifest, calls, output = self.run_fetch([
+            response(403, b'{"detail":"Denied TEST_SECRET_VALUE https://example.com/?authKey=TEST_SECRET_VALUE"}')])
+        self.assertEqual(calls, 1)
+        self.assertEqual(manifest["requests"][0]["status"], "failed")
+        self.assertNotIn("TEST_SECRET_VALUE", output + (path / "manifest.json").read_text())
+        self.assertFalse((path / "one.json").exists())
+
+    def test_rate_limit_retry_is_bounded(self):
+        _, manifest, calls, _ = self.run_fetch([response(429)] * 3)
+        self.assertEqual(calls, 3)
+        self.assertEqual(manifest["requests"][0]["attempts"], 3)
+
+    def test_long_retry_after_defers_instead_of_retrying_early(self):
+        _, manifest, calls, _ = self.run_fetch([response(429, headers={"Retry-After": "120"})])
+        self.assertEqual(calls, 1)
+        self.assertEqual(manifest["requests"][0]["retry_after_seconds"], 120)
+        self.assertTrue(manifest["requests"][0]["retry_deferred"])
+
+    def test_success_retains_exact_bytes_and_rejects_key_echo(self):
+        body = b'{"reports": [null], "value": 1.2300}'
+        path, manifest, calls, output = self.run_fetch([
+            response(200, body), response(200, b'{"echo":"\\u0054EST_SECRET_VALUE"}')])
+        self.assertEqual((path / "one.json").read_bytes(), body)
+        self.assertEqual(manifest["requests"][1]["status"], "failed")
+        self.assertNotIn("TEST_SECRET_VALUE", output)
+        self.assertFalse((path / "two.json").exists())
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,282 @@
+{
+  "checked_at_utc": "2026-11-01T14:49:28.367824+00:00",
+  "purpose": "Supplemental MFN discovery and byte-identity test for the existing eight-report corpus",
+  "initial_acquisition": "The frozen PDFs were downloaded directly from issuer IR links, not from MFN.",
+  "method": "Follow public company archive links using the existing Show more pagination pattern; parse release JSON-LD and PDF links; fetch PDFs into memory and compare SHA-256 to frozen saved issuer PDFs.",
+  "pagination_implementation_source": "https://mfn.se/assets/js/show-more_6IEBXRx0.js",
+  "maximum_archive_pages": 6,
+  "archive_pages": [
+    {
+      "url": "https://mfn.se/all/a/granges",
+      "resolved_url": "https://mfn.se/all/a/granges",
+      "sha256": "964d6d9f2d2fbd59de24d1d38a7bd31291476d96799fd916f1cec84efbc3cfd2"
+    },
+    {
+      "url": "https://mfn.se/all/a/granges.html?offset=48&limit=48",
+      "resolved_url": "https://mfn.se/all/a/granges.html?offset=48&limit=48",
+      "sha256": "1f38527364fb97c40ca9b892f768df9f3bef631184ceb47b9ac1ab013b40a75b"
+    },
+    {
+      "url": "https://mfn.se/all/a/granges.html?offset=96&limit=48",
+      "resolved_url": "https://mfn.se/all/a/granges.html?offset=96&limit=48",
+      "sha256": "1822f4e623248e3039c58ec0bb51b050e3f25292259778dbc3a73cd588d72a08"
+    },
+    {
+      "url": "https://mfn.se/all/a/granges.html?offset=144&limit=48",
+      "resolved_url": "https://mfn.se/all/a/granges.html?offset=144&limit=48",
+      "sha256": "f616fe64ffffb2cd09651d1017b2eecd6987f38f34f9d5e2715228f33f46957a"
+    },
+    {
+      "url": "https://mfn.se/all/a/granges.html?offset=192&limit=48",
+      "resolved_url": "https://mfn.se/all/a/granges.html?offset=192&limit=48",
+      "sha256": "096695c4e646413e1e328e1bf75f3bc23eaf0411536874f207b9a902d2f3a92f"
+    }
+  ],
+  "errors": [],
+  "coverage": {
+    "requested": 8,
+    "release_links_discovered": 8,
+    "exact_pdf_hash_matches": 0,
+    "pdf_attachment_links_found": 8,
+    "pdf_downloads_failed": 8
+  },
+  "frozen_manifest_and_original_hashes_unchanged": true,
+  "limits": "A bounded test for these eight reports. It does not establish archive completeness, stable endpoints, refresh/revision behavior or general issuer coverage. PDF identity requires a hash match; titles alone are not used as identity proof.",
+  "documents": [
+    {
+      "report_id": "granges-annual-2021",
+      "saved_issuer_pdf_url": "https://www.granges.com/globalassets/05.-investerare/04.-rapporter-och-presentationer/2022/02-annual-report-2021/granges-annual-report-2021.pdf",
+      "saved_pdf_sha256": "757ac23c2284364fefa88ecf0bd65e856b80fcf1297b198050d49af13dc0446b",
+      "saved_publication_date": "2022-03-17",
+      "initial_acquisition": "issuer_ir_direct",
+      "attachments": [
+        {
+          "url": "https://storage.mfn.se/1d4e4d8c-f63e-4fca-8c27-f46392e50e07/granges-annual-report-2021.pdf",
+          "linked_from_release_html": true,
+          "error": "HTTP Error 403: Forbidden",
+          "url_matches_saved_issuer_pdf_url": false
+        }
+      ],
+      "release_url": "https://mfn.se/a/granges/granges-publishes-the-annual-and-sustainability-report-for-2021",
+      "discovered_on": "https://mfn.se/all/a/granges.html?offset=192&limit=48",
+      "resolved_release_url": "https://mfn.se/a/granges/granges-publishes-the-annual-and-sustainability-report-for-2021",
+      "release_html_sha256": "e95eb5765ecf51617b5803bc25ee304de1e79dee01e1b591a2bf3710780a1155",
+      "release_title": "Gränges publishes the Annual and Sustainability Report for 2021",
+      "published_at_utc": "2022-03-17T12:30:00Z",
+      "publication_date_matches_saved": true,
+      "release_metadata_source": "NewsArticle JSON-LD datePublished and headline in public release HTML",
+      "status": "release_and_attachment_found_pdf_download_failed"
+    },
+    {
+      "report_id": "granges-annual-2022",
+      "saved_issuer_pdf_url": "https://www.granges.com/globalassets/05.-investerare/04.-rapporter-och-presentationer/2023/02-annual-report-2022/granges_annual_and_sustainability_report_2022.pdf",
+      "saved_pdf_sha256": "1a7c37faeb224a9110991759d23a6417d16e8e5fb2fe04325b7052f518b1da7c",
+      "saved_publication_date": "2023-03-16",
+      "initial_acquisition": "issuer_ir_direct",
+      "attachments": [
+        {
+          "url": "https://storage.mfn.se/a85d48f7-bdcb-4413-b3be-0e01c398afd8/granges-annual-and-sustainability-report-2022.pdf",
+          "linked_from_release_html": true,
+          "error": "HTTP Error 403: Forbidden",
+          "url_matches_saved_issuer_pdf_url": false
+        }
+      ],
+      "release_url": "https://mfn.se/a/granges/granges-publishes-annual-and-sustainability-report-2022",
+      "discovered_on": "https://mfn.se/all/a/granges.html?offset=144&limit=48",
+      "resolved_release_url": "https://mfn.se/a/granges/granges-publishes-annual-and-sustainability-report-2022",
+      "release_html_sha256": "7616ab7c028aaa02367fa740e747b4df9816896cdbac38ae81eb0dbbad7a6ecd",
+      "release_title": "Gränges Publishes Annual and Sustainability Report 2022",
+      "published_at_utc": "2023-03-16T09:35:00Z",
+      "publication_date_matches_saved": true,
+      "release_metadata_source": "NewsArticle JSON-LD datePublished and headline in public release HTML",
+      "status": "release_and_attachment_found_pdf_download_failed"
+    },
+    {
+      "report_id": "granges-annual-2023",
+      "saved_issuer_pdf_url": "https://www.granges.com/globalassets/05.-investerare/04.-rapporter-och-presentationer/2024/02.-annual-report-2023/granges-annual-and-sustainability-report-2023.pdf",
+      "saved_pdf_sha256": "c8fb91f4c30c32051d1653a55b549ffb0b14c20fa66ce1e84dbe79c635a3a415",
+      "saved_publication_date": "2024-03-19",
+      "initial_acquisition": "issuer_ir_direct",
+      "attachments": [
+        {
+          "url": "https://storage.mfn.se/867de47c-2dbc-4a7c-af28-7c60c1fa7810/granges-annual-and-sustainability-report-2023.pdf",
+          "linked_from_release_html": true,
+          "error": "HTTP Error 403: Forbidden",
+          "url_matches_saved_issuer_pdf_url": false
+        }
+      ],
+      "release_url": "https://mfn.se/a/granges/granges-publishes-annual-and-sustainability-report-2023",
+      "discovered_on": "https://mfn.se/all/a/granges.html?offset=96&limit=48",
+      "resolved_release_url": "https://mfn.se/a/granges/granges-publishes-annual-and-sustainability-report-2023",
+      "release_html_sha256": "b937269ab7b4855b6bbd83a7def5edfe21b218b64c00980e3fb2360710aa1003",
+      "release_title": "Gränges publishes Annual and Sustainability Report 2023",
+      "published_at_utc": "2024-03-19T09:00:00Z",
+      "publication_date_matches_saved": true,
+      "release_metadata_source": "NewsArticle JSON-LD datePublished and headline in public release HTML",
+      "status": "release_and_attachment_found_pdf_download_failed"
+    },
+    {
+      "report_id": "granges-annual-2024",
+      "saved_issuer_pdf_url": "https://www.granges.com/globalassets/05.-investerare/04.-rapporter-och-presentationer/2025/02.-annual-report-2024/granges-annual-and-sustainability-report-2024.pdf",
+      "saved_pdf_sha256": "5119df8b3f364931dc03462f27d005bec0095a6190f01f29a84964abdf268e9c",
+      "saved_publication_date": "2025-03-18",
+      "initial_acquisition": "issuer_ir_direct",
+      "attachments": [
+        {
+          "url": "https://storage.mfn.se/48ccc9d3-67b1-4ce5-a6f8-1f60ebffaf98/granges-annual-and-sustainability-report-2024.pdf",
+          "linked_from_release_html": true,
+          "error": "HTTP Error 403: Forbidden",
+          "url_matches_saved_issuer_pdf_url": false
+        }
+      ],
+      "release_url": "https://mfn.se/a/granges/granges-publishes-annual-and-sustainability-report-2024",
+      "discovered_on": "https://mfn.se/all/a/granges.html?offset=48&limit=48",
+      "resolved_release_url": "https://mfn.se/a/granges/granges-publishes-annual-and-sustainability-report-2024",
+      "release_html_sha256": "e5e2e92801ddf54f48c7377842c6c298bc8a6b84bb5ae24f31ef7d284c6822b0",
+      "release_title": "Gränges publishes Annual and Sustainability Report 2024",
+      "published_at_utc": "2025-03-18T08:00:00Z",
+      "publication_date_matches_saved": true,
+      "release_metadata_source": "NewsArticle JSON-LD datePublished and headline in public release HTML",
+      "status": "release_and_attachment_found_pdf_download_failed"
+    },
+    {
+      "report_id": "granges-annual-2025",
+      "saved_issuer_pdf_url": "https://www.granges.com/globalassets/05.-investerare/04.-rapporter-och-presentationer/2026/02.-annual-report-2025/granges-annual-and-sustainability-report-2025.pdf",
+      "saved_pdf_sha256": "92ce24c6cac97ed9fb5957456d75900484b01196c117f4e28235f9816073eebd",
+      "saved_publication_date": "2026-03-17",
+      "initial_acquisition": "issuer_ir_direct",
+      "attachments": [
+        {
+          "url": "https://storage.mfn.se/776af2a1-6db4-4cbd-ae22-99ceda29c7b9/granges-annual-and-sustainability-report-2025.pdf",
+          "linked_from_release_html": true,
+          "error": "HTTP Error 403: Forbidden",
+          "url_matches_saved_issuer_pdf_url": false
+        }
+      ],
+      "release_url": "https://mfn.se/a/granges/annual-and-sustainability-report-2025",
+      "discovered_on": "https://mfn.se/all/a/granges",
+      "resolved_release_url": "https://mfn.se/a/granges/annual-and-sustainability-report-2025",
+      "release_html_sha256": "8707448cebeecea0bf160c99def6cd3d7a34c007e996315a86ee730b7a99752a",
+      "release_title": "Annual and Sustainability Report 2025",
+      "published_at_utc": "2026-03-17T09:00:00Z",
+      "publication_date_matches_saved": true,
+      "release_metadata_source": "NewsArticle JSON-LD datePublished and headline in public release HTML",
+      "status": "release_and_attachment_found_pdf_download_failed"
+    },
+    {
+      "report_id": "granges-q1-2026",
+      "saved_issuer_pdf_url": "https://www.granges.com/globalassets/05.-investerare/04.-rapporter-och-presentationer/2026/03.-interim-report-q1-2026/granges-q1-interim-report-2026.pdf",
+      "saved_pdf_sha256": "294c59be05a137ea1f208be866977df5cb75c70f52058cc8661bb38a37585ca6",
+      "saved_publication_date": "2026-04-23",
+      "initial_acquisition": "issuer_ir_direct",
+      "attachments": [
+        {
+          "url": "https://storage.mfn.se/097b57ec-eae7-422c-bdea-c3819b2ba2d3/granges-q1-interim-report-2026.pdf",
+          "linked_from_release_html": true,
+          "error": "HTTP Error 403: Forbidden",
+          "url_matches_saved_issuer_pdf_url": false
+        }
+      ],
+      "release_url": "https://mfn.se/a/granges/granges-q1-interim-report-record-first-quarter-and-strong-momentum",
+      "discovered_on": "https://mfn.se/all/a/granges",
+      "resolved_release_url": "https://mfn.se/a/granges/granges-q1-interim-report-record-first-quarter-and-strong-momentum",
+      "release_html_sha256": "cf56dc14a1a3dda73770a2d5a8739967c759bd2be5c753809dd1f90202f524de",
+      "release_title": "Gränges Q1 interim report: Record first quarter and strong momentum",
+      "published_at_utc": "2026-04-23T05:30:00Z",
+      "publication_date_matches_saved": true,
+      "release_metadata_source": "NewsArticle JSON-LD datePublished and headline in public release HTML",
+      "status": "release_and_attachment_found_pdf_download_failed"
+    },
+    {
+      "report_id": "granges-h1-2026",
+      "saved_issuer_pdf_url": "https://www.granges.com/globalassets/05.-investerare/04.-rapporter-och-presentationer/2026/04.-half-year-report-2026/granges-half-year-report-2026.pdf",
+      "saved_pdf_sha256": "f867132d703998e11091a93211833456d008b52fa7acf1c598278f85cb1c9fd4",
+      "saved_publication_date": "2026-07-16",
+      "initial_acquisition": "issuer_ir_direct",
+      "attachments": [
+        {
+          "url": "https://storage.mfn.se/94b3f52b-2f5a-4fdc-ba9e-4f822b1a9d7c/granges-q2-half-year-report-2026.pdf",
+          "linked_from_release_html": true,
+          "error": "HTTP Error 403: Forbidden",
+          "url_matches_saved_issuer_pdf_url": false
+        }
+      ],
+      "release_url": "https://mfn.se/a/granges/granges-half-year-report-2026-strong-execution-drives-record-volume-and-earnings",
+      "discovered_on": "https://mfn.se/all/a/granges",
+      "resolved_release_url": "https://mfn.se/a/granges/granges-half-year-report-2026-strong-execution-drives-record-volume-and-earnings",
+      "release_html_sha256": "dca6ad4432ccc07b08dd6accb6469d379cdf16e05bbb7da79c1f46506bbd966c",
+      "release_title": "Gränges’ half-year report 2026: Strong execution drives record volume and earnings",
+      "published_at_utc": "2026-07-16T05:30:00Z",
+      "publication_date_matches_saved": true,
+      "release_metadata_source": "NewsArticle JSON-LD datePublished and headline in public release HTML",
+      "status": "release_and_attachment_found_pdf_download_failed"
+    },
+    {
+      "report_id": "granges-q3-2026",
+      "saved_issuer_pdf_url": "https://www.granges.com/globalassets/05.-investerare/04.-rapporter-och-presentationer/2026/05.-interim-report-q3-2026/granges-q3-2026-interim-report.pdf",
+      "saved_pdf_sha256": "bbbbd9af993a83119b053b1cfe18d141e511690fc69ae0b48bbdbe656f3aadc7",
+      "saved_publication_date": "2026-10-22",
+      "initial_acquisition": "issuer_ir_direct",
+      "attachments": [
+        {
+          "url": "https://storage.mfn.se/009266b2-1016-49f3-8cb7-9e8287becaf2/granges-q3-2026-interim-report.pdf",
+          "linked_from_release_html": true,
+          "error": "HTTP Error 403: Forbidden",
+          "url_matches_saved_issuer_pdf_url": false
+        }
+      ],
+      "release_url": "https://mfn.se/a/granges/granges-q3-interim-report-2026-record-earnings-and-improved-cash-flow",
+      "discovered_on": "https://mfn.se/all/a/granges",
+      "resolved_release_url": "https://mfn.se/a/granges/granges-q3-interim-report-2026-record-earnings-and-improved-cash-flow",
+      "release_html_sha256": "505593bf1a17c6cf1b0887de7a62a50b98aea4ccf8ffd3ad777c0c5383f33426",
+      "release_title": "Gränges’ Q3 interim report 2026: Record earnings and improved cash flow",
+      "published_at_utc": "2026-10-22T05:30:00Z",
+      "publication_date_matches_saved": true,
+      "release_metadata_source": "NewsArticle JSON-LD datePublished and headline in public release HTML",
+      "status": "release_and_attachment_found_pdf_download_failed"
+    }
+  ],
+  "blocker": "The public release pages were retrievable, but storage.mfn.se returned HTTP 403 Forbidden to direct urllib PDF requests for all eight attachments. No access-control bypass was attempted. No remote PDF hashes were obtained; zero established matches must not be read as eight hash mismatches.",
+  "download_failures": [
+    {
+      "report_id": "granges-annual-2021",
+      "url": "https://storage.mfn.se/1d4e4d8c-f63e-4fca-8c27-f46392e50e07/granges-annual-report-2021.pdf",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "report_id": "granges-annual-2022",
+      "url": "https://storage.mfn.se/a85d48f7-bdcb-4413-b3be-0e01c398afd8/granges-annual-and-sustainability-report-2022.pdf",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "report_id": "granges-annual-2023",
+      "url": "https://storage.mfn.se/867de47c-2dbc-4a7c-af28-7c60c1fa7810/granges-annual-and-sustainability-report-2023.pdf",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "report_id": "granges-annual-2024",
+      "url": "https://storage.mfn.se/48ccc9d3-67b1-4ce5-a6f8-1f60ebffaf98/granges-annual-and-sustainability-report-2024.pdf",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "report_id": "granges-annual-2025",
+      "url": "https://storage.mfn.se/776af2a1-6db4-4cbd-ae22-99ceda29c7b9/granges-annual-and-sustainability-report-2025.pdf",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "report_id": "granges-q1-2026",
+      "url": "https://storage.mfn.se/097b57ec-eae7-422c-bdea-c3819b2ba2d3/granges-q1-interim-report-2026.pdf",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "report_id": "granges-h1-2026",
+      "url": "https://storage.mfn.se/94b3f52b-2f5a-4fdc-ba9e-4f822b1a9d7c/granges-q2-half-year-report-2026.pdf",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "report_id": "granges-q3-2026",
+      "url": "https://storage.mfn.se/009266b2-1016-49f3-8cb7-9e8287becaf2/granges-q3-2026-interim-report.pdf",
+      "error": "HTTP Error 403: Forbidden"
+    }
+  ]
+}

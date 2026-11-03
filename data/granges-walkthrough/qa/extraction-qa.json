@@ -1,0 +1,145 @@
+{
+  "review_type": "bounded extraction QA against rendered original PDF pages",
+  "sample_count": 8,
+  "coverage": "At least one sampled page from each annual 2021-2025, plus Q3 2026 narrative and Note 5. No exhaustive page verification; Q1/H1 not visually sampled.",
+  "overall_verdict": "Native text is usable for the retrieval experiment with explicit extraction limitations and visual fallback; it is not a verified numeric dataset.",
+  "findings": [
+    {
+      "id": "QA-01",
+      "severity": "material",
+      "verdict": "numeric whitespace corruption confirmed",
+      "report_id": "granges-annual-2025",
+      "pdf_page": 141,
+      "section": "Note 6 Operating segment information",
+      "image": "granges-annual-2025-p141.png",
+      "text": "granges-annual-2025-p141.txt",
+      "observations": [
+        "Image value 7,163 appears as 7,1 6 3 in extracted external net sales.",
+        "Image value 7,951 appears as 7, 9 51 in extracted external net sales.",
+        "Image value 7.2 appears as 7. 2 in internal sales volume.",
+        "SEK million, ktonnes, year headings, segment names and footnote remain present; flat text does not encode explicit column groups."
+      ],
+      "recommendation": "Flag this table for image or layout-aware table verification before numeric reuse. Preserve raw extraction. Avoid blanket whitespace deletion because adjacent columns may merge.",
+      "missing_evidence": "Other pages may contain similar artifacts; no full-corpus numeric reconciliation performed."
+    },
+    {
+      "id": "QA-02",
+      "severity": "material",
+      "verdict": "page reading-order change confirmed; target note content survives",
+      "report_id": "granges-q3-2026",
+      "pdf_page": 20,
+      "section": "Financial statements, Notes 4-6 and continuation of loans text",
+      "image": "granges-q3-2026-p020.png",
+      "text": "granges-q3-2026-p020.txt",
+      "observations": [
+        "Rendered order: loans continuation, Note 4, Note 5, Note 6.",
+        "Extracted order: Note 4, share capital table, Note 6 body, loans continuation, Note 5.",
+        "Note 5 preserves quarter/YTD headers, SEK million, -49 and -64, composition of SEK 64 million, and no insurance compensation recognized.",
+        "Share-capital prose has numeric whitespace artifacts such as 132,27 4."
+      ],
+      "recommendation": "Use page/section tools that include full note context and visual fallback; do not infer adjacency from extraction order. A layout-aware pass should be evaluated if section ordering matters.",
+      "missing_evidence": "No proof that other complex pages retain all note/body associations."
+    },
+    {
+      "id": "QA-03",
+      "severity": "none",
+      "verdict": "low text is legitimate, not OCR failure",
+      "report_id": "granges-annual-2022",
+      "pdf_pages": [
+        1,
+        27
+      ],
+      "sections": [
+        "Cover",
+        "The business divider"
+      ],
+      "images": [
+        "granges-annual-2022-p001.png",
+        "granges-annual-2022-p027.png"
+      ],
+      "texts": [
+        "granges-annual-2022-p001.txt",
+        "granges-annual-2022-p027.txt"
+      ],
+      "observations": [
+        "Page 1 is a cover with a photo and report title; extracted title survives.",
+        "Page 27 is a photo divider with THE BUSINESS and Markets / Granges Eurasia / Granges Americas; those headings survive.",
+        "Brand logo and text incidentally photographed on equipment are not needed as financial narrative."
+      ],
+      "recommendation": "Classify as cover/divider after visual check. Do not trigger OCR solely from low character count.",
+      "missing_evidence": "This finding covers only these two low-text pages."
+    },
+    {
+      "id": "QA-04",
+      "severity": "minor",
+      "verdict": "simple table usable with page-label and whitespace cautions",
+      "report_id": "granges-annual-2021",
+      "pdf_page": 74,
+      "printed_page_label": "71",
+      "section": "Consolidated income statement and comprehensive income",
+      "image": "granges-annual-2021-p074.png",
+      "text": "granges-annual-2021-p074.txt",
+      "observations": [
+        "Both table titles, SEK million, 2021/2020 headings, figures and material-cost footnotes remain present.",
+        "Side-by-side tables linearize as complete first table then complete second table, which is readable.",
+        "Net sales 18,130 appears as 18, 130; navigation headings concatenate at the end.",
+        "Physical PDF page 74 differs from printed page 71."
+      ],
+      "recommendation": "Cite physical PDF pages explicitly; retain a printed-label field when verified. Keep table strings out of numeric inputs until reconciled.",
+      "missing_evidence": "Only one simple financial-statement page checked."
+    },
+    {
+      "id": "QA-05",
+      "severity": "minor",
+      "verdict": "narrative readable; decorative ordering and line wrapping persist",
+      "samples": [
+        {
+          "report_id": "granges-annual-2023",
+          "pdf_page": 6,
+          "printed_page_label": "4",
+          "image": "granges-annual-2023-p006.png",
+          "text": "granges-annual-2023-p006.txt"
+        },
+        {
+          "report_id": "granges-q3-2026",
+          "pdf_page": 3,
+          "printed_page_label": "3",
+          "image": "granges-q3-2026-p003.png",
+          "text": "granges-q3-2026-p003.txt"
+        }
+      ],
+      "observations": [
+        "Annual2023 body and side pull-quote are readable and kept separate by ordering, but page6 ends mid-sentence before continuation on page7; next-page context matters.",
+        "Line-wrap hyphenation remains, for example strength- / ening.",
+        "Q3 body and fourth-quarter outlook are coherent; main heading Another record quarter is inserted after the left-column body."
+      ],
+      "recommendation": "Retain page sequence and allow adjacent-page reads. Do not use heading order alone as a trustworthy document hierarchy.",
+      "missing_evidence": "No check of every narrative layout."
+    },
+    {
+      "id": "QA-06",
+      "severity": "minor",
+      "verdict": "table data and header text survive; hierarchy remains implicit",
+      "report_id": "granges-annual-2024",
+      "pdf_page": 89,
+      "printed_page_label": "89",
+      "section": "Notes 6 and 7: operating segments and geographic breakdown",
+      "image": "granges-annual-2024-p089.png",
+      "text": "granges-annual-2024-p089.txt",
+      "observations": [
+        "2024/2023 column groups, regional headings, SEK million, ktonnes, rows and footnotes remain in text.",
+        "Rendered shading and explicit grouping are lost. Repeated segment headers require positional interpretation.",
+        "Navigation menu appears at end of text."
+      ],
+      "recommendation": "Provide rendered-page fallback for column binding and avoid treating flattened tables as structured records.",
+      "missing_evidence": "No machine check of every cell or row."
+    }
+  ],
+  "recommended_next_steps": [
+    "Keep the experiment input fixed and disclose these shared extraction limitations.",
+    "Expose source page renders for flagged numerical tables and order-sensitive note questions.",
+    "Classify sparse pages before OCR.",
+    "Add physical PDF page versus verified printed label distinction."
+  ],
+  "prepared_files_modified": false
+}

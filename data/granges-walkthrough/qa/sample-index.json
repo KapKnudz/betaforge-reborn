@@ -1,0 +1,74 @@
+[
+  {
+    "report_id": "granges-annual-2021",
+    "page": 74,
+    "chars": 1870,
+    "image": "data/granges-walkthrough/qa/granges-annual-2021-p074.png",
+    "text": "data/granges-walkthrough/qa/granges-annual-2021-p074.txt",
+    "render_exit": 0,
+    "error": ""
+  },
+  {
+    "report_id": "granges-annual-2022",
+    "page": 1,
+    "chars": 37,
+    "image": "data/granges-walkthrough/qa/granges-annual-2022-p001.png",
+    "text": "data/granges-walkthrough/qa/granges-annual-2022-p001.txt",
+    "render_exit": 0,
+    "error": ""
+  },
+  {
+    "report_id": "granges-annual-2022",
+    "page": 27,
+    "chars": 53,
+    "image": "data/granges-walkthrough/qa/granges-annual-2022-p027.png",
+    "text": "data/granges-walkthrough/qa/granges-annual-2022-p027.txt",
+    "render_exit": 0,
+    "error": ""
+  },
+  {
+    "report_id": "granges-annual-2023",
+    "page": 6,
+    "chars": 2418,
+    "image": "data/granges-walkthrough/qa/granges-annual-2023-p006.png",
+    "text": "data/granges-walkthrough/qa/granges-annual-2023-p006.txt",
+    "render_exit": 0,
+    "error": ""
+  },
+  {
+    "report_id": "granges-annual-2024",
+    "page": 89,
+    "chars": 2532,
+    "image": "data/granges-walkthrough/qa/granges-annual-2024-p089.png",
+    "text": "data/granges-walkthrough/qa/granges-annual-2024-p089.txt",
+    "render_exit": 0,
+    "error": ""
+  },
+  {
+    "report_id": "granges-annual-2025",
+    "page": 141,
+    "chars": 2425,
+    "image": "data/granges-walkthrough/qa/granges-annual-2025-p141.png",
+    "text": "data/granges-walkthrough/qa/granges-annual-2025-p141.txt",
+    "render_exit": 0,
+    "error": ""
+  },
+  {
+    "report_id": "granges-q3-2026",
+    "page": 20,
+    "chars": 3037,
+    "image": "data/granges-walkthrough/qa/granges-q3-2026-p020.png",
+    "text": "data/granges-walkthrough/qa/granges-q3-2026-p020.txt",
+    "render_exit": 0,
+    "error": ""
+  },
+  {
+    "report_id": "granges-q3-2026",
+    "page": 3,
+    "chars": 2937,
+    "image": "data/granges-walkthrough/qa/granges-q3-2026-p003.png",
+    "text": "data/granges-walkthrough/qa/granges-q3-2026-p003.txt",
+    "render_exit": 0,
+    "error": ""
+  }
+]
