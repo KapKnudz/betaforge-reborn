@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T15:47:51.274172+00:00",
+  "updated_at": "2026-11-04T15:50:10.308823+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "return-and-reader-review",
@@ -469,7 +469,7 @@
   "session": {
     "task": "company-reader-language",
     "summary": "PR #12 implements the Company-page cleanup, separate quote context and researched analyst writing guidance. The Greptile report-label issue is fixed and independently rechecked; all 178 offline tests pass with one private-evidence class skipped.",
-    "next_step": "Push the verified selector fix and complete the fresh current-head Greptile review on PR #12; retain the final receipt in its conversation and local handoff. Finish the private source-library upload. User reviews and merges, then resume the remaining generic operating/cash-schedule scope."
+    "next_step": "Complete the fresh current-head Greptile review on PR #12 and retain its receipt in the conversation and local handoff. The primary-source library is preserved in private storage with a clean restore check. User reviews and merges, then resume the remaining generic operating/cash-schedule scope."
   },
   "references": [
     {
