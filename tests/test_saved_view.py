@@ -556,6 +556,20 @@ class StructuredSavedViewTests(unittest.TestCase):
         view["benchmark"].update(context=None, benchmark_annualized_return_percent=None)
         self.assertEqual(validate_saved_view(view), view)
 
+    def test_load_preserves_unselected_benchmark_from_earlier_structured_export(self):
+        view = self.build()
+        view["benchmark"]["benchmark_annualized_return_percent"] = None
+        output = self.root / "earlier-structured-view.json"
+        SavedViewTests.write(output, view)
+        loaded = load_saved_view(output)
+        self.assertEqual(loaded, view)
+        self.assertEqual(loaded["benchmark"]["context"], self.benchmark_context)
+        self.assertIsNone(loaded["benchmark"]["benchmark_annualized_return_percent"])
+        view["benchmark"]["benchmark_annualized_return_percent"] = "99"
+        SavedViewTests.write(output, view)
+        with self.assertRaisesRegex(ValueError, "Benchmark must preserve"):
+            load_saved_view(output)
+
     def test_historical_return_selector_requires_a_finite_decimal_string(self):
         from betaforge.saved_view import _historical_benchmark_return
         for value in (None, "NaN", "Infinity", "-Infinity", "1,000", 7.25):

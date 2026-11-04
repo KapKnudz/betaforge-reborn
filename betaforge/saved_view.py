@@ -560,9 +560,10 @@ def _validate_structured_view(view):
         raise ValueError("Named calculations differ from original trace")
     returns = [calc for calc in originals.values() if calc.get("formula") == "expected_cashflow_irr"]
     candidate = returns[0]["outputs"].get("irr_percent", {}).get("value") if len(returns) == 1 else None
+    # Earlier structured exports left the comparator unselected despite retaining its context.
     if (view["benchmark"]["candidate_annualized_return_percent"] != candidate or
-            view["benchmark"]["benchmark_annualized_return_percent"] !=
-            _historical_benchmark_return(view["benchmark"]["context"], view["analysis_date"]) or
+            view["benchmark"]["benchmark_annualized_return_percent"] not in
+            (None, _historical_benchmark_return(view["benchmark"]["context"], view["analysis_date"])) or
             view["benchmark"]["difference_percentage_points"] is not None):
         raise ValueError("Benchmark must preserve the saved return without inventing a comparison")
 

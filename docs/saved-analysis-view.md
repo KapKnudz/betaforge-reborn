@@ -24,6 +24,8 @@ The exporter verifies the original evidence and report quotations, copied scenar
 
 Structured review provenance hashes the validated JSON content using the tool's canonical encoding, so indentation and a trailing newline do not change its identity. The private archive preserves the original file bytes. Legacy financial-review hashes retain their original file-byte convention.
 
+Earlier structured exports may retain an unselected historical comparator as `null`, even when context is preserved. New exports copy the matching saved SIXRX value; every displayed comparator must match that source.
+
 For an older unstructured run, also provide its deterministic financial review:
 
 ```sh
