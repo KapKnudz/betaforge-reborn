@@ -11,9 +11,9 @@ Acquisition → raw files + SQLite → frozen company packet
                                          ↓
                               saved analysis + audit records
                                          ↓
-                              analysis viewer (planned)
+                              read-only saved-run viewer
 
-work/plan.json → local project progress dashboard
+work/plan.json → local research workbench ← explicit saved-view export
 ```
 
 ## Ownership
@@ -27,6 +27,7 @@ work/plan.json → local project progress dashboard
 | Analyst access | `betaforge/tools.py` | Bounded reads, saved inputs, provenance and calculation calls. |
 | Execution | `betaforge/codex_runner.py` | Run limits, cancellation/resume, model interaction and saved outputs. |
 | Private preservation | `scripts/archive_research.py` | Versioned research bundles and verified restore. |
+| Saved-run presentation | `betaforge/saved_view.py`, `scripts/export_saved_analysis.py` | Verify existing artifact identity and package saved results for local inspection; no new financial arithmetic. |
 | Project progress | `work/`, `scripts/serve_progress.py`, `web/progress/` | Session-maintained delivery state and its read-only local display. |
 | Company examples | `examples/<company>/` | Issuer prompts, reconciliations, replay scripts and public example documents. |
 
@@ -37,7 +38,7 @@ work/plan.json → local project progress dashboard
 - Financial arithmetic belongs in the named formula registry. The analyst explains assumptions and choices; the interface displays their saved records. The first formulas use SEK and operating-company concepts. [Policy](analysis-policy.md), [formula conventions](calculations.md#common-conventions)
 - Shared modules take explicit company inputs. Issuer assumptions belong in examples or private analysis inputs.
 - Public Git holds code, policy, documentation and safe project status. Credentials, original evidence, watchlists and exact saved analyses belong in ignored/private storage. [Handoff](research-handoff.md)
-- The progress plan is delivery state, not financial evidence or investment confidence. The dashboard serves an explicit set of public files and never starts analysis. A saved-analysis viewer remains separate planned work.
+- The progress plan is delivery state, not financial evidence or investment confidence. The local workbench serves an explicit set of public files and optionally configured private saved-view exports. It never starts analysis. The first viewer does not complete the broader mapping and decision-record work. [Local viewing](saved-analysis-view.md)
 
 ## Extension rule
 
