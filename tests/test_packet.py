@@ -80,6 +80,29 @@ class PacketTests(unittest.TestCase):
         self.assertFalse((self.root / "published").exists())
         self.assertFalse(list(self.root.glob('.prepare-*')))
 
+    def test_financial_context_keeps_period_provider_and_source_dates_distinct(self):
+        payload = {"instrument": 426, "reports": [{
+            "year": 2025, "period": 5, "report_Start_Date": "2025-01-01",
+            "report_End_Date": "2025-12-31", "report_Date": "2026-03-01",
+            "currency": "SEK", "net_Sales": 10}]}
+        body = json.dumps(payload).encode()
+        (self.input / "reports.json").write_bytes(body)
+        manifest = json.loads((self.input / "manifest.json").read_text())
+        manifest["requests"].append({"endpoint": "/v1/instruments/426/reports/year",
+                                     "parameters": {"original": 1}, "http_status": 200,
+                                     "file": "reports.json", "sha256": hashlib.sha256(body).hexdigest()})
+        (self.input / "manifest.json").write_text(json.dumps(manifest))
+        data = json.loads(self.build().read_text())
+        context = data["context"]
+        foundation, _ = json.JSONDecoder().raw_decode(context[context.index('{'):])
+        revenue = next(row for row in foundation["financials"] if row["metric"] == "net_Sales")
+        self.assertEqual(revenue["period_start"], "2025-01-01")
+        self.assertEqual(revenue["period_end"], "2025-12-31")
+        self.assertEqual(revenue["provider_report_date"], "2026-03-01")
+        self.assertEqual(revenue["source_first_captured_at"], "2026-11-01T00:00:00+00:00")
+        self.assertEqual(revenue["source_last_successful_check_at"], "2026-11-01T00:00:00+00:00")
+        self.assertIn("definition validation is separate", context)
+
     def test_instrument_date_prompt_and_additional_facts_are_explicit(self):
         manifest = json.loads((self.input / "manifest.json").read_text())
         for request in manifest["requests"]:

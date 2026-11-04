@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-03T22:40:22+01:00",
+  "updated_at": "2026-11-03T23:24:32+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "storage-hardening",
+  "next_task": "material-mapping",
   "milestones": [
     {
       "id": "foundation",
@@ -20,7 +20,7 @@
     {
       "id": "validation",
       "title": "Validate financial inputs across companies",
-      "status": "pending",
+      "status": "in_progress",
       "summary": "Harden storage and verify material definitions and selected inputs beyond the first issuer."
     },
     {
@@ -175,7 +175,7 @@
       "id": "storage-hardening",
       "milestone": "validation",
       "title": "Harden schema compatibility and expose freshness",
-      "status": "pending",
+      "status": "done",
       "acceptance": [
         "Unsupported existing schema versions are rejected before any schema/version write.",
         "Queries distinguish financial period, source publication, first capture and last successful check.",
@@ -183,11 +183,15 @@
         "Shared metadata units remain correct when older captures are imported after newer ones directly through EvidenceStore."
       ],
       "evidence": [
-        "docs/research/system-readiness-review.md",
-        "betaforge/storage.py"
+        "betaforge/storage.py",
+        "tests/test_storage.py",
+        "scripts/prepare_codex_packet.py",
+        "tests/test_packet.py",
+        "docs/research/borsdata-retrieval-storage.md",
+        "docs/research/system-readiness-review.md"
       ],
       "blocker": null,
-      "note": "Current version-1 stores are healthy. The corpus builder now sorts captures; arbitrary standalone store ingestion still needs the shared-metadata chronology regression alongside schema/freshness hardening. A read-only query-plan check on the existing schema confirms a full dataset scan for KPI metadata lookup; profile its import cost before choosing a minimal optimization."
+      "note": "Implemented guard-before-write schema compatibility, read-time source_first_captured_at/source_last_successful_check_at, same-capture and acquisition-aware KPI metadata selection, three measured indexes and a financial read join using the existing logical-key index. Immutable records/IDs and legacy observed_at are preserved; source check dates do not certify metadata interpretations. Clean suite: 116 tests, OK with one private-evidence skip. All rows in eight tables of the thirty-company replay match the baseline; ingestion committed before a test deadline, and validation/freeze resumed under the separately recorded final read implementation. Original corpus hash is unchanged; legacy read-only query checks pass without migration. Warm query timings improved with identical results, with exact private receipts attached to the existing research release. Independent read-only code review found no actionable findings. Predecessor PR #5 is merged; the storage PR targets main; final Greptile receipt belongs in the PR conversation. User merges."
     },
     {
       "id": "material-mapping",
@@ -328,13 +332,13 @@
         "work/plan.json"
       ],
       "blocker": null,
-      "note": "PR #3 merged into main; PR #4 merged into the predecessor feature branch. The isolated follow-up applies all three reviewed commits cleanly and initially matches the reviewed source tree exactly. User review/merge remains required. Independent read-only review found no actionable issues; plan-schema and whitespace checks pass. The exact carried code tree previously passed 106 tests with one private-evidence skip. Follow-up targets main; fresh Greptile receipt belongs in the PR conversation and user merge remains pending."
+      "note": "PR #3 merged into main; PR #4 merged into the predecessor feature branch. Follow-up PR #5 carried the three reviewed commits unchanged onto main and added the main-base rule. Independent review, content-equivalence, plan-schema and whitespace checks passed; Greptile reviewed head 655e5c0 at 5/5 with no findings. PR #5 is merged into main."
     }
   ],
   "session": {
-    "task": "main-landing",
-    "summary": "The reviewed model/corpus changes are carried unchanged onto current main in a focused follow-up. Ready PRs now require a main base; dependent work stays draft until its predecessor merges.",
-    "next_step": "User reviews/merges the main-landing PR. Storage hardening proceeds as dependent work targeting main in draft until that merge."
+    "task": "storage-hardening",
+    "summary": "PR #5 has merged the reviewed model/corpus changes into main. Storage hardening is implemented, independently reviewed and validated against the full frozen corpus.",
+    "next_step": "Finish the main-targeted storage PR and fresh current-head review for user merge. Next: material-mapping records and a second-company report walkthrough, broadening to three–five businesses; continue original-report acquisition alongside validation."
   },
   "references": [
     {
