@@ -5,7 +5,7 @@ const labels = { pending: "Pending", in_progress: "In progress", blocked: "Block
 const publicDocs = new Set([
   "AGENTS.md", "CONTRIBUTING.md", "README.md", "docs/architecture.md", "work/README.md",
   "docs/analysis-policy.md", "docs/calculations.md", "docs/company-workflow.md", "docs/research/system-readiness-review.md",
-  "docs/research/borsdata-retrieval-storage.md", "docs/codex-integration.md", "docs/saved-analysis-view.md",
+  "docs/research/borsdata-retrieval-storage.md", "docs/codex-integration.md", "docs/saved-analysis-view.md", "docs/material-inputs.md",
 ]);
 let currentPlan = null;
 let loading = false;
@@ -254,7 +254,7 @@ function inputEvidence(input, sources) {
   for (const evidence of entries) {
     if (!evidence || typeof evidence !== "object") { records.push(element("p", "exact", text(evidence))); continue; }
     const block = element("div");
-    const location = [evidence.report_id ? "Report " + evidence.report_id : null, evidence.page !== undefined ? "physical page " + text(evidence.page) : null, evidence.row ? "row " + evidence.row : null, evidence.column ? "column " + evidence.column : null].filter(Boolean).join(" · ");
+    const location = [evidence.report_id ? "Report " + evidence.report_id : null, evidence.section ? "Saved analysis · " + evidence.section : null, evidence.page !== undefined ? "physical page " + text(evidence.page) : null, evidence.row ? "row " + evidence.row : null, evidence.column ? "column " + evidence.column : null].filter(Boolean).join(" · ");
     block.append(element("p", "basis", location || "Saved evidence"));
     if (evidence.quote) block.append(element("blockquote", "saved-text", text(evidence.quote)));
     if (evidence.status) block.append(element("p", "meta", "Evidence status: " + text(evidence.status)));
@@ -277,7 +277,7 @@ function inputEvidence(input, sources) {
     block.append(detail("Exact evidence metadata", [element("pre", "", text(evidence))]));
     records.push(block);
   }
-  return records.length ? detail("Report evidence (" + records.length + ")", records) : null;
+  return records.length ? detail((entries.every((item) => item && item.report_id) ? "Report evidence (" : "Source evidence (") + records.length + ")", records) : null;
 }
 function renderCalculation(calc, sources) {
   const children = [];
@@ -350,6 +350,7 @@ function probabilityDescription(probability) {
   return "Saved probabilities." + basis;
 }
 function calculationPeriod(calc) {
+  if (calc.period_end) return calc.period_end;
   return Object.values(calc.inputs || {}).map((input) => {
     if (!input || typeof input !== "object") return "";
     if (typeof input.period_end === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.period_end)) return input.period_end;
@@ -357,13 +358,84 @@ function calculationPeriod(calc) {
     return "";
   }).sort().pop() || "";
 }
+function economicPeriod(record) {
+  if (!record) return "Unavailable";
+  if (record.kind === "assumption") return "Scenario assumption";
+  if (record.kind === "stock") return record.period_end ? "Closing " + record.period_end : "Closing date not recorded";
+  const dates = [record.period_start, record.period_end].filter(Boolean).join(" to ");
+  return [record.report_type ? record.report_type.toUpperCase() : null, dates || record.year].filter(Boolean).join(" · ") || "Period not recorded";
+}
+function materialValue(record) {
+  const currency = record.unit === "currency" ? record.currency : record.unit === "SEK" ? "SEK" : null;
+  const raw = number(record.value);
+  let value = raw;
+  let unit = record.unit;
+  if (currency && raw !== null) {
+    // Scale conversion is presentation only; the saved record remains unchanged.
+    value = raw * Number(record.scale) / 1000000;
+    unit = "M" + currency;
+  } else if (record.unit === "currency/share") unit = (record.currency || "currency") + "/share";
+  else if (record.unit === "shares" && String(record.scale) === "1000000") unit = "million shares";
+  else if (record.unit === "multiple" || (record.kind === "calculation" && String(record.id).endsWith("#multiple"))) unit = "×";
+  else if (record.unit === "percent") unit = "%";
+  else if (String(record.scale) !== "1") unit += " · scale " + record.scale;
+  const node = element("span", value === null ? "unavailable" : "", value === null ? "Unavailable" : rounded(value) + (["%", "×"].includes(unit) ? "" : " ") + unit);
+  node.title = "Exact saved value: " + text(record.value) + " · unit " + record.unit + " · scale " + record.scale + (record.currency ? " · currency " + record.currency : "");
+  return node;
+}
+function currentCalculation(calc) {
+  const field = { ebit_margin: "revenue", incremental_ebit_margin: "revenue_current", operating_roic: "ebit", group_cash_conversion: "cfo", ev_ebit: "ebit", pe: "diluted_eps" }[calc.formula];
+  const input = (calc.inputs || {})[field];
+  return calc.display_role === "current" && ["r12", "quarter"].includes(calc.report_type) && calc.period_start && calc.period_end && input &&
+    input.report_type === calc.report_type && input.period_start === calc.period_start && input.period_end === calc.period_end;
+}
+function sourceRecord(record, sources) {
+  const block = element("div");
+  block.append(element("p", "basis", [record.kind, record.basis, record.status].filter(Boolean).join(" · ")), sourceRefs(record, sources));
+  const evidence = inputEvidence(record, sources);
+  if (evidence) block.append(evidence);
+  block.append(detail("Exact saved source record", [element("pre", "", text(record))]));
+  return block;
+}
+function renderMaterialInputs(rows, sources) {
+  const section = element("section", "company-section material-inputs");
+  section.append(element("h3", "", "Material values: meaning & selection"), element("p", "basis", "Definitions and selection reasons are saved analyst decisions. A numeric match alone does not verify a provider definition. Forecasts and assumptions retain their saved kind."));
+  section.append(documentReference("docs/material-inputs.md", "Period and definition-status rules ↗"));
+  const records = rows.map((row) => {
+    const selected = row.selected;
+    const label = element("div");
+    label.append(element("p", "", row.label), element("p", "meta", "Selected definition: " + row.definition_status + " · Source check: " + row.reconciliation_status));
+    const selectedValue = element("div");
+    if (selected) {
+      selectedValue.append(materialValue(selected), element("p", "meta", "Kind: " + selected.kind));
+    } else selectedValue.append(element("span", "unavailable", "Unavailable · no selected value"));
+    const reason = element("div");
+    reason.append(element("p", "basis", row.selection_reason));
+    if (row.valuation_uses.length) reason.append(recordList(row.valuation_uses));
+    const trail = [];
+    if (selected) trail.push(element("p", "detail-label", "Selected record"), sourceRecord(selected, sources));
+    for (const candidate of row.candidates) {
+      const record = candidate.record;
+      const content = [element("p", "basis", candidate.comparison_basis), element("p", "meta", "Candidate definition: " + candidate.definition_status + " · Numeric comparison: " + candidate.reconciliation_status), sourceRecord(record, sources)];
+      if (candidate.residual) content.push(element("p", "exact", "Saved residual: " + text(candidate.residual.value) + " " + candidate.residual.unit + " · " + candidate.residual.formula));
+      trail.push(detail("Candidate · " + (record.metric || record.id) + " · " + materialValue(record).textContent + " · " + economicPeriod(record), content));
+    }
+    if (row.limitations.length) trail.push(element("p", "detail-label", "Limitations"), recordList(row.limitations));
+    const evidence = inputEvidence(row, sources);
+    if (evidence) trail.push(evidence);
+    reason.append(detail("Sources, comparisons & limitations", trail));
+    return [label, selectedValue, economicPeriod(selected), row.definition, reason];
+  });
+  section.append(detail("Inspect material decisions (" + rows.length + ")", [table(["Material value", "Selected value / unit", "Economic period", "What it means", "Why use it"], records)]));
+  return section;
+}
 function renderCompany(run) {
   const view = $("company-view");
   const opened = new Set(Array.from(view.querySelectorAll("details[open] > summary")).map((summary) => summary.textContent));
   view.replaceChildren();
   const sources = run.sources || [];
   const header = element("div", "company-header");
-  header.append(element("p", "eyebrow", "SAVED ANALYSIS · READ ONLY"), element("h2", "", text(run.company.name) + (run.company.ticker ? " · " + run.company.ticker : "")), element("p", "meta", "Analysis date: " + text(run.analysis_date) + " · Saved review: " + text(run.reviewed_at)), element("p", "meta", "Method: " + text(run.method)));
+  header.append(element("p", "eyebrow", "SAVED ANALYSIS · READ ONLY"), element("h2", "", text(run.company.name) + (run.company.ticker ? " · " + run.company.ticker : "")), element("p", "meta", "Analysis date: " + text(run.analysis_date) + " · Saved review: " + text(run.reviewed_at).slice(0, 10)), element("p", "meta", "Method: " + text(run.method)));
   header.append(element("p", "conclusion", text(run.conclusion)));
   view.append(header);
   const scenarioSection = element("section", "company-section");
@@ -398,18 +470,29 @@ function renderCompany(run) {
     const candidates = calculations.filter((calc) => calc.formula === formula);
     if (!candidates.length) continue;
     // Only explicit saved period metadata orders results; no dates are inferred from prose.
-    candidates.sort((a, b) => calculationPeriod(b).localeCompare(calculationPeriod(a)));
+    const priority = (calc) => currentCalculation(calc) ? (calc.report_type === "r12" ? 2 : 1) : 0;
+    candidates.sort((a, b) => priority(b) - priority(a) || calculationPeriod(b).localeCompare(calculationPeriod(a)));
     const calc = candidates[0];
     const output = (calc.outputs || {})[calc.primary_output || primary] || {};
     const metric = element("div", "metric");
     metric.append(element("span", "meta", label));
     const value = savedValue(output.value, ["ev_ebit", "pe"].includes(formula) && output.unit === "fraction" ? "×" : output.unit);
     value.classList.add("metric-value");
-    metric.append(value, element("span", "meta", (calculationPeriod(calc) || "Period not recorded") + " · " + (calc.label || calc.id)));
+    const periodLabel = calc.period_end || calc.year ? economicPeriod(calc) : calculationPeriod(calc) || "Period not recorded";
+    metric.append(value, element("span", "meta", periodLabel + " · " + (calc.label || calc.id)));
+    const current = currentCalculation(calc);
+    const explanation = current ? (number(output.value) === null ? "Latest period selected; final ratio unavailable." : "Latest matched " + calc.report_type.toUpperCase() + " inputs.") : "Historical or undated result; a matched current-period result is not available.";
+    metric.append(element("p", "basis", explanation + (calc.current_period_reason ? " " + calc.current_period_reason : "")));
     if (number(output.value) === null) metric.append(element("p", "basis unavailable", "See missing inputs in calculation details."));
     metrics.append(metric);
   }
   if (metrics.children.length) view.append(metrics);
+  const reportingDates = sources.map((source) => source.period && source.period.end).filter(Boolean).sort();
+  const recency = element("section", "company-section current-data");
+  recency.append(element("p", "basis", "Latest reporting period in saved sources: " + (reportingDates.pop() || "Unavailable") + ". Frozen analysis date: " + run.analysis_date + ". Review recorded: " + text(run.reviewed_at).slice(0, 10) + ". A later review date does not refresh the underlying data."));
+  if ((run.current_data_limits || []).length) recency.append(detail("Current data limits", [recordList(run.current_data_limits)]));
+  view.append(recency);
+  if ((run.material_inputs || []).length) view.append(renderMaterialInputs(run.material_inputs, sources));
   const working = element("section", "company-section");
   working.append(detail("Calculations & inputs (" + calculations.length + ")", calculations.length ? calculations.map((calc) => renderCalculation(calc, sources)) : [element("p", "unavailable", "No named calculations saved.")]));
   working.append(detail("Analysis & interpretation", (run.interpretation || []).length ? [recordList(run.interpretation)] : [element("p", "unavailable", "No separate interpretation saved.")]));
@@ -477,7 +560,7 @@ async function loadRuns(force = false) {
     const selected = $("run-select").value;
     $("run-select").replaceChildren();
     for (const run of data.runs) {
-      const option = element("option", "", run.company.name + (run.company.ticker ? " · " + run.company.ticker : "") + " · " + text(run.analysis_date));
+      const option = element("option", "", run.company.name + (run.company.ticker ? " · " + run.company.ticker : "") + " · analysis " + text(run.analysis_date) + " · review " + text(run.reviewed_at).slice(0, 10));
       option.value = run.id;
       $("run-select").append(option);
     }

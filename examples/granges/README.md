@@ -75,6 +75,19 @@ This deterministic review does not call a model, provider or canonical-store ing
 
 The explicit weights replay an editable conditional analyst proposal, not adopted defaults. The review preserves all three original target/PV cases, adds qualified incremental margins and an explicit operating-tax ROIC proxy, and leaves undisclosed lease principal/owner FCF gaps visible. The [probability proposal](docs/research/scenario-probabilities-proposal.md), [SIXRX method](docs/research/sixrx-benchmark.md) and [historical validation record](docs/research/simple-framework-implementation-validation.md) explain the assumptions and limits.
 
+For the latest supportable report diagnostics, add `--current-facts data/material-mapping-work/granges-current-facts-20261104.json` to that command and choose a new output directory. Restore this curated file from private research storage; it supplies matched quarter/R12 facts and closing balances. Annual-only trade disclosures remain labelled as fallbacks. The original frozen cutoff and scenario values remain preserved.
+
+Attach inspectable material decisions to the new review:
+
+```sh
+.venv/bin/python examples/granges/scripts/build_material_inputs.py \
+  --review data/financial-reviews/granges-new-quality/review.json \
+  --packet data/granges-codex/packet-20261101 \
+  --output data/financial-reviews/granges-new-material
+```
+
+This command requires a review built with `--current-facts`. It saves a new review, exact source comparisons and `material-inputs.md` for future packet context. Keep those outputs private. [Mapping and period rules](../../docs/material-inputs.md) explain the statuses; [export/view instructions](../../docs/saved-analysis-view.md) show the results locally. Use the generated Markdown as `--mapping-resolution` when deliberately preparing a new analyst packet.
+
 Render the original completed model result from saved records without rerunning analysis:
 
 ```sh
