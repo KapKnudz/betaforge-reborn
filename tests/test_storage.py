@@ -1,8 +1,10 @@
 import hashlib
 import json
+import sqlite3
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 from betaforge.storage import EvidenceStore
 
@@ -37,6 +39,205 @@ class StorageTests(unittest.TestCase):
         manifest = {"retrieved_at": timestamp or f"2026-11-01T00:00:{self.counter:02d}+00:00", "requests": [{"endpoint": endpoint, "parameters": parameters if parameters is not None else {"original": 1}, "http_status": 200, "file": "data.json", "sha256": hashlib.sha256(body).hexdigest()}]}
         (directory / "manifest.json").write_text(json.dumps(manifest))
         return directory
+
+    def kpi_snapshot(self, timestamp, definitions):
+        payload = {"instrument": 426, "kpis": [
+            {"kpiId": 62, "values": [{"y": 2025, "p": 5, "v": 12.5}]}]}
+        directory = self.snapshot(payload, "/v1/instruments/426/kpis/year/summary", {}, timestamp)
+        if definitions is not None:
+            body = json.dumps({"kpiHistoryMetadatas": definitions}).encode()
+            (directory / "metadata.json").write_bytes(body)
+            manifest = json.loads((directory / "manifest.json").read_text())
+            # Metadata deliberately follows the KPI request in the manifest.
+            manifest["requests"].append({"endpoint": "/v1/instruments/kpis/metadata",
+                                         "parameters": {}, "http_status": 200,
+                                         "file": "metadata.json", "sha256": hashlib.sha256(body).hexdigest()})
+            (directory / "manifest.json").write_text(json.dumps(manifest))
+        return directory
+
+    def test_schema_guard_rejects_before_mutation_and_closes_connection(self):
+        connect = sqlite3.connect
+        for version in (0, 2, 99):
+            for readonly in (False, True):
+                with self.subTest(version=version, readonly=readonly):
+                    directory = self.root / f"unsupported-{version}-{readonly}"
+                    directory.mkdir()
+                    database = directory / "evidence.sqlite3"
+                    with connect(database) as connection:
+                        # A user table sharing the reserved prefix's letters is
+                        # still a user table (the underscore must be literal).
+                        connection.execute("CREATE TABLE sqliteX (value TEXT)")
+                        connection.execute("INSERT INTO sqliteX VALUES ('preserve')")
+                        connection.execute(f"PRAGMA user_version={version}")
+                    connection.close()
+                    before = database.read_bytes()
+                    connections = []
+
+                    def tracked_connect(*args, **kwargs):
+                        connection = connect(*args, **kwargs)
+                        connections.append(connection)
+                        return connection
+
+                    with mock.patch("betaforge.storage.sqlite3.connect", side_effect=tracked_connect):
+                        with self.assertRaisesRegex(ValueError, "Unsupported storage schema"):
+                            EvidenceStore(database, readonly=readonly)
+                    self.assertEqual(database.read_bytes(), before)
+                    self.assertFalse((directory / "blobs").exists())
+                    with self.assertRaisesRegex(sqlite3.ProgrammingError, "closed"):
+                        connections[0].execute("SELECT 1")
+                    with connect(database) as connection:
+                        self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], version)
+                        self.assertEqual(connection.execute("SELECT value FROM sqliteX").fetchone()[0], "preserve")
+                    connection.close()
+
+    def test_version_zero_view_only_schema_rejects_without_mutation(self):
+        for readonly in (False, True):
+            with self.subTest(readonly=readonly):
+                directory = self.root / f"view-only-{readonly}"
+                directory.mkdir()
+                database = directory / "evidence.sqlite3"
+                with sqlite3.connect(database) as connection:
+                    connection.execute("CREATE VIEW existing_view AS SELECT 1 AS value")
+                connection.close()
+                before = database.read_bytes()
+                with self.assertRaisesRegex(ValueError, "Unsupported storage schema"):
+                    EvidenceStore(database, readonly=readonly)
+                self.assertEqual(database.read_bytes(), before)
+                self.assertFalse((directory / "blobs").exists())
+                with sqlite3.connect(database) as connection:
+                    self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 0)
+                    self.assertEqual(connection.execute("SELECT value FROM existing_view").fetchone()[0], 1)
+                connection.close()
+
+    def test_empty_version_zero_database_initializes(self):
+        database = self.root / "empty.sqlite3"
+        sqlite3.connect(database).close()
+        with EvidenceStore(database, self.root / "empty-blobs") as store:
+            self.assertEqual(store.connection.execute("PRAGMA user_version").fetchone()[0], 1)
+            self.assertEqual(store.stats()["observations"], 0)
+
+    def test_freshness_refresh_variants_failures_and_revisions(self):
+        first = self.snapshot(timestamp="2026-01-01T00:00:00Z")
+        self.store.ingest_snapshot(first)
+        initial = self.store.query_financials(426, fields=["revenues"])[0]
+        stored = self.store.connection.execute("SELECT record FROM observations WHERE id=?", (initial["id"],)).fetchone()[0]
+        self.store.ingest_snapshot(self.snapshot(timestamp="2026-02-01T00:00:00Z"))
+        variant = self.snapshot(timestamp="2026-03-01T00:00:00Z")
+        body = json.dumps(json.loads((variant / "data.json").read_text()), indent=2).encode()
+        (variant / "data.json").write_bytes(body)
+        manifest = json.loads((variant / "manifest.json").read_text())
+        manifest["requests"][0]["sha256"] = hashlib.sha256(body).hexdigest()
+        (variant / "manifest.json").write_text(json.dumps(manifest))
+        self.store.ingest_snapshot(variant)
+        self.store.ingest_snapshot(self.snapshot({"instrument": 426, "reports": [report("20")]}, timestamp="2026-04-01T00:00:00Z"))
+        failed = self.snapshot(timestamp="2026-05-01T00:00:00Z")
+        manifest = json.loads((failed / "manifest.json").read_text())
+        manifest["requests"] = [{"endpoint": "/v1/instruments/426/reports/year", "http_status": 503}]
+        (failed / "manifest.json").write_text(json.dumps(manifest))
+        self.store.ingest_snapshot(failed)
+        old = self.store.get_observation(initial["id"])
+        self.assertEqual(old["observed_at"], "2026-01-01T00:00:00+00:00")
+        self.assertEqual(old["source_first_captured_at"], "2026-01-01T00:00:00+00:00")
+        self.assertEqual(old["source_last_successful_check_at"], "2026-03-01T00:00:00+00:00")
+        self.assertEqual(old["provider_report_date"], "2026-01-29T00:00:00")
+        self.assertEqual(old["period_end"], "2025-12-31")
+        self.assertEqual(self.store.connection.execute("SELECT record FROM observations WHERE id=?", (old["id"],)).fetchone()[0], stored)
+        source = self.store.get_source(old["source_id"])
+        self.assertEqual(source["source_last_successful_check_at"], "2026-02-01T00:00:00+00:00")
+        self.assertEqual(source["source_first_captured_at"], "2026-01-01T00:00:00+00:00")
+        datasets = self.store.query_dataset("reports", 426)
+        self.assertEqual({row["source_id"]: row["source_last_successful_check_at"] for row in datasets}[source["id"]], source["source_last_successful_check_at"])
+        current = self.store.query_financials(426, fields=["revenues"])[0]
+        self.assertEqual(current["source_last_successful_check_at"], "2026-04-01T00:00:00+00:00")
+        self.assertEqual(current["source_first_captured_at"], "2026-04-01T00:00:00+00:00")
+        # Read-only version-1 snapshots derive the same fields without writes.
+        frozen = self.store.freeze(self.root / "freshness-frozen")
+        before = (frozen / "evidence.sqlite3").read_bytes()
+        with EvidenceStore(frozen / "evidence.sqlite3", readonly=True) as store:
+            self.assertEqual(store.get_observation(old["id"]), old)
+            self.assertEqual(store.query_financials(426, fields=["revenues"])[0], current)
+            self.assertEqual(store.get_source(source["id"]), source)
+            self.assertEqual(store.query_dataset("reports", 426), datasets)
+        self.assertEqual((frozen / "evidence.sqlite3").read_bytes(), before)
+
+    def test_older_import_updates_first_capture_without_backdating_records(self):
+        self.store.ingest_snapshot(self.snapshot(timestamp="2026-03-01T00:00:00Z"))
+        before = self.store.query_financials(426, fields=["revenues"])[0]
+        self.store.ingest_snapshot(self.snapshot(timestamp="2026-01-01T00:00:00Z"))
+        after = self.store.query_financials(426, fields=["revenues"])[0]
+        self.assertEqual(after["id"], before["id"])
+        self.assertEqual(after["observed_at"], before["observed_at"])
+        self.assertEqual(after["source_first_captured_at"], "2026-01-01T00:00:00+00:00")
+        self.assertEqual(after["source_last_successful_check_at"], "2026-03-01T00:00:00+00:00")
+        source = self.store.get_source(after["source_id"])
+        self.assertEqual(source["observed_at"], before["observed_at"])
+        self.assertEqual(source["source_first_captured_at"], after["source_first_captured_at"])
+        self.assertEqual(source["source_last_successful_check_at"], after["source_last_successful_check_at"])
+
+    def test_unknown_provider_publication_date_remains_unknown(self):
+        self.store.ingest_snapshot(self.snapshot({"instrument": 426, "reports": [report(report_Date=None)]}))
+        self.assertIsNone(self.store.query_financials(426, fields=["revenues"])[0]["provider_report_date"])
+
+    def test_shared_metadata_newer_first_and_reversion_bind_capture(self):
+        percent = [{"kpiId": 62, "format": "%", "isString": False}]
+        currency = [{"kpiId": 62, "format": "MCURR", "isString": False}]
+        for timestamp, definitions in [("2026-03-01T00:00:00Z", percent),
+                                       ("2026-01-01T00:00:00Z", percent),
+                                       ("2026-02-01T00:00:00Z", currency)]:
+            self.store.ingest_snapshot(self.kpi_snapshot(timestamp, definitions))
+        records = [json.loads(row[0]) for row in self.store.connection.execute("SELECT record FROM observations WHERE metric='kpi_62'")]
+        self.assertEqual(len(records), 2)
+        self.assertEqual({row["unit"] for row in records}, {"percent", "currency"})
+        self.assertEqual(self.store.query_financials(426, fields=["kpi_62"])[0]["unit"], "percent")
+        self.assertEqual(len({record["metadata_source_id"] for record in records}), 2)
+        self.assertEqual(len({record["source_id"] for record in records}), 1)
+        for record in records:
+            source = self.store.get_source(record["metadata_source_id"])
+            self.assertEqual(source["observed_at"], record["observed_at"])
+            # The same raw financial body was checked under two interpretations.
+            # Acquisition freshness cannot confirm either interpretation itself.
+            enriched = self.store.get_observation(record["id"])
+            self.assertEqual(enriched["source_first_captured_at"], "2026-01-01T00:00:00+00:00")
+            self.assertEqual(enriched["source_last_successful_check_at"], "2026-03-01T00:00:00+00:00")
+        # With no metadata in this capture, retain the existing as-of fallback.
+        # Each call derives its own definitions rather than retaining ingest state.
+        self.store.ingest_snapshot(self.kpi_snapshot("2026-01-15T00:00:00Z", None))
+        self.assertEqual(self.store.stats()["observations"], 2)
+        self.assertEqual(self.store._kpi_units(62, "2026-01-15T00:00:00+00:00")["unit"], "percent")
+        self.store.ingest_snapshot(self.kpi_snapshot("2026-02-15T00:00:00Z", None))
+        self.assertEqual(self.store.stats()["observations"], 2)
+        self.assertEqual(self.store._kpi_units(62, "2026-02-15T00:00:00+00:00")["unit"], "currency")
+        self.store.ingest_snapshot(self.kpi_snapshot("2026-04-01T00:00:00Z", None))
+        self.assertEqual(self.store.query_financials(426, fields=["kpi_62"])[0]["unit"], "percent")
+
+    def test_absent_metadata_uses_last_successful_definition_check_on_reversion(self):
+        percent = [{"kpiId": 62, "format": "%", "isString": False}]
+        currency = [{"kpiId": 62, "format": "MCURR", "isString": False}]
+        for timestamp, definitions in [("2026-01-01T00:00:00Z", percent),
+                                       ("2026-02-01T00:00:00Z", currency),
+                                       ("2026-03-01T00:00:00Z", percent)]:
+            self.store.ingest_snapshot(self.kpi_snapshot(timestamp, definitions))
+        reverted = self.store.query_financials(426, fields=["kpi_62"])[0]
+        metadata_source = self.store.get_source(reverted["metadata_source_id"])
+        self.assertEqual(metadata_source["observed_at"], "2026-01-01T00:00:00+00:00")
+        self.assertEqual(metadata_source["source_last_successful_check_at"], "2026-03-01T00:00:00+00:00")
+        self.store.ingest_snapshot(self.kpi_snapshot("2026-04-01T00:00:00Z", None))
+        record = self.store.query_financials(426, fields=["kpi_62"])[0]
+        self.assertEqual(record["id"], reverted["id"])
+        self.assertEqual(record["unit"], "percent")
+        self.assertEqual(record["metadata_source_id"], reverted["metadata_source_id"])
+        self.assertEqual(self.store.stats()["observations"], 2)
+
+    def test_current_metadata_missing_definition_does_not_use_other_versions(self):
+        definitions = [{"kpiId": 62, "format": "MCURR", "isString": False}]
+        self.store.ingest_snapshot(self.kpi_snapshot("2026-01-01T00:00:00Z", definitions))
+        self.store.ingest_snapshot(self.kpi_snapshot("2026-02-01T00:00:00Z", []))
+        record = self.store.query_financials(426, fields=["kpi_62"])[0]
+        self.assertEqual(record["unit"], "provider_defined")
+        self.assertEqual(record["status"], "unreviewed")
+        self.assertNotIn("metadata_source_id", record)
+        self.store.ingest_snapshot(self.kpi_snapshot("2026-03-01T00:00:00Z", None))
+        self.assertEqual(self.store.query_financials(426, fields=["kpi_62"])[0]["unit"], "currency")
 
     def test_decimal_null_stock_flow_and_source_pointer(self):
         self.store.ingest_snapshot(self.snapshot())
@@ -126,6 +327,11 @@ class StorageTests(unittest.TestCase):
         record = self.store.query_financials(426, fields=["eps_basic"])[0]
         self.assertEqual(record["evidence"]["page"], 21)
         self.assertEqual(record["provider"], "issuer_report")
+        self.assertEqual(record["source_first_captured_at"], "2026-11-01T10:00:00+00:00")
+        self.assertIsNone(record["source_last_successful_check_at"])
+        source = self.store.get_source(record["source_id"])
+        self.assertEqual(source["source_first_captured_at"], record["source_first_captured_at"])
+        self.assertIsNone(source["source_last_successful_check_at"])
         self.assertTrue(self.store.query_financials(426, fields=["earnings_Per_Share"]))
         del fact["evidence"]
         path.write_text(json.dumps(data))

@@ -31,7 +31,9 @@ def initial_context(store, resolution, instrument_id, analysis_date):
         for row in rows:
             if (row["year"], row["period"]) in selected:
                 compact.append({k: row.get(k) for k in ("id", "metric", "value", "unit", "scale", "currency",
-                                                       "report_type", "year", "period", "period_end")})
+                                                       "report_type", "year", "period", "period_start", "period_end",
+                                                       "provider_report_date", "source_first_captured_at",
+                                                       "source_last_successful_check_at")})
     prices = store.query_financials(instrument_id, report_type="price", fields=["price_close"], limit=5000)
     latest = next(([row] for row in prices if row.get("period_end") and row["period_end"] <= analysis_date), [])
     if not latest or latest[0].get("value") is None or not latest[0].get("currency"):
@@ -40,7 +42,10 @@ def initial_context(store, resolution, instrument_id, analysis_date):
         "SELECT DISTINCT metric,report_type FROM observations WHERE instrument_id=? ORDER BY metric,report_type", (instrument_id,))]
     return ("FROZEN FINANCIAL FOUNDATION\nValues below retain source scales. The calculation tool normalizes "
             "stored observations to base units by applying scale. Missing/ambiguous provider units must be resolved "
-            "before arithmetic. The source-specific values remain distinct from issuer-report inputs.\n" +
+            "before arithmetic. The source-specific values remain distinct from issuer-report inputs. "
+            "Period dates, provider_report_date and source capture/check dates have different meanings. "
+            "provider_report_date is the supplied report_Date, with publication meaning unverified. "
+            "Source checks confirm retrieval of a payload; definition validation is separate. Unknown dates stay null.\n" +
             json.dumps({"financials": compact, "latest_close": latest, "available_metrics": definitions}, ensure_ascii=False) +
             "\nMAPPING DECISIONS AND SOURCE DIFFERENCES\n" + resolution)
 

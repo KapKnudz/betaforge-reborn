@@ -22,10 +22,16 @@ The canonical database is 38,809,600 bytes. All actual financial observations be
 
 Keep SQLite for the single-user development corpus. It preserves numeric strings, source versions, units, currencies, periods and provenance, and uses a verified backup/freeze operation. PDFs/raw responses live outside SQLite; saved assumptions, calculations and answers also have separate run artifacts. Back up and restore the complete bundle. [Storage normalization and ingestion](../../betaforge/storage.py), [storage decision](../adr/0002-local-evidence-storage.md), [saved run artifacts](../codex-integration.md#cancellation-recovery-and-records), [restore procedure](../research-handoff.md#restore).
 
-Two small improvements precede broader reliance:
+The initial review identified two improvements:
 
-- Writable initialization sets `PRAGMA user_version=1` before checking compatibility. Check the existing version before schema changes and test rejection of unsupported versions. Current version-1 databases passed diagnostics. [EvidenceStore initialization](../../betaforge/storage.py#L113).
-- Distinguish financial period, publication date, first capture, last successful check and frozen cutoff. Current queries return immutable observation records; their first-seen timestamps alone do not describe later unchanged refreshes. [Observation persistence and queries](../../betaforge/storage.py#L171).
+- At review time, writable initialization set `PRAGMA user_version=1` before checking compatibility. The required correction was to check the existing version before schema changes and test rejection of unsupported versions. [EvidenceStore initialization](../../betaforge/storage.py).
+- Queries needed to distinguish period, provider report/publication date, first capture, last successful check and frozen cutoff. Immutable first-ingested timestamps alone did not describe later unchanged refreshes. [Observation persistence and queries](../../betaforge/storage.py).
+
+Implementation update, 3 November 2026: storage hardening addresses these findings. Unsupported or populated unversioned stores reject before DDL/blob creation; read-time source capture/check fields retain immutable records and IDs. Same-capture KPI metadata and acquisition-aware fallback handle older imports and reverted definitions. The [date contract](borsdata-retrieval-storage.md#identity-revisions-and-retention) explains unknown publication dates and the distinction between source retrieval and definition validation.
+
+Validation used 116 offline tests, with one private-evidence class skipped. All stored rows in eight tables from the thirty-company replay match the frozen baseline, including 725,520 observations and 2,910 acquisitions; the original database hash is unchanged. Ingestion completed before a test deadline, then coverage/freeze validation resumed using the final read-query implementation. The private receipt records both code hashes; this is data-equivalence evidence, not an uninterrupted import benchmark or accounting reconciliation.
+
+An isolated-copy profile of the final methods supports three lookup indexes and a financial join using the existing logical-key index. Warm medians on this corpus were approximately 321 ms to 0.17 ms for metadata fallback, and 14 seconds to 6 ms for the financial selection SQL, with identical results. These are bounded query measurements, not a general capacity claim. Exact receipts remain in private research storage.
 
 Serialize ingestion, retain versioned backups and periodically verify restore. A server database is not justified by the present workload; this is an engineering recommendation, not a measured capacity result.
 
