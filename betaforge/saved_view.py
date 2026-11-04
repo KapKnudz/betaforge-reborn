@@ -694,7 +694,7 @@ def _validate_structured_view(view):
 
 def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_id, method):
     """Export a submitted structured run after verifying all frozen evidence."""
-    from betaforge.analysis_report import render_markdown, validate_saved_report, validate_review
+    from betaforge.analysis_report import references as validate_references, render_markdown, validate_saved_report, validate_review
     from betaforge.tools import EvidenceTools
     run_dir, packet_dir = map(checked_path, (run_dir, packet_dir))
     run_body, analysis_body = (_body(run_dir / name) for name in ("run.json", "analysis.json"))
@@ -722,6 +722,8 @@ def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_
                 raise ValueError("Structured reading coverage differs from completed run")
             validate_saved_report(report, tools)
             packet, identity = tools.packet, tools.identity
+            review_path = run_dir / "analysis-review.json"
+            review = validate_review(_json(review_path), identity["packet_sha256"], analysis_hash) if review_path.exists() else None
             report_manifest = _json(checked_path(tools.report_dir / "source-manifest.json"))
             if report_manifest.get("borsdata_instrument_id") != packet["instrument_id"]:
                 raise ValueError("Report manifest instrument differs from packet")
@@ -747,6 +749,13 @@ def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_
                 references.update(item["references"] + item["actual_references"])
             for item in report["scenarios"]:
                 references.update(item["references"] + [item["weight_ref"]])
+            if review is not None:
+                for finding in review["findings"]:
+                    saved_references = [identifier for identifier in finding["references"]
+                                        if identifier.startswith(("obs_", "input:", "calc:")) or
+                                        re.fullmatch(r"[A-Za-z0-9_-]+:p\d+", identifier)]
+                    validate_references(saved_references, tools)
+                    references.update(saved_references)
             records = []
             for identifier in sorted(references):
                 if re.fullmatch(r"[A-Za-z0-9_-]+:p[1-9]\d*", identifier):
@@ -803,11 +812,9 @@ def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_
                            "run_sha256": hashlib.sha256(run_body).hexdigest(), "summary_sha256": analysis_hash, "analysis_sha256": analysis_hash,
                            "narrative_sha256": hashlib.sha256(narrative_body).hexdigest(),
                            **{key: run.get(key) for key in ("model", "reasoning_effort", "status", "started_at", "finished_at", "coverage")}}}
-    review_path = run_dir / "analysis-review.json"
-    if review_path.exists():
-        review_body = _body(review_path)
-        view["analysis_review"] = validate_review(_decode(review_body), identity["packet_sha256"], analysis_hash)
-        view["provenance"]["review_sha256"] = _saved_json_hash(view["analysis_review"])
+    if review is not None:
+        view["analysis_review"] = review
+        view["provenance"]["review_sha256"] = _saved_json_hash(review)
     return validate_saved_view(view)
 
 

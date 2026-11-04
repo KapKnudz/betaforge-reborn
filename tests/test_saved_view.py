@@ -616,6 +616,55 @@ class StructuredSavedViewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "hash"):
             self.build()
 
+    def test_review_only_observation_and_output_are_inspectable(self):
+        from betaforge.tools import write_json
+        observation = self.tools.store.query_financials(426, fields=["revenues"], limit=1)[0]
+        calculation = next(iter(self.tools.state["calculations"]))
+        output = calculation + "#future_target"
+        prose_reference = "data/sample/answer.md § Management"
+        self.assertNotIn(observation["id"], json.dumps(self.tools.state))
+        self.assertNotIn(observation["id"], (self.run / "analysis.json").read_text())
+        self.assertNotIn(output, {record["id"] for record in self.build()["saved_records"]})
+        review = {"schema_version": 1, "packet_sha256": self.tools.identity["packet_sha256"],
+                  "analysis_sha256": self.run_data["analysis_sha256"], "reviewer": "Independent reviewer",
+                  "verdict": "accept", "summary": "Inspect the frozen revenue and target.", "disagreements": [],
+                  "findings": [{"id": "revenue", "verdict": "bounded concern", "reasoning": "Compare source and target.",
+                                "references": [observation["id"], output, "example:p2", prose_reference], "missing_evidence": ""}]}
+        write_json(self.run / "analysis-review.json", review)
+        view = self.build()
+        records = {record["id"]: record for record in view["saved_records"]}
+        self.assertEqual(records[observation["id"]]["value"], observation["value"])
+        self.assertEqual(records[observation["id"]]["source_id"], observation["source_id"])
+        self.assertEqual(records[observation["id"]]["instrument_id"], 426)
+        self.assertEqual(records[output]["value"], self.tools.state["calculations"][calculation]["outputs"]["future_target"]["value"])
+        self.assertEqual(view["analysis_review"], review)
+        self.assertNotIn(prose_reference, records)
+        path = self.root / "view.json"
+        write_json(path, view)
+        self.assertEqual(load_saved_view(path), view)
+
+    def test_review_saved_references_use_existing_resolution_boundaries(self):
+        from betaforge.tools import write_json
+        observation = self.tools.store.query_financials(426, fields=["revenues"], limit=1)[0]
+        calculation = next(iter(self.tools.state["calculations"]))
+        review = {"schema_version": 1, "packet_sha256": self.tools.identity["packet_sha256"],
+                  "analysis_sha256": self.run_data["analysis_sha256"], "reviewer": "Independent reviewer",
+                  "verdict": "accept", "summary": "Inspect the frozen source.", "disagreements": [],
+                  "findings": [{"id": "source", "verdict": "bounded concern", "reasoning": "Check the reference.",
+                                "references": [], "missing_evidence": ""}]}
+        path = self.run / "analysis-review.json"
+        for reference in ("obs_missing", "input:missing", "calc:missing", calculation + "#missing", "example:p0", "example:p3", "missing:p1"):
+            with self.subTest(reference=reference):
+                review["findings"][0]["references"] = [reference]
+                write_json(path, review)
+                with self.assertRaises(ValueError):
+                    self.build()
+        review["findings"][0]["references"] = [observation["id"]]
+        write_json(path, review)
+        with patch("betaforge.storage.EvidenceStore.get_observation", return_value=dict(observation, instrument_id=427)):
+            with self.assertRaisesRegex(ValueError, "outside selected instrument"):
+                self.build()
+
     def test_run_artifact_and_tool_state_identity_tampering_are_rejected(self):
         from betaforge.tools import write_json
         mutations = [
