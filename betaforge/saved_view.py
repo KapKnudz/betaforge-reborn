@@ -38,6 +38,18 @@ PROVENANCE_FIELDS = {
     "summary_sha256", "narrative_sha256", "model",
     "reasoning_effort", "status", "started_at", "finished_at", "coverage",
 }
+OPTIONAL_HASHES = {"current_facts_sha256", "material_inputs_sha256"}
+DEFINITION_STATUSES = {"documented", "unresolved"}
+RECONCILIATION_STATUSES = {"unreviewed", "matched", "derived_match", "disagrees", "not_comparable"}
+SOURCE_RECORD_FIELDS = {
+    "id", "metric", "value", "scale", "unit", "currency", "kind", "basis", "status",
+    "period_start", "period_end", "report_type", "year", "period", "source_id", "pointer",
+    "evidence", "provider", "instrument_id", "source_report_type", "original_currency",
+    "currency_mode", "currency_ratio", "provider_report_date", "mapping_version", "observed_at",
+    "metadata_source_id", "provider_format", "unit_definition", "price_type", "calc_group", "calc",
+    "report_id", "source_pointer", "derivation", "selection_reason", "publication_date",
+    "source_first_captured_at", "source_last_successful_check_at", "label", "page", "quote", "note",
+}
 NUMERIC_FIELDS = {
     "value", "scale", "result", "calculation_value", "weight",
     "candidate_annualized_return_percent", "benchmark_annualized_return_percent",
@@ -173,9 +185,104 @@ def _tree(value, depth=0):
         raise ValueError("Saved metadata must preserve decimals as strings")
 
 
+def _texts(value):
+    if not isinstance(value, list):
+        raise ValueError("Expected saved text list")
+    for item in value:
+        _text(item)
+
+
+def _evidence(value):
+    if not isinstance(value, list) or any(not isinstance(item, dict) for item in value):
+        raise ValueError("Expected saved evidence objects")
+
+
+def _material_statuses(record):
+    if (not isinstance(record["definition_status"], str) or record["definition_status"] not in DEFINITION_STATUSES or
+            not isinstance(record["reconciliation_status"], str) or record["reconciliation_status"] not in RECONCILIATION_STATUSES):
+        raise ValueError("Invalid material input status")
+
+
+def _source_record(record):
+    _object(record, {"id", "value", "scale", "unit", "kind"}, SOURCE_RECORD_FIELDS)
+    for key in ("id", "unit", "kind"):
+        _text(record[key])
+    for key in ("value", "scale", "currency_ratio"):
+        if key in record:
+            _number(record[key])
+    if record["scale"] is None or Decimal(record["scale"]) <= 0:
+        raise ValueError("Source record scale must be positive")
+    for key in ("period_start", "period_end"):
+        if record.get(key) is not None:
+            _date(record[key])
+    if record.get("period_start") and record.get("period_end") and record["period_start"] > record["period_end"]:
+        raise ValueError("Source record period is reversed")
+    for key in ("year", "period", "instrument_id"):
+        if record.get(key) is not None and type(record[key]) is not int:
+            raise ValueError("Invalid source record period or instrument")
+    if "pointer" in record and not isinstance(record["pointer"], (str, dict)):
+        raise ValueError("Invalid saved source pointer")
+    if "evidence" in record:
+        _evidence(record["evidence"] if isinstance(record["evidence"], list) else [record["evidence"]])
+    if "derivation" in record:
+        derivation = record["derivation"]
+        _object(derivation, {"formula", "inputs"})
+        _text(derivation["formula"])
+        if not isinstance(derivation["inputs"], list):
+            raise ValueError("Invalid source record derivation inputs")
+        for item in derivation["inputs"]:
+            _object(item, {"label", "value", "scale", "unit"})
+            _text(item["label"])
+            _text(item["unit"])
+            _number(item["value"])
+            _number(item["scale"])
+    if record.get("publication_date") is not None:
+        _date(record["publication_date"])
+    for key in ("source_first_captured_at", "source_last_successful_check_at"):
+        if record.get(key) is not None:
+            _timestamp(record[key])
+    if "page" in record and (type(record["page"]) is not int or record["page"] <= 0):
+        raise ValueError("Invalid source record page")
+    for key in SOURCE_RECORD_FIELDS - {"value", "scale", "currency_ratio", "year", "period", "instrument_id", "pointer", "evidence", "derivation", "page"}:
+        if key in record:
+            _text(record[key], nullable=True)
+
+
+def _material_inputs(rows):
+    if not isinstance(rows, list):
+        raise ValueError("Invalid material input decisions")
+    identifiers = set()
+    for row in rows:
+        _object(row, {"id", "label", "definition", "definition_status", "reconciliation_status",
+                      "selected", "candidates", "selection_reason", "valuation_uses", "limitations", "evidence"})
+        for key in ("id", "label", "definition", "selection_reason"):
+            _text(row[key])
+        if row["id"] in identifiers:
+            raise ValueError("Duplicate material input decision")
+        identifiers.add(row["id"])
+        _material_statuses(row)
+        if row["selected"] is not None:
+            _source_record(row["selected"])
+        _texts(row["valuation_uses"])
+        _texts(row["limitations"])
+        _evidence(row["evidence"])
+        if not isinstance(row["candidates"], list):
+            raise ValueError("Invalid material input candidates")
+        for candidate in row["candidates"]:
+            _object(candidate, {"record", "definition_status", "reconciliation_status", "comparison_basis", "residual"})
+            _source_record(candidate["record"])
+            _material_statuses(candidate)
+            _text(candidate["comparison_basis"])
+            if candidate["residual"] is not None:
+                _object(candidate["residual"], {"value", "unit", "formula"})
+                _number(candidate["residual"]["value"])
+                _text(candidate["residual"]["unit"])
+                _text(candidate["residual"]["formula"])
+
+
 def validate_saved_view(view):
     """Validate the bounded display schema before a server exposes it."""
-    _object(view, FIELDS)
+    _object(view, FIELDS, {"material_inputs", "current_data_limits"})
     if type(view["schema_version"]) is not int or view["schema_version"] != 1:
         raise ValueError("Unsupported saved-view version")
     if not isinstance(view["id"], str) or len(view["id"]) > 100 or not SLUG.fullmatch(view["id"]):
@@ -234,11 +341,24 @@ def validate_saved_view(view):
         else:
             _text(note)
     for calc in view["calculations"]:
-        _object(calc, {"id", "formula", "version", "formula_text", "outputs", "inputs", "options", "warnings", "missing_inputs"}, {"label", "primary_output", "preserved_assumptions"})
+        _object(calc, {"id", "formula", "version", "formula_text", "outputs", "inputs", "options", "warnings", "missing_inputs"}, {"label", "primary_output", "preserved_assumptions", "display_role", "report_type", "period_start", "period_end", "year", "period", "current_period_reason", "price_date"})
         for key in ("id", "formula", "version", "formula_text"):
             _text(calc[key])
         if not isinstance(calc["outputs"], dict) or not isinstance(calc["inputs"], dict):
             raise ValueError("Invalid named calculation")
+        if "display_role" in calc and calc["display_role"] != "current":
+            raise ValueError("Invalid calculation display role")
+        for key in ("period_start", "period_end", "price_date"):
+            if calc.get(key) is not None:
+                _date(calc[key])
+        if calc.get("period_start") and calc.get("period_end") and calc["period_start"] > calc["period_end"]:
+            raise ValueError("Calculation period is reversed")
+        for key in ("report_type", "current_period_reason"):
+            if key in calc:
+                _text(calc[key])
+        for key in ("year", "period"):
+            if key in calc and type(calc[key]) is not int:
+                raise ValueError("Invalid calculation period")
     for calc in view["original_calculations"]:
         required = {"id", "operation", "inputs", "result", "label", "unit", "scale", "basis"}
         optional = set()
@@ -293,8 +413,8 @@ def validate_saved_view(view):
     if benchmark["context"] is not None:
         _object(benchmark["context"], (), CONTEXT_FIELDS)
     provenance = view["provenance"]
-    _object(provenance, PROVENANCE_FIELDS)
-    for key in ("database_sha256", "packet_sha256", "review_sha256", "run_sha256", "summary_sha256", "narrative_sha256"):
+    _object(provenance, PROVENANCE_FIELDS, OPTIONAL_HASHES)
+    for key in {"database_sha256", "packet_sha256", "review_sha256", "run_sha256", "summary_sha256", "narrative_sha256"} | (OPTIONAL_HASHES & provenance.keys()):
         if not isinstance(provenance[key], str) or not HASH.fullmatch(provenance[key]):
             raise ValueError("Invalid provenance hash")
     if provenance["status"] != "completed" or not isinstance(provenance["coverage"], dict):
@@ -303,6 +423,16 @@ def validate_saved_view(view):
         _text(provenance[key])
     for key in ("started_at", "finished_at"):
         _timestamp(provenance[key])
+    if "material_inputs" in view:
+        _material_inputs(view["material_inputs"])
+    if "material_inputs_sha256" in provenance:
+        if "material_inputs" not in view:
+            raise ValueError("Material input hash requires its saved decisions")
+        body = json.dumps(view["material_inputs"], sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        if hashlib.sha256(body).hexdigest() != provenance["material_inputs_sha256"]:
+            raise ValueError("Material input decision hash mismatch")
+    if "current_data_limits" in view:
+        _texts(view["current_data_limits"])
     _tree(view)
     return view
 
@@ -431,4 +561,9 @@ def build_saved_view(review_path, run_dir, packet_dir, company_name, ticker, vie
                        "narrative_sha256": hashlib.sha256(narrative_body).hexdigest(),
                        **{key: run.get(key) for key in ("model", "reasoning_effort", "status", "started_at", "finished_at", "coverage")}},
     }
+    for key in ("material_inputs", "current_data_limits"):
+        if key in review:
+            view[key] = review[key]
+    for key in OPTIONAL_HASHES & review.keys():
+        view["provenance"][key] = review[key]
     return validate_saved_view(view)

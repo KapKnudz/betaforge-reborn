@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T09:31:00+01:00",
+  "updated_at": "2026-11-04T10:55:04+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "material-mapping",
+  "next_task": "multi-company-validation",
   "milestones": [
     {
       "id": "foundation",
@@ -213,18 +213,25 @@
       "id": "material-mapping",
       "milestone": "validation",
       "title": "Record financial meaning and selected-input rationale",
-      "status": "pending",
+      "status": "done",
       "acceptance": [
         "Material inputs retain definition status separately from numeric reconciliation.",
         "Scope, units, period, conventions, residuals, evidence and selection reasons are inspectable.",
-        "Report substitutions and assumptions keep optional gaps local."
+        "Report substitutions and assumptions keep optional gaps local.",
+        "Latest diagnostics prefer matched quarter, R12 and closing-balance evidence, with annual-only fallbacks explained."
       ],
       "evidence": [
-        "docs/research/borsdata-retrieval-storage.md",
-        "examples/granges/docs/research/granges-mapping-resolution.md"
+        "docs/material-inputs.md",
+        "docs/research/borsdata-definition-audit.md",
+        "examples/granges/scripts/build_financial_review.py",
+        "examples/granges/scripts/build_material_inputs.py",
+        "betaforge/saved_view.py",
+        "web/progress/app.js",
+        "tests/test_granges_example.py",
+        "tests/test_saved_view.py"
       ],
       "blocker": null,
-      "note": "Reuse the existing mapping specification; do not build a second mapping platform.",
+      "note": "Implemented scoped material decisions with exact source records, independent definition/numeric-comparison statuses, selection reasons, residuals and valuation uses. Latest compatible quarter/R12 diagnostics now use matched economic periods and opening/closing capital; annual-only trade disclosures, operating-tax assumptions, missing cash components and provider EV date/unit limits remain explicit. Original scenario outputs and conditional weights are preserved. Clean proposed checkout: 141 tests, OK with one private-evidence class skipped; ten installed-evidence tests pass. Financial and technical independent read-only findings were fixed and rechecked; browser checks cover updated/legacy reviews, readable units, comparisons and narrow layouts. Provider-wide definitions and other-company validation are not established. Workbench PR #8 is a pending predecessor; dependent publication stays draft against main until it merges and the remaining diff is checked. Final Greptile receipt belongs in the PR conversation.",
       "summary": "Record what each material number means and why it was selected.",
       "purpose": "Prevent matching titles or numbers from hiding different accounting definitions."
     },
@@ -263,7 +270,7 @@
         "docs/codex-integration.md"
       ],
       "blocker": null,
-      "note": "The first read-only company tab now displays existing saved scenarios, named calculations, report evidence, interpretations and missing inputs. Full decision records and broader company validation remain pending; this task is not complete.",
+      "note": "The company tab now includes scoped material choices, provider/report comparisons, saved rationale and current-period diagnostics alongside preserved results. Broader cross-company validation, financial-history presentation and complete decision-review coverage remain pending.",
       "summary": "Connect saved results to assumptions, calculations and evidence.",
       "purpose": "Make the valuation reasoning inspectable without rerunning it."
     },
@@ -396,9 +403,9 @@
     }
   ],
   "session": {
-    "task": "research-workbench-ui",
-    "summary": "PR #8 contains the validated traditional workbench and first saved-company view. Broader valuation validation remains open.",
-    "next_step": "Complete the bounded current-head Greptile review on PR #8; user reviews and merges. Then record material field definitions and selected-input rationale, validate another issuer and continue report archiving."
+    "task": "material-mapping",
+    "summary": "Material input meanings and source choices are recorded; latest compatible report diagnostics are verified without changing the original scenario valuation.",
+    "next_step": "Publish and review the focused dependent change; user merges workbench PR #8 first. Then verify another issuer using the frozen corpus and its original reports, with wider report archiving alongside."
   },
   "references": [
     {
@@ -432,6 +439,10 @@
     {
       "label": "Readiness review",
       "path": "docs/research/system-readiness-review.md"
+    },
+    {
+      "label": "Material inputs and period rules",
+      "path": "docs/material-inputs.md"
     }
   ]
 }

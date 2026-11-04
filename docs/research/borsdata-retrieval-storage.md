@@ -123,6 +123,8 @@ Every mapping needs:
 
 Keep a generic provider dictionary and issuer/period-specific reconciliation evidence. A numeric match in one quarter does not establish a universal rule. Preserve source-specific values and select valuation inputs explicitly, recording the reason for freshness overrides or report-derived substitutions.
 
+The [material-input decision record](../material-inputs.md) implements these choices in a saved review, without adding a second database. The [provider-definition audit](borsdata-definition-audit.md) separates API labels, knowledge-base formulas and unresolved implementation details.
+
 ### Issuer-specific reconciliations
 
 Keep detailed observed values and residuals in the selected company example or private research records. The [reference mapping](../../examples/granges/docs/research/granges-borsdata-mapping.md) demonstrates the procedure; its observed provider identities do not become global formulas.

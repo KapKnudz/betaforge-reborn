@@ -1,4 +1,5 @@
 import hashlib
+import copy
 import json
 from pathlib import Path
 import tempfile
@@ -25,6 +26,22 @@ def minimal_view():
                        "model": "gpt-6.1-sol", "reasoning_effort": "high", "status": "completed",
                        "started_at": "2026-11-01T12:00:00Z", "finished_at": "2026-11-01T12:01:00Z", "coverage": {}},
     }
+
+
+def material_input():
+    record = {"id": "fact:revenue", "metric": "revenue", "value": "123.000000000000000001",
+              "unit": "currency", "scale": "1000000", "currency": "SEK", "kind": "flow",
+              "basis": "Group sales", "status": "matched", "report_type": "r12",
+              "period_start": "2025-10-01", "period_end": "2026-09-30", "year": 2026, "period": 3,
+              "source_id": "sample-interim", "pointer": "/facts/0", "evidence": {"report_id": "sample-interim", "page": 3}}
+    return {"id": "revenue", "label": "Group sales", "definition": "Group revenue over the stated flow period",
+            "definition_status": "documented", "reconciliation_status": "matched", "selected": record,
+            "candidates": [{"record": dict(record, id="provider:revenue", provider="sample", status="unreviewed"),
+                            "definition_status": "unresolved", "reconciliation_status": "matched",
+                            "comparison_basis": "Same displayed amount; provider scope is unresolved",
+                            "residual": {"value": "0.000000000000000000", "unit": "SEK million", "formula": "candidate minus selected"}}],
+            "selection_reason": "Issuer states the operating revenue scope", "valuation_uses": ["Revenue × EBIT margin"],
+            "limitations": ["Rounded issuer disclosure"], "evidence": [{"report_id": "sample-interim", "page": 3}]}
 
 
 class SavedViewTests(unittest.TestCase):
@@ -122,6 +139,105 @@ class SavedViewTests(unittest.TestCase):
         self.write(output, view)
         self.assertEqual(load_saved_view(output), view)
 
+    def test_optional_material_decisions_recency_and_hashes_are_preserved(self):
+        self.review.update(material_inputs=[material_input()], current_data_limits=["Trade receivables are annual only"],
+                           current_facts_sha256="1" * 64)
+        self.review["material_inputs"][0]["selected"]["derivation"] = {
+            "formula": "annual + current_ytd - previous_ytd", "inputs": [
+                {"label": "Annual", "value": "12.0001", "scale": "1000000", "unit": "currency"}]}
+        self.review["material_inputs"][0]["selected"].update(
+            source_first_captured_at="2026-11-01T10:00:00Z", source_last_successful_check_at=None,
+            label="Saved report input", page=3, quote="Group revenue", note="Issued share basis explained")
+        self.review["material_inputs"][0]["candidates"][0]["record"].update(
+            source_first_captured_at="2026-11-01T10:00:00Z", source_last_successful_check_at="2026-11-03T10:00:00Z")
+        self.review["material_inputs_sha256"] = hashlib.sha256(json.dumps(
+            self.review["material_inputs"], sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+        self.named.update(display_role="current", report_type="r12", period_start="2025-10-01",
+                          period_end="2026-09-30", year=2026, period=3, price_date="2026-10-30", current_period_reason="Latest matching R12 flow period")
+        self.write(self.review_path, self.review)
+        view = self.build()
+        self.assertEqual(view["material_inputs"], self.review["material_inputs"])
+        self.assertEqual(view["current_data_limits"], self.review["current_data_limits"])
+        self.assertEqual(view["calculations"][0], self.named)
+        self.assertEqual(view["provenance"]["current_facts_sha256"], "1" * 64)
+        self.assertEqual(view["provenance"]["material_inputs_sha256"], self.review["material_inputs_sha256"])
+        self.assertEqual(view["material_inputs"][0]["candidates"][0]["definition_status"], "unresolved")
+        self.assertEqual(view["material_inputs"][0]["selected"]["value"], "123.000000000000000001")
+        output = self.root / "view.json"
+        self.write(output, view)
+        self.assertEqual(load_saved_view(output), view)
+        view["material_inputs"][0]["selection_reason"] = "Changed decision"
+        self.write(output, view)
+        with self.assertRaisesRegex(ValueError, "hash mismatch"):
+            load_saved_view(output)
+        self.review["material_inputs"][0]["selection_reason"] = "Changed decision"
+        self.write(self.review_path, self.review)
+        with self.assertRaisesRegex(ValueError, "hash mismatch"):
+            self.build()
+
+    def test_old_exports_and_missing_material_selections_stay_valid(self):
+        view = self.build()
+        self.assertNotIn("material_inputs", view)
+        self.assertNotIn("current_data_limits", view)
+        self.assertNotIn("current_facts_sha256", view["provenance"])
+        row = material_input()
+        row.update(selected=None, definition_status="unresolved", reconciliation_status="unreviewed")
+        view["material_inputs"] = [row]
+        output = self.root / "view.json"
+        self.write(output, view)
+        self.assertIsNone(load_saved_view(output)["material_inputs"][0]["selected"])
+
+    def test_rejects_malformed_material_decisions_and_sources(self):
+        base = minimal_view()
+        base["material_inputs"] = [material_input()]
+        mutations = [
+            lambda row: row.update(definition_status="verified"),
+            lambda row: row.update(definition_status=[]),
+            lambda row: row.update(reconciliation_status="verified"),
+            lambda row: row.update(selected=[]),
+            lambda row: row["selected"].update(unknown_payload={"secret": "not display metadata"}),
+            lambda row: row["selected"].update(value=12),
+            lambda row: row["selected"].update(scale="0"),
+            lambda row: row["selected"].update(period_start="2027-01-01"),
+            lambda row: row["selected"].update(pointer=[]),
+            lambda row: row["selected"].update(evidence="unstructured evidence"),
+            lambda row: row["selected"].update(source_first_captured_at="2026-11-01"),
+            lambda row: row["selected"].update(source_last_successful_check_at="invalid"),
+            lambda row: row["selected"].update(page=0),
+            lambda row: row["selected"].update(page=True),
+            lambda row: row["selected"].update(quote={"text": "Unexpected object"}),
+            lambda row: row["candidates"][0].update(definition_status="verified"),
+            lambda row: row["candidates"][0].update(residual={"value": "0", "unit": "SEK"}),
+            lambda row: row.update(valuation_uses="valuation"),
+            lambda row: row.update(evidence=["not an evidence object"]),
+        ]
+        output = self.root / "view.json"
+        for mutate in mutations:
+            with self.subTest(mutation=mutate):
+                view = copy.deepcopy(base)
+                mutate(view["material_inputs"][0])
+                self.write(output, view)
+                with self.assertRaises(ValueError):
+                    load_saved_view(output)
+        for extra in ({"material_inputs": {}}, {"material_inputs": base["material_inputs"] * 2}, {"current_data_limits": "Not a list"}):
+            self.write(output, dict(base, **extra))
+            with self.assertRaises(ValueError):
+                load_saved_view(output)
+
+    def test_rejects_bad_optional_hashes_and_current_calculation_metadata(self):
+        output = self.root / "view.json"
+        for key in ("current_facts_sha256", "material_inputs_sha256"):
+            view = minimal_view()
+            view["provenance"][key] = "invalid"
+            self.write(output, view)
+            with self.assertRaises(ValueError):
+                load_saved_view(output)
+        for change in ({"display_role": "fresh"}, {"period_end": "2026-99-99"}, {"period_start": "2026-09-30", "period_end": "2025-09-30"}, {"year": "2026"}, {"current_period_reason": ""}):
+            view = minimal_view()
+            view["calculations"] = [dict(self.named, **change)]
+            self.write(output, view)
+            with self.assertRaises(ValueError):
+                load_saved_view(output)
     def test_preserves_real_runner_named_calculations_and_qualified_references(self):
         from betaforge.tools import EvidenceTools
 
