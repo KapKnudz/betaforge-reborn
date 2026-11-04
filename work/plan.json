@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T13:08:23+01:00",
+  "updated_at": "2026-11-04T13:29:17+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "saved-analysis-viewer",
+  "next_task": "multi-company-validation",
   "milestones": [
     {
       "id": "foundation",
@@ -26,8 +26,8 @@
     {
       "id": "saved-review",
       "title": "Inspect saved valuations",
-      "status": "in_progress",
-      "summary": "Connect source evidence and decision rationale to a read-only analysis viewer."
+      "status": "done",
+      "summary": "Inspect a saved philosophy-based report, source-linked management expectations, dated scenarios and the independent challenge."
     },
     {
       "id": "development-corpus",
@@ -250,7 +250,7 @@
         "docs/retrieval-design.md"
       ],
       "blocker": null,
-      "note": "General report discovery/preparation still needs a minimal reusable path; five annuals remain the reading baseline where available.",
+      "note": "Next: choose another operating business and preserve its original reports, then test the generic structured analyst/review/viewer path and material definitions. Exercise different capital, acquisition or share conventions. Match peer evidence where useful; retain unsupported comparisons and claim values as explicit gaps.",
       "summary": "Repeat the workflow on another issuer, then three to five businesses.",
       "purpose": "Test the generic process against different accounting conventions."
     },
@@ -258,7 +258,7 @@
       "id": "saved-analysis-viewer",
       "milestone": "saved-review",
       "title": "Expose saved evidence, decisions and valuation bridges",
-      "status": "in_progress",
+      "status": "done",
       "acceptance": [
         "Material forecasts, multiples, probabilities and cash/claims assumptions have evidence and rationale.",
         "A read-only local viewer links financial history, source comparisons, named calculations and scenario results.",
@@ -281,9 +281,9 @@
         "docs/saved-analysis-view.md"
       ],
       "blocker": null,
-      "note": "Implemented the six-section philosophy-based report, sourced management comparisons, dated scenario endpoints, linked explanations, saved independent review and one bounded revision. Core and integration read-only review findings were resolved. Clean offline suite:169 tests, OK with one private-evidence class skipped; eleven installed-evidence tests pass. Actual saved-result browser checks cover current/legacy views, tables, management quotations, source links, benchmark display and narrow layout. The fresh preserved-evidence analysis passed independent content review with qualifications and disagreements retained. Private archival and dependent PR preparation remain pending; broader company validation is separate.",
-      "summary": "Connect saved results to assumptions, calculations and evidence.",
-      "purpose": "Make the valuation reasoning inspectable without rerunning it."
+      "note": "Completed the one-company saved-review milestone: six report sections, explicit facts/interpretations/assumptions, source-linked management comparisons, dated endpoints and weights, named calculations and a separately bound independent review. The session workflow uses one lead analyst, independent challenge and at most one revision. Clean proposed checkout:170 offline tests, OK with one private-evidence class skipped; eleven installed-evidence tests pass. Independent code-review findings were fixed and rechecked. Browser checks cover real and earlier views, financial tables, management quotations, source drilldowns, benchmark display and narrow layouts, with no broken links, duplicate IDs or console errors. A fresh preserved-evidence analysis completed the bounded process; its qualifications and disagreements remain visible. Exact artifacts are privately archived; clean restore, exact export rebuild, database checks and downloaded-copy verification pass. PR #10 is draft against main, dependent on #9: https://github.com/KapKnudz/betaforge-reborn/pull/10. The current-head Greptile receipt belongs in the PR conversation. User reviews and merges. Wider issuer and peer validation remain separate.",
+      "summary": "Show the full case, management expectations and dated scenarios with their evidence.",
+      "purpose": "Understand how the analyst moves from evidence to assumptions and valuation."
     },
     {
       "id": "retained-use-clarification",
@@ -415,8 +415,8 @@
   ],
   "session": {
     "task": "saved-analysis-viewer",
-    "summary": "The structured analysis and viewer are implemented, checked and independently reviewed. A fresh preserved-evidence analysis completed its bounded review/revision process; original results remain available.",
-    "next_step": "Preserve and verify the exact private artifacts, then publish the focused draft PR against main, dependent on PR #9. Run the bounded current-head Greptile loop; the user merges."
+    "summary": "Structured analysis and local presentation are implemented and independently reviewed. Exact evidence/results have a verified private archive. PR #10 is draft pending predecessor #9; merge remains user-owned.",
+    "next_step": "Complete the bounded current-head Greptile cycle for PR #10. After #9 merges, verify the remaining diff before readiness. Then validate another issuer with original reports."
   },
   "references": [
     {
@@ -454,6 +454,10 @@
     {
       "label": "Material inputs and period rules",
       "path": "docs/material-inputs.md"
+    },
+    {
+      "label": "Analysis and independent challenge",
+      "path": "docs/analysis-workflow.md"
     }
   ]
 }
