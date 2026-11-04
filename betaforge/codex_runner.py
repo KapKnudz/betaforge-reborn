@@ -13,7 +13,8 @@ import subprocess
 import threading
 import time
 
-from betaforge.tools import EvidenceTools, TOOL_SCHEMAS, write_json
+from betaforge.tools import EvidenceTools, TOOL_SCHEMAS, STRUCTURED_TOOL_SCHEMAS, write_json, digest
+from betaforge.analysis_report import REPORT_CONTRACT, validate_feedback
 
 MODEL = 'gpt-6.1-sol'
 REASONING_EFFORT = 'xhigh'
@@ -176,38 +177,66 @@ Respond SMOKE_COMPLETE with results and references. Full required-report reading
 only for this integration check; do not finish research rounds or issue a valuation.'''
 
 
-def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAULT_CODEX, smoke=False, resume=False, cancel_after=None):
+def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAULT_CODEX, smoke=False, resume=False, cancel_after=None, structured=False, review_feedback=None):
     if not 0 < timeout_seconds <= 7200:raise ValueError('Timeout must be >0 and <=7200 seconds')
+    if smoke and structured:raise ValueError('Structured mode cannot be combined with smoke')
+    if review_feedback and not (resume and structured):raise ValueError('Review feedback requires --resume --structured')
     output=Path(output).resolve()
     if output.exists() and not resume:raise FileExistsError('Output exists; choose a new run or explicitly resume')
     output.mkdir(parents=True,exist_ok=resume)
-    tools=EvidenceTools(packet_path,output,resume=resume)
+    tools=EvidenceTools(packet_path,output,resume=resume,structured=structured)
+    try:
+        return _run_with_tools(tools, packet_path, prompt_path, output, timeout_seconds, executable,
+                               smoke, resume, cancel_after, structured, review_feedback)
+    finally:
+        tools.store.close()
+
+
+def _run_with_tools(tools, packet_path, prompt_path, output, timeout_seconds, executable,
+                    smoke, resume, cancel_after, structured, review_feedback):
     start=time.monotonic(); deadline=start+timeout_seconds
     tools.deadline=deadline
     state_path=output/'run.json'
     previous=json.loads(state_path.read_text()) if resume else {}
+    if resume and previous.get('structured', False) != structured:raise ValueError('Resume mode changed')
+    if structured:
+        remaining=7200-previous.get('total_elapsed_seconds', previous.get('elapsed_seconds',0))
+        if remaining<=0:raise ValueError('Structured run global time limit exhausted')
+        deadline=start+min(timeout_seconds,remaining)
+        tools.deadline=deadline
     state={'status':'starting','model':MODEL,'reasoning_effort':REASONING_EFFORT,'started_at':datetime.now(timezone.utc).isoformat(),
            'codex_version':subprocess.run([executable,'--version'],capture_output=True,text=True,timeout=10,check=True,env=child_environment()).stdout.strip(),
            'analysis_contract_status':'versioned' if tools.analysis_contract else 'legacy_packet_without_adopted_policy',
-           'packet':str(Path(packet_path).resolve()),'identity':tools.identity,'smoke':smoke,
-           'timeout_seconds':timeout_seconds,'implementation_sha256':{name:hashlib.sha256((Path(__file__).parent/name).read_bytes()).hexdigest() for name in ('tools.py','financials.py','codex_runner.py','storage.py')},'thread_id':previous.get('thread_id'),
+           'packet':str(Path(packet_path).resolve()),'identity':tools.identity,'smoke':smoke,'structured':structured,
+           'revision_count':previous.get('revision_count',0),'review_feedback_sha256':previous.get('review_feedback_sha256'),
+           'content_review_status':previous.get('content_review_status','unreviewed'),
+           'timeout_seconds':timeout_seconds,'implementation_sha256':{name:hashlib.sha256((Path(__file__).parent/name).read_bytes()).hexdigest() for name in (('tools.py','financials.py','codex_runner.py','storage.py','analysis_report.py') if structured else ('tools.py','financials.py','codex_runner.py','storage.py'))},'thread_id':previous.get('thread_id'),
            'turn_id':None,'turns':previous.get('turns',[]),'usage':previous.get('usage',[]),
            'unexpected_tools':[],'resume_count':previous.get('resume_count',0)+int(resume)}
     if resume and previous.get('identity') != tools.identity:raise ValueError('Run evidence changed')
     if resume: verify_implementation(state['implementation_sha256'], previous)
+    if structured and resume:
+        if previous.get('status') == 'completed' and not review_feedback:
+            raise ValueError('A completed structured run requires explicit review feedback for revision')
+        if previous.get('analysis_sha256'):
+            if digest(output/'analysis.json') != previous['analysis_sha256'] or tools.state.get('analysis_sha256') != previous['analysis_sha256']:
+                raise ValueError('Submitted analysis changed or tool state differs')
+        if previous.get('review_feedback_sha256') and digest(output/'review-feedback.json') != previous['review_feedback_sha256']:
+            raise ValueError('Frozen review feedback changed')
     prompt=Path(prompt_path).read_text() if prompt_path else ''
     if smoke:
         prompt=integration_smoke_prompt(tools.reports)
     if not prompt.strip():raise ValueError('Prompt required')
     state['prompt_sha256']=verify_prompt({} if smoke else tools.packet,prompt,previous if not smoke else None)
-    if resume:
-        archive=output/'prior-invocations';archive.mkdir(exist_ok=True)
-        write_json(archive/f"{previous.get('resume_count',0):03d}-run.json",previous)
-        if (output/'answer.md').exists():
-            (archive/f"{previous.get('resume_count',0):03d}-answer.md").write_bytes((output/'answer.md').read_bytes())
-    (output/('resume-prompt.txt' if resume else 'prompt.txt')).write_text(prompt)
-    workspace=output/'workspace';workspace.mkdir(exist_ok=True)
-    server=AppServer(executable,workspace,output/'events.jsonl')
+    feedback = None
+    if review_feedback:
+        if previous.get('revision_count',0) or tools.state.get('revision_count',0):
+            raise ValueError('At most one review revision is allowed')
+        if not previous.get('analysis_sha256') or digest(output/'analysis.json') != previous['analysis_sha256']:
+            raise ValueError('Submitted analysis changed or is missing')
+        feedback=validate_feedback(json.loads(Path(review_feedback).read_text()),tools.identity,previous['analysis_sha256'])
+        if feedback['verdict'] != 'revise':raise ValueError('Revision requires an explicit revise verdict')
+    server=None
     latest_answer=''
     completed_turn=None
     native_bad={'commandExecution','fileChange','mcpToolCall','webSearch','collabAgentToolCall','imageGeneration','computerUse'}
@@ -215,6 +244,10 @@ def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAU
     def persist():
         state['coverage']=tools.coverage()
         state['elapsed_seconds']=round(time.monotonic()-start,3)
+        if structured:
+            state['total_elapsed_seconds']=round(previous.get('total_elapsed_seconds',previous.get('elapsed_seconds',0))+state['elapsed_seconds'],3)
+            state['analysis_sha256']=tools.state.get('analysis_sha256')
+            state['analysis_validation_status']='syntax_and_identity_valid' if state['analysis_sha256'] else 'not_submitted'
         state['calculations']=len(tools.state['calculations'])
         state['research_rounds']=len(tools.state['rounds'])
         state['research_closed']=tools.state.get('research_closed',False)
@@ -239,7 +272,7 @@ def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAU
             if item.get('type')=='agentMessage':
                 latest_answer=item.get('text','')
                 with (output/'messages.jsonl').open('a') as file:file.write(json.dumps(item)+'\n')
-                if item.get('phase')=='final_answer':(output/'answer.md').write_text(latest_answer)
+                if item.get('phase')=='final_answer' and not structured:(output/'answer.md').write_text(latest_answer)
             if item.get('type') in native_bad:
                 state['unexpected_tools'].append(item['type']);raise RuntimeError('Unexpected native tool used')
         elif method=='item/started' and params.get('item',{}).get('type') in native_bad:
@@ -250,16 +283,39 @@ def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAU
         elif method=='error':state.setdefault('errors',[]).append(params);persist()
 
     try:
+        if resume:
+            archive=output/'prior-invocations';archive.mkdir(exist_ok=True)
+            write_json(archive/f"{previous.get('resume_count',0):03d}-run.json",previous)
+            for name in ('answer.md','analysis.json','calculations.json','inputs.json','tool-state.json','review-feedback.json'):
+                if (output/name).exists():
+                    (archive/f"{previous.get('resume_count',0):03d}-{name}").write_bytes((output/name).read_bytes())
+        if feedback:
+            (output/'review-feedback.json').write_bytes(Path(review_feedback).read_bytes())
+            state['review_feedback_sha256']=digest(output/'review-feedback.json')
+            state['revision_count']=1
+            state['content_review_status']='revision_pending_review'
+            tools.reopen_revision_research()
+            prompt+='\nINDEPENDENT REVIEW FEEDBACK (one bounded revision; preserve disagreements)\n'+json.dumps(feedback,ensure_ascii=False)
+            prompt+='\nAddress justified findings, preserve any reasoned disagreement in the report, and submit the revised complete report. At most two targeted revision research rounds are allowed.'
+        elif structured and previous.get('review_feedback_sha256'):
+            if digest(output/'review-feedback.json') != previous['review_feedback_sha256']:
+                raise ValueError('Frozen review feedback changed')
+            feedback=json.loads((output/'review-feedback.json').read_text())
+            prompt+='\nFROZEN INDEPENDENT REVIEW FEEDBACK\n'+json.dumps(feedback,ensure_ascii=False)
+        persist()
+        (output/('resume-prompt.txt' if resume else 'prompt.txt')).write_text(prompt)
+        workspace=output/'workspace';workspace.mkdir(exist_ok=True)
+        server=AppServer(executable,workspace,output/'events.jsonl')
         persist()
         request=server.request('initialize',{'clientInfo':{'name':'betaforge','version':'0.1.0'},'capabilities':{'experimentalApi':True}})
         server.wait_response(request,deadline,handle);server.send({'method':'initialized','params':{}})
         common={'model':MODEL,'approvalPolicy':'never','sandbox':'read-only','cwd':str(workspace),'config':CONFIG,
-                'baseInstructions':INSTRUCTIONS + ('\nSMOKE MODE: required reading and research rounds are waived; perform only the requested integration checks.' if smoke else ''),'developerInstructions':'Use only Betaforge dynamic tools. No outside sources or delegation.'}
+                'baseInstructions':INSTRUCTIONS + ('\nSTRUCTURED REPORT CONTRACT\n'+REPORT_CONTRACT if structured else '') + ('\nSMOKE MODE: required reading and research rounds are waived; perform only the requested integration checks.' if smoke else ''),'developerInstructions':'Use only Betaforge dynamic tools. No outside sources or delegation.'}
         if resume:
             if not state['thread_id']:raise ValueError('No saved thread to resume')
             request=server.request('thread/resume',{'threadId':state['thread_id'],'excludeTurns':True,**common})
         else:
-            request=server.request('thread/start',{**common,'dynamicTools':TOOL_SCHEMAS,'environments':[],
+            request=server.request('thread/start',{**common,'dynamicTools':TOOL_SCHEMAS + (STRUCTURED_TOOL_SCHEMAS if structured else []),'environments':[],
                                                    'allowProviderModelFallback':False,'ephemeral':False})
         response=server.wait_response(request,deadline,handle)
         if response['model']!=MODEL:raise RuntimeError('Exact requested model not selected')
@@ -280,12 +336,12 @@ def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAU
                 if message:handle(message)
             if completed_turn.get('status')!='completed':
                 raise RuntimeError('Model turn ended '+str(completed_turn.get('status')))
-            (output/'answer.md').write_text(latest_answer)
-            if smoke or tools.coverage()['complete']:break
+            if not structured:(output/'answer.md').write_text(latest_answer)
+            if smoke or (tools.coverage()['complete'] and (not structured or tools.state.get('analysis_sha256'))):break
             attempts+=1
             if attempts>=2:
-                state['status']='incomplete_reading';break
-            text='Required reading remains incomplete. Continue read_report for every unread page, then produce the final answer. Coverage: '+json.dumps(tools.coverage())
+                state['status']='incomplete_submission' if structured and tools.coverage()['complete'] else 'incomplete_reading';break
+            text='Complete required reading and '+('call submit_analysis with a valid complete report' if structured else 'produce the final answer')+'. Coverage: '+json.dumps(tools.coverage())
         if state['status']=='running':state['status']='smoke_completed' if smoke else 'completed'
     except TimeoutError:
         state['status']='timed_out'
@@ -294,11 +350,15 @@ def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAU
     except Exception as error:
         state['status']='failed';state['error']=str(error)
     finally:
-        server.shutdown(state.get('thread_id'),state.get('turn_id'))
-        state['finished_at']=datetime.now(timezone.utc).isoformat();persist()
+        if server is not None:
+            server.shutdown(state.get('thread_id'),state.get('turn_id'))
+        state['finished_at']=datetime.now(timezone.utc).isoformat()
         write_json(output/'calculations.json',list(tools.state['calculations'].values()))
         write_json(output/'inputs.json',list(tools.state['inputs'].values()))
-        tools.store.close()
+        if structured:
+            state['calculations_sha256']=digest(output/'calculations.json')
+            state['inputs_sha256']=digest(output/'inputs.json')
+        persist()
     print(json.dumps({'status':state['status'],'output':str(output),'coverage':state['coverage'],'calculations':state['calculations']}),flush=True)
     return state
 
@@ -309,9 +369,10 @@ def main():
     parser.add_argument('--output',required=True,type=Path);parser.add_argument('--timeout',type=float,default=7200)
     parser.add_argument('--codex',default=DEFAULT_CODEX);parser.add_argument('--smoke',action='store_true')
     parser.add_argument('--resume',action='store_true');parser.add_argument('--cancel-after',type=float)
+    parser.add_argument('--structured',action='store_true');parser.add_argument('--review-feedback',type=Path)
     args=parser.parse_args()
     def interrupt(signum, frame):
         raise InterruptedError('Process cancellation requested')
     signal.signal(signal.SIGTERM,interrupt)
-    state=run(args.packet,args.prompt,args.output,args.timeout,args.codex,args.smoke,args.resume,args.cancel_after)
+    state=run(args.packet,args.prompt,args.output,args.timeout,args.codex,args.smoke,args.resume,args.cancel_after,args.structured,args.review_feedback)
     return 0 if state['status'] in ('completed','smoke_completed') else 1

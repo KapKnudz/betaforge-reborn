@@ -1,4 +1,4 @@
-"""Export a reviewed frozen analysis to a new ignored data/*.json display file."""
+"""Export a frozen structured run or legacy reviewed analysis to ignored data/."""
 import argparse
 import json
 from pathlib import Path
@@ -10,7 +10,8 @@ from betaforge.saved_view import MAX_BYTES, build_saved_view, checked_path
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ("review", "run", "packet", "company", "ticker", "id", "method", "output"):
+    parser.add_argument("--review", help="Required for legacy runs; omit for structured analysis.json runs")
+    for name in ("run", "packet", "company", "ticker", "id", "method", "output"):
         parser.add_argument("--" + name, required=True)
     args = parser.parse_args(argv)
     try:

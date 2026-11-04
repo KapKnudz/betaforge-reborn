@@ -15,7 +15,7 @@ DOCUMENTS = (
     "AGENTS.md", "CONTRIBUTING.md", "README.md", "docs/architecture.md",
     "work/README.md", "docs/analysis-policy.md", "docs/calculations.md", "docs/company-workflow.md",
     "docs/research/system-readiness-review.md",
-    "docs/research/borsdata-retrieval-storage.md", "docs/codex-integration.md", "docs/saved-analysis-view.md", "docs/material-inputs.md",
+    "docs/research/borsdata-retrieval-storage.md", "docs/codex-integration.md", "docs/saved-analysis-view.md", "docs/material-inputs.md", "docs/analysis-workflow.md",
 )
 ROUTES = {
     "/": ("web/progress/index.html", "text/html; charset=utf-8"),
@@ -125,7 +125,8 @@ class ProgressHandler(BaseHTTPRequestHandler):
                         if view["id"] != view_id:
                             raise ValueError("Saved analysis identity changed")
                         views.append(view)
-                    payload = {"runs": [{key: view[key] for key in ("id", "company", "analysis_date", "reviewed_at", "method")} for view in views]}
+                    payload = {"runs": [{**{key: view[key] for key in ("id", "company", "analysis_date", "reviewed_at", "method")},
+                                         "analysis_kind": "structured" if "analysis" in view else "legacy"} for view in views]}
                 else:
                     payload = load_saved_view(self.analyses[selected_id])
                     if payload["id"] != selected_id:

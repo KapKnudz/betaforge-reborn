@@ -41,10 +41,10 @@ The backend uses SQLite and immutable source files. Its financial formulas curre
 .venv/bin/python scripts/run_codex_analysis.py \
   --packet "$PACKET_DIR/packet.json" \
   --prompt "$PACKET_DIR/prompt.md" \
-  --output "$RUN_DIR"
+  --output "$RUN_DIR" --structured
 ```
 
-The controller uses GPT-6.1 Sol/high with the workstation's Codex login. It provides bounded reads and calculations over the supplied packet and records sources, assumptions, formulas, reading coverage and results. Required reports come from that packet. `--smoke` checks integration with limited reading; it is not a valuation. See [tool contracts, cancellation and resume](codex-integration.md).
+The controller uses GPT-6.1 Sol/xhigh with the workstation's Codex login. It provides bounded reads and calculations over the supplied packet and records sources, assumptions, formulas, reading coverage and results. Required reports come from that packet. Follow the [analysis and independent challenge process](analysis-workflow.md) before presenting a new run as reviewed. `--smoke` checks integration with limited reading; it is not a valuation. See [tool contracts, cancellation and resume](codex-integration.md).
 
 The primary model is forward operating EV/EBIT with an explicit common-equity bridge. P/E and ownership-matched cash yield are checks. Scenario probabilities are company-specific judgments; expected-cash-flow IRR is compared with the selected historical SIXRX benchmark, separately from the discount-rate assumption. A full reverse DCF is not implemented. The [analysis policy](analysis-policy.md) and [formula catalogue](calculations.md) define these choices.
 

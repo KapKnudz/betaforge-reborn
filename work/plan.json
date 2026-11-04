@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T11:16:26+01:00",
+  "updated_at": "2026-11-04T13:57:02+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "multi-company-validation",
@@ -26,8 +26,8 @@
     {
       "id": "saved-review",
       "title": "Inspect saved valuations",
-      "status": "in_progress",
-      "summary": "Connect source evidence and decision rationale to a read-only analysis viewer."
+      "status": "done",
+      "summary": "Inspect a saved philosophy-based report, source-linked management expectations, dated scenarios and the independent challenge."
     },
     {
       "id": "development-corpus",
@@ -231,7 +231,7 @@
         "tests/test_saved_view.py"
       ],
       "blocker": null,
-      "note": "Implemented scoped material decisions with exact source records, independent definition/numeric-comparison statuses, selection reasons, residuals and valuation uses. Latest compatible quarter/R12 diagnostics now use matched economic periods and opening/closing capital; annual-only trade disclosures, operating-tax assumptions, missing cash components and provider EV date/unit limits remain explicit. Original scenario outputs and conditional weights are preserved. Clean proposed checkout: 141 tests, OK with one private-evidence class skipped; eleven installed-evidence tests pass. Financial and technical independent read-only findings were fixed and rechecked; browser checks cover updated/legacy reviews, readable units, comparisons and narrow layouts. Provider-wide definitions and other-company validation are not established. PR #9 is published as a draft against main: https://github.com/KapKnudz/betaforge-reborn/pull/9. Workbench PR #8 is a pending predecessor; keep the dependent PR draft until it merges and the remaining diff is checked. Exact evidence and saved results have a verified private archive and downloaded-copy check. Greptile identified an explicit report-CFO override edge case; the fix preserves the selected total and both report derivations/residuals instead of rejecting that valid selection, with independent recheck and regression coverage. Final Greptile receipt belongs in the PR conversation.",
+      "note": "Implemented scoped material decisions with exact source records, independent definition/numeric-comparison statuses, selection reasons, residuals and valuation uses. Latest compatible quarter/R12 diagnostics now use matched economic periods and opening/closing capital; annual-only trade disclosures, operating-tax assumptions, missing cash components and provider EV date/unit limits remain explicit. Original scenario outputs and conditional weights are preserved. Clean proposed checkout: 141 tests, OK with one private-evidence class skipped; eleven installed-evidence tests pass. Financial and technical independent read-only findings were fixed and rechecked; browser checks cover updated/legacy reviews, readable units, comparisons and narrow layouts. Provider-wide definitions and other-company validation are not established. PR #9 merged into main on 4 November 2026: https://github.com/KapKnudz/betaforge-reborn/pull/9. Predecessor #8 is merged; its tree matches the reviewed predecessor, and the remaining 15-file diff was checked without a rebase. Current-head Greptile is 5/5 with the actionable thread resolved. User review and merge are complete for PR #9. Exact evidence and saved results have a verified private archive and downloaded-copy check. Greptile identified an explicit report-CFO override edge case; the fix preserves the selected total and both report derivations/residuals instead of rejecting that valid selection, with independent recheck and regression coverage. Final Greptile receipt belongs in the PR conversation.",
       "summary": "Record what each material number means and why it was selected.",
       "purpose": "Prevent matching titles or numbers from hiding different accounting definitions."
     },
@@ -250,7 +250,7 @@
         "docs/retrieval-design.md"
       ],
       "blocker": null,
-      "note": "General report discovery/preparation still needs a minimal reusable path; five annuals remain the reading baseline where available.",
+      "note": "Next: choose another operating business and preserve its original reports, then test the generic structured analyst/review/viewer path and material definitions. Exercise different capital, acquisition or share conventions. Match peer evidence where useful; retain unsupported comparisons and claim values as explicit gaps.",
       "summary": "Repeat the workflow on another issuer, then three to five businesses.",
       "purpose": "Test the generic process against different accounting conventions."
     },
@@ -258,21 +258,32 @@
       "id": "saved-analysis-viewer",
       "milestone": "saved-review",
       "title": "Expose saved evidence, decisions and valuation bridges",
-      "status": "in_progress",
+      "status": "done",
       "acceptance": [
         "Material forecasts, multiples, probabilities and cash/claims assumptions have evidence and rationale.",
         "A read-only local viewer links financial history, source comparisons, named calculations and scenario results.",
-        "Opening saved results makes no provider or model calls."
+        "Opening saved results makes no provider or model calls.",
+        "Show the complete philosophy-based report high on the company page, with sourced management comparisons and dated scenario endpoints linked to rationale.",
+        "Exercise a fresh preserved-evidence analysis, independent challenge and at most one revision, keeping the historical run and unresolved findings."
       ],
       "evidence": [
         "docs/research/system-readiness-review.md",
         "docs/analysis-policy.md",
-        "docs/codex-integration.md"
+        "docs/codex-integration.md",
+        "docs/analysis-workflow.md",
+        "betaforge/analysis_report.py",
+        "betaforge/saved_view.py",
+        "web/progress/app.js",
+        "tests/test_analysis_report.py",
+        "tests/test_codex_runner.py",
+        "tests/test_saved_view.py",
+        "tests/test_progress_ui.py",
+        "docs/saved-analysis-view.md"
       ],
       "blocker": null,
-      "note": "The company tab now includes scoped material choices, provider/report comparisons, saved rationale and current-period diagnostics alongside preserved results. Broader cross-company validation, financial-history presentation and complete decision-review coverage remain pending.",
-      "summary": "Connect saved results to assumptions, calculations and evidence.",
-      "purpose": "Make the valuation reasoning inspectable without rerunning it."
+      "note": "Completed the one-company saved-review milestone: six report sections, explicit facts/interpretations/assumptions, source-linked management comparisons, dated endpoints and weights, named calculations and a separately bound independent review. The session workflow uses one lead analyst, independent challenge and at most one revision. Clean proposed checkout: 172 offline tests, OK with one private-evidence class skipped; eleven installed-evidence tests pass. Independent code-review findings were fixed and rechecked. The Greptile review-only evidence finding is fixed with snapshot/issuer isolation checks, regression coverage and an independent recheck; the implementation head received a fresh 5/5. The final merge-handoff commit still needs a current-head review. Browser checks cover real and earlier views, financial tables, management quotations, source drilldowns, benchmark display and narrow layouts, with no broken links, duplicate IDs or console errors. A fresh preserved-evidence analysis completed the bounded process; its qualifications and disagreements remain visible. Exact artifacts are privately archived; clean restore, exact export rebuild, database checks and downloaded-copy verification pass. Predecessor #9 merged as 88f1259 with the same tree as its reviewed head. The structured branch records that already included main ancestry so GitHub shows the focused 20-file change; no implementation change was needed: https://github.com/KapKnudz/betaforge-reborn/pull/10. The current-head Greptile receipt belongs in the PR conversation. User reviews and merges. Wider issuer and peer validation remain separate.",
+      "summary": "Show the full case, management expectations and dated scenarios with their evidence.",
+      "purpose": "Understand how the analyst moves from evidence to assumptions and valuation."
     },
     {
       "id": "retained-use-clarification",
@@ -399,13 +410,13 @@
         "docs/saved-analysis-view.md"
       ],
       "blocker": null,
-      "note": "Implemented the traditional local workbench with plan bars, a next-action box, short what/why records, architecture and explicitly configured saved-company views. Clean proposed checkout: 134 tests, OK with one private-evidence class skipped; JavaScript syntax and whitespace checks pass. Browser checked desktop/narrow layouts, keyboard tabs, filtering, evidence drilldowns, empty state and stale-plan recovery. Independent read-only review findings were fixed and rechecked; mobile visual issues were fixed and rechecked. Greptile found two producer compatibility issues: mixed scalar/named run records and explicit null benchmarks. Both were fixed, covered using actual offline calculation records and independently rechecked. No provider/model calls or valuation recalculation. PR #8 is open against main for user review and merge: https://github.com/KapKnudz/betaforge-reborn/pull/8. The fresh final-head Greptile receipt belongs in the PR conversation."
+      "note": "Implemented the traditional local workbench with plan bars, a next-action box, short what/why records, architecture and explicitly configured saved-company views. Clean proposed checkout: 134 tests, OK with one private-evidence class skipped; JavaScript syntax and whitespace checks pass. Browser checked desktop/narrow layouts, keyboard tabs, filtering, evidence drilldowns, empty state and stale-plan recovery. Independent read-only review findings were fixed and rechecked; mobile visual issues were fixed and rechecked. Greptile found two producer compatibility issues: mixed scalar/named run records and explicit null benchmarks. Both were fixed, covered using actual offline calculation records and independently rechecked. No provider/model calls or valuation recalculation. PR #8 merged into main on 4 November 2026: https://github.com/KapKnudz/betaforge-reborn/pull/8. The fresh final-head Greptile receipt belongs in the PR conversation."
     }
   ],
   "session": {
-    "task": "material-mapping",
-    "summary": "PR #9 contains the verified material-input decisions and current-period diagnostics; exact evidence is privately archived. The prior valuation is preserved.",
-    "next_step": "Complete the bounded current-head Greptile review on draft PR #9. User merges PR #8 first; verify/rebase the remaining diff before readiness. Then validate another issuer with original reports."
+    "task": "saved-analysis-viewer",
+    "summary": "Structured analysis and local presentation are implemented and independently reviewed. Exact evidence/results have a verified private archive. Predecessor #9 merged; the remaining PR #10 diff is verified. User reviews and merges.",
+    "next_step": "Complete the final current-head PR review and user-merge handoff, then validate another issuer with original reports."
   },
   "references": [
     {
@@ -443,6 +454,10 @@
     {
       "label": "Material inputs and period rules",
       "path": "docs/material-inputs.md"
+    },
+    {
+      "label": "Analysis and independent challenge",
+      "path": "docs/analysis-workflow.md"
     }
   ]
 }

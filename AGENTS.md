@@ -25,6 +25,7 @@
 ## Boundaries and simplicity
 
 - Implement the smallest complete change. Reuse existing modules and the standard library before adding dependencies, services or abstractions.
+- For a new valuation or a review-driven revision, follow [the analysis workflow](docs/analysis-workflow.md): structured report, independent challenge and at most one revision. Keep execution completion distinct from economic review.
 - Keep shared code company-neutral. Issuer prompts, mappings and replay scripts belong in `examples/<company>/`.
 - Keep financial meaning, sources, assumptions and deterministic arithmetic inspectable. A matching number does not prove an accounting definition.
 - Keep credentials and exact research in ignored local/private storage. The public plan contains delivery status and safe reference paths, never provider datasets or private investment notes.
