@@ -122,6 +122,67 @@ class SavedViewTests(unittest.TestCase):
         self.write(output, view)
         self.assertEqual(load_saved_view(output), view)
 
+    def test_preserves_real_runner_named_calculations_and_qualified_references(self):
+        from betaforge.tools import EvidenceTools
+
+        # Exercise the producer with local saved assumptions; no evidence/model run.
+        tools = EvidenceTools.__new__(EvidenceTools)
+        tools.state = {"inputs": {}, "calculations": {}}
+        revenue = tools.record_input("10.250000000000000001", "Saved revenue", "SEK", "assumption", scale="1000000")
+        margin = tools.record_input("0.1234567890123456789", "Explicit forecast margin", "fraction", "assumption")
+        named = tools.calculate_financial("revenue_ebit", {"revenue": revenue["id"], "ebit_margin": margin["id"]},
+                                          "Forecast EBIT", "Saved annual revenue and explicit operating margin")
+        cfo = tools.record_input("10", "Saved group CFO", "SEK", "assumption")
+        capex = tools.record_input("3", "Saved cash capex", "SEK", "assumption")
+        missing = tools.calculate_financial("group_cash_conversion", {"cfo": cfo["id"], "cash_capex": capex["id"]},
+                                            "Conditional cash bridge", "Interest and lease principal remain missing")
+        # The runner serializes all state records without changing either shape.
+        self.originals += list(tools.state["calculations"].values())
+        self.write(self.run / "calculations.json", self.originals)
+        self.review["preserved_valuation"]["calculations_sha256"] = self.digest(self.run / "calculations.json")
+        self.write(self.review_path, self.review)
+        self.summary["scenarios"][0]["calculation_ids"] = [named["id"], named["id"] + "#ebit", missing["id"] + "#cash_after_capex"]
+        self.write(self.run / "review-summary.json", self.summary)
+        view = self.build()
+        self.assertEqual(view["original_calculations"], self.originals)
+        self.assertEqual(view["original_calculations"][1]["input_ids"], named["input_ids"])
+        self.assertEqual(view["original_calculations"][1]["outputs"], named["outputs"])
+        self.assertIsNone(view["original_calculations"][2]["result"])
+        self.assertEqual(view["original_calculations"][2]["missing_inputs"], missing["missing_inputs"])
+        output = self.root / "view.json"
+        self.write(output, view)
+        self.assertEqual(load_saved_view(output), view)
+        for reference in (named["id"] + "#unknown", "calc:unknown#ebit", "calc:one#ebit"):
+            with self.subTest(reference=reference):
+                self.summary["scenarios"][0]["calculation_ids"] = [reference]
+                self.write(self.run / "review-summary.json", self.summary)
+                with self.assertRaises(ValueError):
+                    self.build()
+
+    def test_explicit_null_benchmark_from_review_producer_stays_missing(self):
+        # build_financial_review returns an explicit null when no market context is requested.
+        for comparison in (None, {"source": None}, {"source": {"context": None}}):
+            with self.subTest(comparison=comparison):
+                self.review["market_benchmark_comparison"] = comparison
+                self.write(self.review_path, self.review)
+                view = self.build()
+                self.assertEqual(view["benchmark"], minimal_view()["benchmark"])
+                self.assertEqual(view["scenarios"][0]["value"], "168.1400")
+
+    def test_rejects_non_object_benchmark_metadata(self):
+        for position in ("comparison", "source", "context"):
+            for malformed in (False, [], "invalid", 7):
+                with self.subTest(position=position, malformed=malformed):
+                    comparison = malformed
+                    if position == "source":
+                        comparison = {"source": malformed}
+                    elif position == "context":
+                        comparison = {"source": {"context": malformed}}
+                    self.review["market_benchmark_comparison"] = comparison
+                    self.write(self.review_path, self.review)
+                    with self.assertRaisesRegex(ValueError, "must be an object or null"):
+                        self.build()
+
     def test_rejects_swapped_summary_or_missing_scenario_references(self):
         for references in (["calc:other-run"], [], ["calc:one", "calc:other-run"]):
             with self.subTest(references=references):

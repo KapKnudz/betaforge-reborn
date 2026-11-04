@@ -441,7 +441,7 @@ function renderCompany(run) {
   }
   working.append(detail("Sources & report pages (" + sources.length + ")", sourceContent.length ? sourceContent : [element("p", "unavailable", "No sources included in this saved view.")]));
   working.append(detail("Run provenance", [element("pre", "", text(run.provenance))]));
-  if (run.original_calculations) working.append(detail("Original scalar calculation trace", [element("p", "basis", "Original saved operations, preserved as recorded. These are separate from the named calculation records above."), element("pre", "trace", text(run.original_calculations))]));
+  if (run.original_calculations) working.append(detail("Original calculation trace", [element("p", "basis", "Original saved operations and named formulas, preserved as recorded. These are separate from the financial-review records above."), element("pre", "trace", text(run.original_calculations))]));
   view.append(working);
   if (loadedRunId === run.id) for (const details of view.querySelectorAll("details")) if (opened.has(details.firstElementChild.textContent)) details.open = true;
   loadedRunId = run.id;

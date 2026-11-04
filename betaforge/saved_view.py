@@ -240,15 +240,35 @@ def validate_saved_view(view):
         if not isinstance(calc["outputs"], dict) or not isinstance(calc["inputs"], dict):
             raise ValueError("Invalid named calculation")
     for calc in view["original_calculations"]:
-        _object(calc, {"id", "operation", "inputs", "result", "label", "unit", "scale", "basis"})
+        required = {"id", "operation", "inputs", "result", "label", "unit", "scale", "basis"}
+        optional = set()
+        if isinstance(calc, dict) and calc.get("operation") == "financial_formula":
+            required |= {"formula", "version", "primary_output", "formula_text", "outputs", "input_ids", "options", "warnings", "missing_inputs"}
+            optional = {"period_start", "period_end"}
+        _object(calc, required, optional)
         _text(calc["id"])
         if not isinstance(calc["inputs"], list):
             raise ValueError("Invalid original calculation inputs")
-    calculation_ids = {calc["id"] for calc in view["original_calculations"] + view["calculations"]}
+        if calc["operation"] == "financial_formula":
+            for key in ("formula", "version", "primary_output", "formula_text"):
+                _text(calc[key])
+            if not isinstance(calc["outputs"], dict) or not isinstance(calc["input_ids"], dict):
+                raise ValueError("Invalid original named calculation")
+            for identifier in calc["input_ids"].values():
+                _text(identifier)
+            for key in optional & calc.keys():
+                _date(calc[key])
+    calculations_by_id = {calc["id"]: calc for calc in view["original_calculations"] + view["calculations"]}
     for scenario in view["scenarios"]:
         references = scenario["calculation_ids"]
-        if (scenario["value"] is not None and not references) or any(ref not in calculation_ids for ref in references):
+        if scenario["value"] is not None and not references:
             raise ValueError("Scenario must reference calculations retained in this saved view")
+        for reference in references:
+            if reference in calculations_by_id:
+                continue
+            base, separator, output = reference.partition("#")
+            if not separator or output not in calculations_by_id.get(base, {}).get("outputs", {}):
+                raise ValueError("Scenario must reference a retained calculation or named output")
     for source in view["sources"]:
         _object(source, {"id", "title", "period", "published_at", "url", "sha256", "prepared_sha256", "pages"})
         _text(source["id"])
@@ -377,8 +397,19 @@ def build_saved_view(review_path, run_dir, packet_dir, company_name, ticker, vie
                         "published_at": original.get("publication_date"), "url": original.get("source_url"),
                         "sha256": item["source_sha256"], "prepared_sha256": item["prepared_sha256"],
                         "pages": item["pages"]})
-    comparison = review.get("market_benchmark_comparison", {})
-    source_context = comparison.get("source", {}).get("context")
+    comparison = review.get("market_benchmark_comparison")
+    if comparison is None:
+        comparison = {}
+    if not isinstance(comparison, dict):
+        raise ValueError("Saved benchmark comparison must be an object or null")
+    benchmark_source = comparison.get("source")
+    if benchmark_source is None:
+        benchmark_source = {}
+    if not isinstance(benchmark_source, dict):
+        raise ValueError("Saved benchmark source must be an object or null")
+    source_context = benchmark_source.get("context")
+    if source_context is not None and not isinstance(source_context, dict):
+        raise ValueError("Saved benchmark context must be an object or null")
     benchmark = {key: comparison.get(key) for key in BENCHMARK_FIELDS}
     benchmark["limits"] = comparison.get("limits", [])
     benchmark["context"] = ({key: value for key, value in source_context.items() if key in CONTEXT_FIELDS}

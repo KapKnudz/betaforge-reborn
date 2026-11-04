@@ -32,7 +32,7 @@ Identity checks bind the packet, frozen database, original inputs and calculatio
 ## Read the company tab
 
 - **Conclusion and scenarios:** the dated saved conclusion and present values. Future targets and discount assumptions remain in each case’s basis. Conditional case weights are proposals, with their saved qualifications.
-- **Calculations:** named formulas, inputs, units, scale, source IDs, physical-page evidence, outputs and missing inputs. The original arithmetic trace is available separately.
+- **Calculations:** named formulas, inputs, units, scale, source IDs, physical-page evidence, outputs and missing inputs. The original run trace, including scalar operations and named formulas, is available separately.
 - **Sources and interpretation:** archived report identities and hashes, saved analysis, caveats and the distinction between an analysis date and a later review date.
 
 The historical index comparison is context, not a future return forecast. Missing cash-conversion inputs remain missing. Showing a result does not verify its accounting definitions or prove its investment thesis.
