@@ -4,11 +4,12 @@ This module copies saved financial results. It never calls providers, runs a mod
 solves a formula, or infers a valuation from prose.
 """
 from datetime import date, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
 import hashlib
 import json
 from pathlib import Path
 import re
+from tempfile import TemporaryDirectory
 from urllib.parse import parse_qsl, urlsplit
 
 
@@ -38,7 +39,7 @@ PROVENANCE_FIELDS = {
     "summary_sha256", "narrative_sha256", "model",
     "reasoning_effort", "status", "started_at", "finished_at", "coverage",
 }
-OPTIONAL_HASHES = {"current_facts_sha256", "material_inputs_sha256"}
+OPTIONAL_HASHES = {"current_facts_sha256", "material_inputs_sha256", "analysis_sha256"}
 DEFINITION_STATUSES = {"documented", "unresolved"}
 RECONCILIATION_STATUSES = {"unreviewed", "matched", "derived_match", "disagrees", "not_comparable"}
 SOURCE_RECORD_FIELDS = {
@@ -170,6 +171,10 @@ def _tree(value, depth=0):
     if depth > 32:
         raise ValueError("Saved metadata is too deeply nested")
     if isinstance(value, dict):
+        if set(value) == {"value", "precision"}:
+            from betaforge.analysis_report import dated_endpoint
+            dated_endpoint(value)
+            return
         for key, item in value.items():
             if key in NUMERIC_FIELDS or (key.endswith(("_percent", "_fraction")) and isinstance(item, str)):
                 _number(item)
@@ -282,7 +287,7 @@ def _material_inputs(rows):
 
 def validate_saved_view(view):
     """Validate the bounded display schema before a server exposes it."""
-    _object(view, FIELDS, {"material_inputs", "current_data_limits"})
+    _object(view, FIELDS, {"material_inputs", "current_data_limits", "analysis", "analysis_review", "saved_records"})
     if type(view["schema_version"]) is not int or view["schema_version"] != 1:
         raise ValueError("Unsupported saved-view version")
     if not isinstance(view["id"], str) or len(view["id"]) > 100 or not SLUG.fullmatch(view["id"]):
@@ -307,7 +312,7 @@ def validate_saved_view(view):
     if not isinstance(view["scenarios"], list):
         raise ValueError("Invalid scenarios")
     for scenario in view["scenarios"]:
-        _object(scenario, {"name", "value", "unit", "basis", "calculation_ids"}, {"weight"})
+        _object(scenario, {"name", "value", "unit", "basis", "calculation_ids"}, {"weight", "id", "present_value", "future_target", "present_value_date", "target_date"} if "analysis" in view else {"weight"})
         for key in ("name", "unit", "basis"):
             _text(scenario[key])
         _number(scenario["value"])
@@ -326,7 +331,7 @@ def validate_saved_view(view):
         if weight is None or not 0 <= Decimal(weight) <= 1:
             raise ValueError("Probability weight outside zero to one")
     for scenario in view["scenarios"]:
-        if "weight" in scenario and scenario["weight"] != probability["weights"].get(scenario["name"].lower()):
+        if "weight" in scenario and scenario["weight"] != probability["weights"].get(scenario.get("id", scenario["name"].lower())):
             raise ValueError("Scenario weight differs from saved probability")
     for key in ("calculations", "original_calculations", "interpretation", "notes", "sources"):
         if not isinstance(view[key], list):
@@ -341,7 +346,7 @@ def validate_saved_view(view):
         else:
             _text(note)
     for calc in view["calculations"]:
-        _object(calc, {"id", "formula", "version", "formula_text", "outputs", "inputs", "options", "warnings", "missing_inputs"}, {"label", "primary_output", "preserved_assumptions", "display_role", "report_type", "period_start", "period_end", "year", "period", "current_period_reason", "price_date"})
+        _object(calc, {"id", "formula", "version", "formula_text", "outputs", "inputs", "options", "warnings", "missing_inputs"}, {"label", "basis", "primary_output", "preserved_assumptions", "display_role", "report_type", "period_start", "period_end", "year", "period", "current_period_reason", "price_date"})
         for key in ("id", "formula", "version", "formula_text"):
             _text(calc[key])
         if not isinstance(calc["outputs"], dict) or not isinstance(calc["inputs"], dict):
@@ -364,7 +369,7 @@ def validate_saved_view(view):
         optional = set()
         if isinstance(calc, dict) and calc.get("operation") == "financial_formula":
             required |= {"formula", "version", "primary_output", "formula_text", "outputs", "input_ids", "options", "warnings", "missing_inputs"}
-            optional = {"period_start", "period_end"}
+            optional = {"period_start", "period_end", "report_type"}
         _object(calc, required, optional)
         _text(calc["id"])
         if not isinstance(calc["inputs"], list):
@@ -376,7 +381,7 @@ def validate_saved_view(view):
                 raise ValueError("Invalid original named calculation")
             for identifier in calc["input_ids"].values():
                 _text(identifier)
-            for key in optional & calc.keys():
+            for key in {"period_start", "period_end"} & calc.keys():
                 _date(calc[key])
     calculations_by_id = {calc["id"]: calc for calc in view["original_calculations"] + view["calculations"]}
     for scenario in view["scenarios"]:
@@ -415,6 +420,8 @@ def validate_saved_view(view):
     provenance = view["provenance"]
     _object(provenance, PROVENANCE_FIELDS, OPTIONAL_HASHES)
     for key in {"database_sha256", "packet_sha256", "review_sha256", "run_sha256", "summary_sha256", "narrative_sha256"} | (OPTIONAL_HASHES & provenance.keys()):
+        if key == "review_sha256" and provenance[key] is None and "analysis" in view and "analysis_review" not in view:
+            continue
         if not isinstance(provenance[key], str) or not HASH.fullmatch(provenance[key]):
             raise ValueError("Invalid provenance hash")
     if provenance["status"] != "completed" or not isinstance(provenance["coverage"], dict):
@@ -433,6 +440,10 @@ def validate_saved_view(view):
             raise ValueError("Material input decision hash mismatch")
     if "current_data_limits" in view:
         _texts(view["current_data_limits"])
+    if "analysis" in view:
+        _validate_structured_view(view)
+    elif {"analysis_review", "saved_records"} & view.keys() or "analysis_sha256" in provenance:
+        raise ValueError("Structured metadata requires its canonical analysis")
     _tree(view)
     return view
 
@@ -448,8 +459,361 @@ def _child(base, relative):
     return checked_path(Path(base) / path)
 
 
+def _saved_json_hash(value):
+    """Match the runner's preserved JSON encoding, including its field order."""
+    return hashlib.sha256(json.dumps(value, indent=2, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def _normalized_calculation(record):
+    keys = {"id", "formula", "version", "formula_text", "outputs", "options", "warnings", "missing_inputs",
+            "label", "basis", "primary_output", "report_type", "period_start", "period_end"}
+    result = {key: value for key, value in record.items() if key in keys}
+    result["inputs"] = {item["field"]: dict(item) for item in record["inputs"]}
+    if len(result["inputs"]) != len(record["inputs"]):
+        raise ValueError("Duplicate named calculation input field")
+    return result
+
+
+def _probability_value(record):
+    with localcontext() as context:
+        context.prec = max(40, len(record["value"]) + len(record["scale"]) + 10)
+        return str(Decimal(record["value"]) * Decimal(record["scale"]))
+
+
+def _historical_benchmark_return(context, analysis_date):
+    if not isinstance(context, dict):
+        return None
+    benchmark, calculation = context.get("benchmark"), context.get("calculation")
+    if (not isinstance(benchmark, dict) or not isinstance(calculation, dict) or
+            benchmark.get("symbol") != "SIXRX" or benchmark.get("currency") != "SEK" or
+            benchmark.get("return_type") != "gross_total_return" or
+            context.get("analysis_date") != analysis_date or
+            context.get("status") != "verified_from_rounded_public_levels"):
+        return None
+    value = calculation.get("annualized_return_percent")
+    try:
+        _number(value)
+    except ValueError:
+        return None
+    return value
+
+
+def _validate_structured_view(view):
+    """Check retained claims; original PDFs are verified only by the exporter."""
+    from betaforge.analysis_report import SECTIONS, dated_endpoint, fields, render_markdown, text, validate_review
+    from betaforge.financials import FORMULAS
+    from betaforge.tools import unit_dimensions
+    report, provenance = view["analysis"], view["provenance"]
+    fields(report, ("schema_version", "analysis_date", "summary", "sections", "management_comparisons", "scenarios",
+                    "probability_limits", "identity", "validation_status", "review_status"))
+    if (type(report["schema_version"]) is not int or report["schema_version"] != 1 or
+            report["analysis_date"] != view["analysis_date"] or report["summary"] != view["conclusion"] or
+            report["validation_status"] != "syntax_and_identity_valid" or report["review_status"] != "unreviewed"):
+        raise ValueError("Canonical analysis claims differ from saved view")
+    analysis_hash = _saved_json_hash(report)
+    if provenance.get("analysis_sha256") != analysis_hash or provenance["summary_sha256"] != analysis_hash:
+        raise ValueError("Canonical analysis hash mismatch")
+    if hashlib.sha256(view["narrative"].encode("utf-8")).hexdigest() != provenance["narrative_sha256"]:
+        raise ValueError("Structured narrative hash mismatch")
+    if view["narrative"] != render_markdown(report):
+        raise ValueError("Structured narrative differs from canonical analysis")
+    identity = report["identity"]
+    fields(identity, ("packet_sha256", "database_sha256", "reports", "source_manifest_sha256"),
+           ("analysis_contract", "benchmark_context", "market_benchmark_context"))
+    for key in ("packet_sha256", "database_sha256", "source_manifest_sha256"):
+        if not isinstance(identity[key], str) or not HASH.fullmatch(identity[key]):
+            raise ValueError("Invalid canonical evidence identity")
+    if any(identity[key] != provenance[key] for key in ("packet_sha256", "database_sha256")):
+        raise ValueError("Canonical evidence identity differs from provenance")
+    sources = {source["id"]: source for source in view["sources"]}
+    if len(sources) != len(view["sources"]) or identity["reports"] != {
+            identifier: [source["sha256"], source["prepared_sha256"]] for identifier, source in sources.items()}:
+        raise ValueError("Canonical report sources differ from saved sources")
+    records = view.get("saved_records")
+    if not isinstance(records, list):
+        raise ValueError("Canonical analysis requires saved reference records")
+    by_id = {}
+    for record in records:
+        _source_record(record)
+        if record["id"] in by_id:
+            raise ValueError("Duplicate saved reference record")
+        by_id[record["id"]] = record
+        if record["id"].startswith("input:"):
+            content = {key: value for key, value in record.items() if key != "id"}
+            if record["id"] != "input:" + hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()[:20]:
+                raise ValueError("Saved input content hash mismatch")
+        if record.get("instrument_id", view["company"]["instrument_id"]) != view["company"]["instrument_id"]:
+            raise ValueError("Saved reference belongs to another instrument")
+        if record.get("report_id"):
+            source = sources.get(record["report_id"])
+            if source is None or type(record.get("page")) is not int or not 1 <= record["page"] <= source["pages"]:
+                raise ValueError("Saved reference report page is unavailable")
+    originals = {calc["id"]: calc for calc in view["original_calculations"]}
+    if len(originals) != len(view["original_calculations"]):
+        raise ValueError("Duplicate original calculation")
+    for identifier, record in originals.items():
+        content = {key: value for key, value in record.items() if key != "id"}
+        if identifier != "calc:" + hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()[:20]:
+            raise ValueError("Saved calculation content hash mismatch")
+    expected_calculations = [_normalized_calculation(calc) for calc in originals.values() if calc["operation"] == "financial_formula"]
+    if view["calculations"] != expected_calculations:
+        raise ValueError("Named calculations differ from original trace")
+    returns = [calc for calc in originals.values() if calc.get("formula") == "expected_cashflow_irr"]
+    candidate = returns[0]["outputs"].get("irr_percent", {}).get("value") if len(returns) == 1 else None
+    if (view["benchmark"]["candidate_annualized_return_percent"] != candidate or
+            view["benchmark"]["benchmark_annualized_return_percent"] !=
+            _historical_benchmark_return(view["benchmark"]["context"], view["analysis_date"]) or
+            view["benchmark"]["difference_percentage_points"] is not None):
+        raise ValueError("Benchmark must preserve the saved return without inventing a comparison")
+
+    def reference(identifier):
+        text(identifier, "reference", 200)
+        match = re.fullmatch(r"([A-Za-z0-9_-]+):p([1-9]\d*)", identifier)
+        if match:
+            source = sources.get(match[1])
+            if source is None or int(match[2]) > source["pages"]:
+                raise ValueError("Reference page is unavailable")
+            return
+        if identifier not in by_id:
+            raise ValueError("Analysis reference lacks its saved record")
+
+    def references(values, required=True):
+        if not isinstance(values, list) or len(values) > 100 or (required and not values):
+            raise ValueError("Invalid canonical references")
+        for identifier in values:
+            reference(identifier)
+
+    for record in by_id.values():
+        base, separator, output = record["id"].partition("#")
+        if base in originals:
+            calc = originals[base]
+            saved = calc.get("outputs", {}).get(output) if separator else {"value": calc["result"], "unit": calc["unit"]}
+            if saved is None or record["value"] != saved["value"] or record["unit"] != saved["unit"] or record["scale"] != "1":
+                raise ValueError("Saved calculation reference differs from original output")
+    for calc in originals.values():
+        for item in calc["inputs"]:
+            reference(item["id"])
+            retained = by_id[item["id"]]
+            if {key: value for key, value in item.items() if key in SOURCE_RECORD_FIELDS} != retained:
+                raise ValueError("Calculation input differs from retained source record")
+    text(report["summary"], "summary")
+    text(report["probability_limits"], "probability limits")
+    sections = report["sections"]
+    if not isinstance(sections, list) or len(sections) != 6 or {s.get("id") for s in sections if isinstance(s, dict)} != set(SECTIONS):
+        raise ValueError("Invalid canonical analysis sections")
+    for section in sections:
+        fields(section, ("id", "title", "paragraphs"))
+        text(section["title"], "section title", 300)
+        if not isinstance(section["paragraphs"], list) or not 1 <= len(section["paragraphs"]) <= 50:
+            raise ValueError("Invalid canonical paragraphs")
+        for paragraph in section["paragraphs"]:
+            fields(paragraph, ("kind", "text", "references"))
+            if paragraph["kind"] not in {"fact", "interpretation", "assumption"}:
+                raise ValueError("Invalid canonical paragraph kind")
+            text(paragraph["text"], "paragraph")
+            references(paragraph["references"])
+    comparisons = report["management_comparisons"]
+    if not isinstance(comparisons, list) or len(comparisons) > 100:
+        raise ValueError("Invalid management comparisons")
+    comparison_ids = set()
+    for item in comparisons:
+        fields(item, ("id", "metric_key", "metric_label", "relationship", "statement_type", "statement", "statement_date", "target_period", "basis", "actual", "actual_references", "references", "evidence"))
+        if not re.fullmatch(r"[a-z0-9_-]+", text(item["id"], "management ID", 100)) or item["id"] in comparison_ids or item["metric_key"] not in FORMULAS:
+            raise ValueError("Invalid management comparison identity")
+        comparison_ids.add(item["id"])
+        for key in ("metric_label", "statement", "basis"):
+            text(item[key], key)
+        for key in ("actual", "target_period"):
+            if item[key] is not None:
+                text(item[key], key)
+        references(item["references"])
+        references(item["actual_references"], item["actual"] is not None)
+        if item["statement_date"] is not None:
+            _date(item["statement_date"])
+            if item["statement_date"] > view["analysis_date"]:
+                raise ValueError("Management statement follows analysis date")
+        if item["relationship"] not in {"direct", "related", "not_stated"} or item["statement_type"] not in {"target", "guidance", "driver", "not_stated"}:
+            raise ValueError("Invalid management classification")
+        if item["relationship"] == "not_stated" or item["statement_type"] == "not_stated":
+            if item["relationship"] != "not_stated" or item["statement_type"] != "not_stated" or item["evidence"] is not None or item["statement_date"] is not None or not any(":p" in ref for ref in item["references"]):
+                raise ValueError("Invalid explicit management absence")
+        else:
+            evidence = item["evidence"]
+            fields(evidence, ("report_id", "page", "quote"))
+            text(evidence["quote"], "source quote", 4000)
+            if type(evidence["page"]) is not int or evidence["page"] <= 0:
+                raise ValueError("Invalid management page")
+            source_ref = f"{evidence['report_id']}:p{evidence['page']}"
+            reference(source_ref)
+            if source_ref not in item["references"]:
+                raise ValueError("Management evidence lacks its page reference")
+            published = sources[evidence["report_id"]]["published_at"]
+            if item["statement_date"] != published:
+                raise ValueError("Management statement date differs from source publication")
+    scenarios = report["scenarios"]
+    if not isinstance(scenarios, list) or len(scenarios) != 3 or {s.get("id") for s in scenarios if isinstance(s, dict)} != {"bear", "base", "bull"} or len(view["scenarios"]) != 3:
+        raise ValueError("Invalid canonical scenarios")
+    weights, endpoints = {}, set()
+    for item, display in zip(scenarios, view["scenarios"]):
+        fields(item, ("id", "name", "valuation_calculation_id", "present_value_date", "target_date", "rationale", "assumption_rationale", "references", "weight_ref", "probability_rationale", "present_value", "future_target"))
+        for key in ("name", "rationale", "assumption_rationale", "probability_rationale"):
+            text(item[key], key)
+        references(item["references"])
+        pv_date, target = (dated_endpoint(item[key]) for key in ("present_value_date", "target_date"))
+        endpoints.add((target, item["target_date"]["precision"]))
+        calc = originals.get(item["valuation_calculation_id"], {})
+        if calc.get("formula") != "valuation_case" or item["present_value_date"] != {"value": view["analysis_date"], "precision": "day"}:
+            raise ValueError("Invalid canonical valuation endpoint")
+        years = next((r["calculation_value"] for r in calc["inputs"] if r["field"] == "years"), None)
+        if years is None or int(target[:4]) - int(pv_date[:4]) != Decimal(years) or int(target[:4]) <= int(pv_date[:4]) or (len(target) > 4 and target[5:] != pv_date[5:len(target)]):
+            raise ValueError("Scenario target differs from retained horizon")
+        for key in ("present_value", "future_target"):
+            fields(item[key], ("value", "unit"))
+            output = calc["outputs"].get(key)
+            if item[key] != output or unit_dimensions(output) != {"SEK": 1, "shares": -1} or Decimal(output["value"]) < 0:
+                raise ValueError("Canonical scenario differs from retained valuation output")
+        weight = by_id.get(item["weight_ref"], {})
+        if weight.get("kind") != "assumption" or unit_dimensions(weight) or weight.get("value") is None:
+            raise ValueError("Scenario lacks a saved probability assumption")
+        weights[item["id"]] = _probability_value(weight)
+        expected = {"id": item["id"], "name": item["name"], "value": item["present_value"]["value"], "unit": item["present_value"]["unit"],
+                    "basis": calc["basis"], "calculation_ids": [calc["id"]], "weight": weights[item["id"]],
+                    **{key: item[key] for key in ("present_value", "future_target", "present_value_date", "target_date")}}
+        if display != expected:
+            raise ValueError("Displayed scenario differs from canonical analysis")
+    if len(endpoints) != 1 or sum(map(Decimal, weights.values())) != 1 or view["probability"] != {"weights": weights, "basis": report["probability_limits"], "status": "proposed"}:
+        raise ValueError("Canonical probability claims differ from saved view")
+    if "analysis_review" in view:
+        review = validate_review(view["analysis_review"], provenance["packet_sha256"], analysis_hash)
+        if _saved_json_hash(review) != provenance["review_sha256"]:
+            raise ValueError("Independent review hash mismatch")
+    elif provenance["review_sha256"] is not None:
+        raise ValueError("Independent review hash requires its retained review")
+
+
+def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_id, method):
+    """Export a submitted structured run after verifying all frozen evidence."""
+    from betaforge.analysis_report import render_markdown, validate_saved_report, validate_review
+    from betaforge.tools import EvidenceTools
+    run_dir, packet_dir = map(checked_path, (run_dir, packet_dir))
+    run_body, analysis_body = (_body(run_dir / name) for name in ("run.json", "analysis.json"))
+    run, report = map(_decode, (run_body, analysis_body))
+    analysis_hash = hashlib.sha256(analysis_body).hexdigest()
+    if not isinstance(run, dict) or run.get("status") != "completed" or run.get("smoke") is not False or run.get("structured") is not True or run.get("analysis_sha256") != analysis_hash:
+        raise ValueError("Export requires a completed non-smoke structured run with bound analysis")
+    state = _json(run_dir / "tool-state.json")
+    if not isinstance(state, dict) or any(not isinstance(state.get(name), dict) for name in ("inputs", "calculations")):
+        raise ValueError("Structured tool state requires input and calculation mappings")
+    original_bodies = {name: _body(run_dir / (name + ".json")) for name in ("inputs", "calculations")}
+    originals = {name: _decode(body) for name, body in original_bodies.items()}
+    for name, body in original_bodies.items():
+        if run.get(name + "_sha256") != hashlib.sha256(body).hexdigest() or originals[name] != list(state.get(name, {}).values()):
+            raise ValueError("Structured artifact differs from saved run/state: " + name)
+    if state.get("analysis_sha256") != analysis_hash:
+        raise ValueError("Structured analysis differs from tool state")
+    with TemporaryDirectory() as temporary:
+        tools = EvidenceTools(checked_path(packet_dir / "packet.json"), temporary, structured=True)
+        try:
+            if run.get("identity") != tools.identity or state.get("identity") != tools.identity:
+                raise ValueError("Structured evidence identity differs from run/tool state")
+            tools.state = state
+            if not tools.coverage()["complete"] or run.get("coverage") != tools.coverage():
+                raise ValueError("Structured reading coverage differs from completed run")
+            validate_saved_report(report, tools)
+            packet, identity = tools.packet, tools.identity
+            report_manifest = _json(checked_path(tools.report_dir / "source-manifest.json"))
+            if report_manifest.get("borsdata_instrument_id") != packet["instrument_id"]:
+                raise ValueError("Report manifest instrument differs from packet")
+            manifest_entries = {item["report_id"]: item for item in report_manifest["documents"]}
+            if len(manifest_entries) != len(report_manifest["documents"]) or set(manifest_entries) != set(tools.reports):
+                raise ValueError("Report manifest must uniquely match all prepared sources")
+            sources = []
+            for item in tools.index["reports"]:
+                original = manifest_entries[item["report_id"]]
+                if original["sha256"] != item["source_sha256"] or original.get("borsdata_instrument_id", packet["instrument_id"]) != packet["instrument_id"]:
+                    raise ValueError("Manifest source differs from verified report")
+                sources.append({"id": item["report_id"], "title": original.get("title") or item["report_id"],
+                                "period": original.get("reporting_period", {"start": None, "end": None}),
+                                "published_at": original.get("publication_date"), "url": original.get("source_url"),
+                                "sha256": item["source_sha256"], "prepared_sha256": item["prepared_sha256"], "pages": item["pages"]})
+            references = set(state["inputs"])
+            for calc in originals["calculations"]:
+                references.update(item["id"] for item in calc["inputs"])
+            for section in report["sections"]:
+                for paragraph in section["paragraphs"]:
+                    references.update(paragraph["references"])
+            for item in report["management_comparisons"]:
+                references.update(item["references"] + item["actual_references"])
+            for item in report["scenarios"]:
+                references.update(item["references"] + [item["weight_ref"]])
+            records = []
+            for identifier in sorted(references):
+                if re.fullmatch(r"[A-Za-z0-9_-]+:p[1-9]\d*", identifier):
+                    continue
+                if identifier in state["calculations"]:
+                    calc = state["calculations"][identifier]
+                    record = {"id": identifier, "value": calc["result"], "unit": calc["unit"], "scale": "1", "kind": "calculation",
+                              **{key: calc[key] for key in ("period_start", "period_end", "report_type") if key in calc}}
+                else:
+                    record = tools.resolve_input(identifier)
+                records.append({key: value for key, value in record.items() if key in SOURCE_RECORD_FIELDS})
+            context = packet.get("context", {})
+            if isinstance(context, str):
+                try:
+                    context = json.JSONDecoder(object_pairs_hook=_pairs).raw_decode(context[context.index("{"):])[0]
+                except (ValueError, json.JSONDecodeError) as error:
+                    raise ValueError("Frozen packet financial context is invalid") from error
+            closes = context.get("latest_close", [])
+            price = None
+            if closes:
+                saved_price = closes[0]
+                if saved_price.get("instrument_id", packet["instrument_id"]) != packet["instrument_id"]:
+                    raise ValueError("Frozen price belongs to another instrument")
+                price = {key: saved_price.get(key) for key in PRICE_FIELDS}
+                price["date"] = saved_price.get("date", saved_price.get("period_end"))
+            benchmark = dict.fromkeys(BENCHMARK_FIELDS)
+            benchmark["limits"] = ["Saved expected return and historical benchmark context are not a forecast comparison."]
+            returns = [calc for calc in originals["calculations"] if calc.get("formula") == "expected_cashflow_irr"]
+            if len(returns) == 1:
+                benchmark["candidate_annualized_return_percent"] = returns[0]["outputs"].get("irr_percent", {}).get("value")
+            benchmark_entry = packet.get("market_benchmark_context", packet.get("benchmark_context"))
+            if benchmark_entry:
+                saved_context = _json(_child(packet_dir, benchmark_entry["context_path"]))
+                benchmark["context"] = {key: value for key, value in saved_context.items() if key in CONTEXT_FIELDS}
+            benchmark["benchmark_annualized_return_percent"] = _historical_benchmark_return(
+                benchmark["context"], packet["analysis_date"])
+        finally:
+            tools.store.close()
+    probabilities = {item["id"]: _probability_value(state["inputs"][item["weight_ref"]]) for item in report["scenarios"]}
+    calculations = {calc["id"]: calc for calc in originals["calculations"]}
+    scenarios = [{"id": item["id"], "name": item["name"], "value": item["present_value"]["value"], "unit": item["present_value"]["unit"],
+                  "basis": calculations[item["valuation_calculation_id"]]["basis"], "calculation_ids": [item["valuation_calculation_id"]],
+                  "weight": probabilities[item["id"]], **{key: item[key] for key in ("present_value", "future_target", "present_value_date", "target_date")}} for item in report["scenarios"]]
+    narrative_body = _body(run_dir / "answer.md")
+    if narrative_body.decode("utf-8") != render_markdown(report):
+        raise ValueError("Structured narrative differs from canonical analysis")
+    view = {"schema_version": 1, "id": view_id, "company": {"name": company_name, "ticker": ticker, "instrument_id": packet["instrument_id"]},
+            "analysis_date": packet["analysis_date"], "reviewed_at": run["finished_at"], "method": method, "price": price,
+            "conclusion": report["summary"], "scenarios": scenarios, "probability": {"weights": probabilities, "basis": report["probability_limits"], "status": "proposed"},
+            "calculations": [_normalized_calculation(calc) for calc in originals["calculations"] if calc["operation"] == "financial_formula"],
+            "original_calculations": originals["calculations"], "interpretation": [], "notes": [], "narrative": narrative_body.decode("utf-8"),
+            "sources": sources, "benchmark": benchmark, "analysis": report, "saved_records": records,
+            "provenance": {"database_sha256": identity["database_sha256"], "packet_sha256": identity["packet_sha256"], "review_sha256": None,
+                           "run_sha256": hashlib.sha256(run_body).hexdigest(), "summary_sha256": analysis_hash, "analysis_sha256": analysis_hash,
+                           "narrative_sha256": hashlib.sha256(narrative_body).hexdigest(),
+                           **{key: run.get(key) for key in ("model", "reasoning_effort", "status", "started_at", "finished_at", "coverage")}}}
+    review_path = run_dir / "analysis-review.json"
+    if review_path.exists():
+        review_body = _body(review_path)
+        view["analysis_review"] = validate_review(_decode(review_body), identity["packet_sha256"], analysis_hash)
+        view["provenance"]["review_sha256"] = _saved_json_hash(view["analysis_review"])
+    return validate_saved_view(view)
+
+
 def build_saved_view(review_path, run_dir, packet_dir, company_name, ticker, view_id, method):
     """Copy one reviewed, completed run after checking its preserved identities."""
+    if review_path is None:
+        return build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_id, method)
     review_path, run_dir, packet_dir = map(checked_path, (review_path, run_dir, packet_dir))
     review_body = _body(review_path)
     run_body = _body(run_dir / "run.json")

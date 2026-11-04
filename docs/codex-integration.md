@@ -63,6 +63,14 @@ Artifacts:
 
 The website can display these saved records without rerunning the model. This controller does not itself implement a website.
 
+## Structured reports and independent challenge
+
+Use `--structured` for new philosophy-based reports. `submit_analysis` validates six named sections, labelled facts/interpretations/assumptions, saved references, sourced management statements and dated bear/base/bull cases. Present values and targets are copied from saved `valuation_case` outputs. An explicit target-date precision prevents an annual or monthly horizon from becoming an invented day. `get_saved_record` resolves existing inputs, observations and calculation records for inspection.
+
+The controller writes `analysis.json` and a readable `answer.md`, recording the exact report, input and calculation artifact hashes. Structured completion requires delivered mandatory pages and an accepted submission. This is a structural and identity check, not an assessment of the investment thesis. Existing unstructured runs and smoke checks retain their original contracts.
+
+The session coordinator obtains an independent read-only Sol/xhigh challenge following [the analysis workflow](analysis-workflow.md). The controller does not dispatch financial subagents itself. Review feedback is tied to the packet and exact draft hash. `--resume --structured --review-feedback PATH` permits one explicit revision, preserves draft artifacts, and reopens at most two targeted research rounds. Structured analyst execution has a cumulative 7,200-second limit across continuations. The original prompt and implementation identity remain fixed; feedback has its own saved hash. A revised report remains pending content review until independently checked.
+
 ## Protocol and verification scope
 
 The [official app-server documentation](https://learn.chatgpt.com/docs/app-server#dynamic-tool-calls-experimental) describes experimental dynamic tools and their server-to-client flow. The implementation supplies schemas on `thread/start`, handles `item/tool/call`, and returns `inputText`/`inputImage` items. Durable tools are restored on `thread/resume`. An installed Codex build change needs another integration check.

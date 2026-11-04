@@ -121,14 +121,23 @@ TOOL_SCHEMAS = [
 ]
 
 
+STRUCTURED_TOOL_SCHEMAS = [
+    schema('get_saved_record', 'Inspect one saved input, calculation (including all named outputs), or selected-company observation by exact ID.',
+           {'identifier': STRING}, ['identifier']),
+    schema('submit_analysis', 'Submit the complete structured report after required reading. Values are copied from saved valuation_case outputs. Syntax and source identity validity are separate from economic review. See supplied STRUCTURED REPORT CONTRACT.',
+           {'report': {'type': 'object'}}, ['report']),
+]
+
+
 class EvidenceTools:
-    def __init__(self, packet_path, run_dir, resume=False):
+    def __init__(self, packet_path, run_dir, resume=False, structured=False):
         from betaforge.storage import EvidenceStore
         self.packet_path = Path(packet_path).resolve()
         self.packet = json.loads(self.packet_path.read_text())
         if not isinstance(self.packet, dict) or type(self.packet.get('instrument_id')) is not int or self.packet['instrument_id'] <= 0:
             raise ValueError('Packet requires an explicit positive integer instrument_id')
         self.instrument = self.packet['instrument_id']
+        self.structured = structured
         self.run_dir = Path(run_dir).resolve()
         self.run_dir.mkdir(parents=True, exist_ok=True)
         def resolve(value):
@@ -144,63 +153,74 @@ class EvidenceTools:
             if not path.is_relative_to(self.snapshot) or digest(path) != blob['sha256']:
                 raise ValueError('Frozen source hash mismatch')
         self.store = EvidenceStore(self.snapshot / 'evidence.sqlite3', readonly=True)
-        self.index = json.loads((self.report_dir / 'prepared/index.json').read_text())
-        self.reports = {}
-        for item in self.index['reports']:
-            rid = item['report_id']
-            if not re.fullmatch(r'[a-zA-Z0-9_-]+', rid):
-                raise ValueError('Unsafe report identifier')
-            prepared = self.report_dir / 'prepared' / (rid + '.json')
-            pdf = self.report_dir / 'sources' / (rid + '.pdf')
-            if digest(prepared) != item['prepared_sha256'] or digest(pdf) != item['source_sha256']:
-                raise ValueError('Report does not match frozen preparation hashes: ' + rid)
-            pages = json.loads(prepared.read_text())
-            if len(pages) != item['pages'] or any(p['page'] != i + 1 or not isinstance(p['text'], str) for i, p in enumerate(pages)):
-                raise ValueError('Invalid report pages')
-            self.reports[rid] = pages
-        self.required = self.packet.get('required_reports', list(self.reports))
-        if not set(self.required) <= set(self.reports):
-            raise ValueError('Required report missing')
-        self.store.validate_report_links({r['report_id']:{'source_sha256':r['source_sha256'],'pages':r['pages']} for r in self.index['reports']}, instrument_id=self.instrument)
-        self.identity = {'packet_sha256': digest(self.packet_path), 'database_sha256': digest(self.snapshot / 'evidence.sqlite3'),
-                         'reports': {r['report_id']: [r['source_sha256'], r['prepared_sha256']] for r in self.index['reports']}}
-        self.analysis_contract = {}
-        for name, entry in self.packet.get('analysis_contract', {}).items():
-            if name not in {'policy','calculations'}:
-                raise ValueError('Unknown analysis contract document')
-            path = (self.packet_path.parent / entry['path']).resolve()
-            if Path(entry['path']).is_absolute() or not path.is_relative_to(self.packet_path.parent) or digest(path) != entry['sha256']:
-                raise ValueError('Analysis contract hash or path mismatch')
-            self.analysis_contract[name] = path.read_text()
-        if self.analysis_contract:
-            if set(self.analysis_contract) != {'policy','calculations'}:
-                raise ValueError('Analysis contract requires policy and calculations')
-            self.identity['analysis_contract'] = self.packet['analysis_contract']
-        for benchmark_name in ('benchmark_context','market_benchmark_context'):
-            benchmark = self.packet.get(benchmark_name)
-            if not benchmark:
-                continue
-            verified = set()
-            for entry in benchmark['files']:
+        try:
+            self.index = json.loads((self.report_dir / 'prepared/index.json').read_text())
+            self.reports = {}
+            for item in self.index['reports']:
+                rid = item['report_id']
+                if not re.fullmatch(r'[a-zA-Z0-9_-]+', rid):
+                    raise ValueError('Unsafe report identifier')
+                prepared = self.report_dir / 'prepared' / (rid + '.json')
+                pdf = self.report_dir / 'sources' / (rid + '.pdf')
+                if digest(prepared) != item['prepared_sha256'] or digest(pdf) != item['source_sha256']:
+                    raise ValueError('Report does not match frozen preparation hashes: ' + rid)
+                pages = json.loads(prepared.read_text())
+                if len(pages) != item['pages'] or any(p['page'] != i + 1 or not isinstance(p['text'], str) for i, p in enumerate(pages)):
+                    raise ValueError('Invalid report pages')
+                self.reports[rid] = pages
+            self.report_publication_dates = {}
+            source_manifest = self.report_dir / 'source-manifest.json'
+            if source_manifest.exists():
+                entries = json.loads(source_manifest.read_text()).get('documents', [])
+                self.report_publication_dates = {r['report_id']: r['publication_date'] for r in entries if r.get('publication_date')}
+            self.required = self.packet.get('required_reports', list(self.reports))
+            if not set(self.required) <= set(self.reports):
+                raise ValueError('Required report missing')
+            self.store.validate_report_links({r['report_id']:{'source_sha256':r['source_sha256'],'pages':r['pages']} for r in self.index['reports']}, instrument_id=self.instrument)
+            self.identity = {'packet_sha256': digest(self.packet_path), 'database_sha256': digest(self.snapshot / 'evidence.sqlite3'),
+                             'reports': {r['report_id']: [r['source_sha256'], r['prepared_sha256']] for r in self.index['reports']}}
+            if structured and source_manifest.exists():
+                self.identity['source_manifest_sha256'] = digest(source_manifest)
+            self.analysis_contract = {}
+            for name, entry in self.packet.get('analysis_contract', {}).items():
+                if name not in {'policy','calculations'}:
+                    raise ValueError('Unknown analysis contract document')
                 path = (self.packet_path.parent / entry['path']).resolve()
                 if Path(entry['path']).is_absolute() or not path.is_relative_to(self.packet_path.parent) or digest(path) != entry['sha256']:
-                    raise ValueError('Benchmark context hash or path mismatch')
-                verified.add(entry['path'])
-            if benchmark['context_path'] not in verified:
-                raise ValueError('Benchmark context file is not verified')
-            self.identity[benchmark_name] = benchmark
-        self.state_path = self.run_dir / 'tool-state.json'
-        self.lock = threading.RLock()
-        if resume:
-            self.state = json.loads(self.state_path.read_text())
-            if self.state['identity'] != self.identity:
-                raise ValueError('Resume evidence identity changed')
-        else:
-            if self.state_path.exists():
-                raise ValueError('Existing tool state; use resume')
-            self.state = {'identity': self.identity, 'coverage': {}, 'inputs': {}, 'calculations': {},
-                          'rounds': [], 'round_evidence': [], 'consecutive_unproductive': 0, 'seen_evidence': [], 'research_closed': False, 'finalization_calls': 0}
-            self.save()
+                    raise ValueError('Analysis contract hash or path mismatch')
+                self.analysis_contract[name] = path.read_text()
+            if self.analysis_contract:
+                if set(self.analysis_contract) != {'policy','calculations'}:
+                    raise ValueError('Analysis contract requires policy and calculations')
+                self.identity['analysis_contract'] = self.packet['analysis_contract']
+            for benchmark_name in ('benchmark_context','market_benchmark_context'):
+                benchmark = self.packet.get(benchmark_name)
+                if not benchmark:
+                    continue
+                verified = set()
+                for entry in benchmark['files']:
+                    path = (self.packet_path.parent / entry['path']).resolve()
+                    if Path(entry['path']).is_absolute() or not path.is_relative_to(self.packet_path.parent) or digest(path) != entry['sha256']:
+                        raise ValueError('Benchmark context hash or path mismatch')
+                    verified.add(entry['path'])
+                if benchmark['context_path'] not in verified:
+                    raise ValueError('Benchmark context file is not verified')
+                self.identity[benchmark_name] = benchmark
+            self.state_path = self.run_dir / 'tool-state.json'
+            self.lock = threading.RLock()
+            if resume:
+                self.state = json.loads(self.state_path.read_text())
+                if self.state['identity'] != self.identity:
+                    raise ValueError('Resume evidence identity changed')
+            else:
+                if self.state_path.exists():
+                    raise ValueError('Existing tool state; use resume')
+                self.state = {'identity': self.identity, 'coverage': {}, 'inputs': {}, 'calculations': {},
+                              'rounds': [], 'round_evidence': [], 'consecutive_unproductive': 0, 'seen_evidence': [], 'research_closed': False, 'finalization_calls': 0}
+                self.save()
+        except BaseException:
+            self.store.close()
+            raise
 
     def save(self):
         write_json(self.state_path, self.state)
@@ -227,7 +247,7 @@ class EvidenceTools:
                 'total_pages': sum(r['total_pages'] for r in result.values())}
 
     def catalogue(self):
-        return {'instrument_id': self.instrument, 'reports': [{'report_id': rid, 'pages': len(p)} for rid, p in self.reports.items()],
+        return {'instrument_id': self.instrument, 'reports': [{'report_id': rid, 'pages': len(p), **({'publication_date': self.report_publication_dates.get(rid)} if self.structured else {})} for rid, p in self.reports.items()],
                 'datasets': self.packet.get('datasets', [d['dataset'] for d in self.store.list_datasets()]), 'context': self.packet.get('context', ''), 'initial_context':self.packet.get('initial_context',{}),
                 'coverage': self.coverage(), 'saved_input_ids': list(self.state['inputs']),
                 'calculation_ids': list(self.state['calculations']), 'research_rounds': self.state['rounds']}
@@ -265,6 +285,7 @@ class EvidenceTools:
                     count += 1
                     if len(hits) < 30:
                         hits.append({'report_id': rid, 'page': p['page'], 'snippet': p['text'][max(0,start-160):start+len(query)+160]})
+        self.state['searched_reports'] = sorted(set(self.state.get('searched_reports', [])) | set(ids))
         return {'hits': hits, 'total_hits': count, 'full_page_read': False}
 
     def view_report_page(self, report_id, page):
@@ -511,10 +532,41 @@ class EvidenceTools:
         self.state['calculations'][identifier]=record
         return record
 
+    def get_saved_record(self, identifier):
+        if identifier in self.state['calculations']:
+            return self.state['calculations'][identifier]
+        record = self.resolve_input(identifier)
+        if identifier not in self.state['inputs'] and not identifier.startswith('calc:'):
+            self.state['seen_evidence'] = sorted(set(self.state['seen_evidence']) | {identifier})
+        return record
+
+    def submit_analysis(self, report):
+        if not self.structured:
+            raise ValueError('Structured submission is not enabled')
+        from betaforge.analysis_report import validate_report, render_markdown
+        if not self.coverage()['complete']:
+            raise ValueError('Required report reading is incomplete')
+        validated = validate_report(report, self)
+        write_json(self.run_dir / 'analysis.json', validated)
+        (self.run_dir / 'answer.md').write_text(render_markdown(validated))
+        self.state['analysis_sha256'] = digest(self.run_dir / 'analysis.json')
+        return {'analysis_sha256': self.state['analysis_sha256'], 'validation_status': validated['validation_status'],
+                'review_status': 'unreviewed', 'economic_quality_verified': False}
+
+    def reopen_revision_research(self):
+        """Called by the controller only after a verified, saved review request."""
+        if self.state.get('revision_count', 0):
+            raise ValueError('At most one revision is allowed')
+        self.state.update(revision_count=1, revision_round_start=len(self.state['rounds']),
+                          research_closed=False, consecutive_unproductive=0, finalization_calls=0)
+        self.state.pop('analysis_sha256', None)
+        self.save()
+
     def finish_research_round(self, summary, evidence_ids, ready_to_finalize):
         if not self.coverage()['complete']:
             raise ValueError('Required report reading is incomplete')
-        if self.state.get('research_closed') or len(self.state['rounds'])>=10 or self.state['consecutive_unproductive']>=2:
+        limit = self.state.get('revision_round_start', 0) + 2 if self.state.get('revision_count') else 10
+        if self.state.get('research_closed') or len(self.state['rounds'])>=limit or self.state['consecutive_unproductive']>=2:
             return {'stop':True,'reason':'research_limit','rounds':len(self.state['rounds'])}
         if not isinstance(summary,str) or not summary.strip() or len(summary)>5000 or not isinstance(evidence_ids,list) or len(evidence_ids)>100:
             raise ValueError('Bounded round summary and evidence IDs required')
@@ -525,7 +577,7 @@ class EvidenceTools:
         self.state['consecutive_unproductive']=0 if new else self.state['consecutive_unproductive']+1
         result={'round':len(self.state['rounds'])+1,'summary':summary,'new_evidence_ids':sorted(new),'ready_to_finalize':bool(ready_to_finalize)}
         self.state['rounds'].append(result)
-        result['stop']=bool(ready_to_finalize) or len(self.state['rounds'])>=10 or self.state['consecutive_unproductive']>=2
+        result['stop']=bool(ready_to_finalize) or len(self.state['rounds'])>=limit or self.state['consecutive_unproductive']>=2
         if result['stop']:self.state['research_closed']=True
         return result
 
@@ -533,11 +585,11 @@ class EvidenceTools:
         with self.lock:
             self.audit({'event':'call','tool':name,'call_id':call_id,'arguments':arguments})
             try:
-                allowed={s['name'] for s in TOOL_SCHEMAS}
+                allowed={s['name'] for s in TOOL_SCHEMAS + (STRUCTURED_TOOL_SCHEMAS if self.structured else [])}
                 if name not in allowed: raise ValueError('Unknown tool')
                 if not isinstance(arguments,dict): raise ValueError('Tool arguments must be an object')
                 if self.state.get('research_closed'):
-                    if name not in {'calculate','calculate_financial','get_calculation_definitions','record_input','get_catalogue','get_source','finish_research_round'}:
+                    if name not in {'calculate','calculate_financial','get_calculation_definitions','record_input','get_catalogue','get_source','finish_research_round','submit_analysis','get_saved_record'}:
                         raise ValueError('Research is closed by the round limit or finalization decision; use saved evidence and finalize')
                     self.state['finalization_calls']=self.state.get('finalization_calls',0)+1
                     if self.state['finalization_calls']>200:

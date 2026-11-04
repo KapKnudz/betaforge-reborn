@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from betaforge.saved_view import MAX_BYTES, build_saved_view, load_saved_view
+from betaforge.saved_view import MAX_BYTES, build_saved_view, load_saved_view, validate_saved_view
 
 
 def minimal_view():
@@ -447,6 +447,261 @@ class SavedViewTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 main(args + ["--output", str(private_output)])
             self.assertEqual(private_output.read_bytes(), original)
+
+
+class StructuredSavedViewTests(unittest.TestCase):
+    """Use the actual frozen SQLite/report tools, without model or provider calls."""
+
+    def setUp(self):
+        import test_tools
+        from test_analysis_report import AnalysisReportTests
+        from betaforge.tools import EvidenceTools, write_json
+        test_tools.ToolsTests.setUp(self)
+        self.tools.store.close()
+        self.root = self.root.resolve()
+        self.packet = self.packet.resolve()
+        packet = json.loads(self.packet.read_text())
+        packet["analysis_date"] = "2026-11-04"
+        self.benchmark_context = {
+            "benchmark": {"symbol": "SIXRX", "currency": "SEK", "return_type": "gross_total_return"},
+            "analysis_date": "2026-11-04", "status": "verified_from_rounded_public_levels",
+            "calculation": {"annualized_return_percent": "7.250000000000000001"},
+            "caveats": ["Rounded historical levels; not a forecast"], "rounded_source": True,
+        }
+        market = self.root / "market.json"
+        write_json(market, self.benchmark_context)
+        packet["market_benchmark_context"] = {"context_path": "market.json", "files": [
+            {"path": "market.json", "sha256": SavedViewTests.digest(market)}]}
+        write_json(self.packet, packet)
+        prepared = json.loads((self.root / "reports/prepared/index.json").read_text())["reports"][0]
+        write_json(self.root / "reports/source-manifest.json", {
+            "borsdata_instrument_id": 426, "documents": [{"report_id": "example", "sha256": prepared["source_sha256"],
+            "title": "Example annual", "publication_date": "2026-01-01", "source_url": "https://example.org/report.pdf",
+            "reporting_period": {"start": "2025-01-01", "end": "2025-12-31"}}]})
+        self.run = self.root / "structured-run"
+        self.tools = EvidenceTools(self.packet, self.run, structured=True)
+        self.tools.submit_analysis(AnalysisReportTests.report(self))
+        self.tools.save()
+        self.addCleanup(self.tools.store.close)
+        self.addCleanup(self.temp.cleanup)
+        for name in ("inputs", "calculations"):
+            write_json(self.run / (name + ".json"), list(self.tools.state[name].values()))
+        self.run_data = {"status": "completed", "smoke": False, "structured": True, "identity": self.tools.identity,
+                         "model": "gpt-6.1-sol", "reasoning_effort": "xhigh", "coverage": self.tools.coverage(),
+                         "started_at": "2026-11-04T12:00:00Z", "finished_at": "2026-11-04T12:01:00Z",
+                         **{name + "_sha256": SavedViewTests.digest(self.run / (name + ".json")) for name in ("inputs", "calculations", "analysis")}}
+        write_json(self.run / "run.json", self.run_data)
+
+    def build(self):
+        return build_saved_view(None, self.run, self.root, "Sample", "SAMP", "sample-20261104", "Saved structured analysis")
+
+    def test_exports_actual_completed_run_without_legacy_review_or_summary(self):
+        view = self.build()
+        self.assertFalse((self.run / "review-summary.json").exists())
+        self.assertEqual(view["analysis"], json.loads((self.run / "analysis.json").read_text()))
+        self.assertEqual(view["original_calculations"], list(self.tools.state["calculations"].values()))
+        self.assertIsNone(view["provenance"]["review_sha256"])
+        self.assertNotIn("analysis_review", view)
+        self.assertEqual(view["scenarios"][0]["target_date"], {"value": "2029", "precision": "year"})
+        self.assertEqual(view["probability"]["weights"], {"bear": "0.2", "base": "0.5", "bull": "0.3"})
+        self.assertEqual(view["calculations"][0]["basis"], "Test basis")
+        self.assertIn("forecast_ebit", view["calculations"][0]["inputs"])
+        output = self.root / "view.json"
+        SavedViewTests.write(output, view)
+        self.assertEqual(load_saved_view(output), view)
+
+    def test_cli_omits_review_for_structured_run(self):
+        from scripts.export_saved_analysis import main
+        output = self.root / "data/view.json"
+        with patch("scripts.export_saved_analysis.__file__", str(self.root / "scripts/export_saved_analysis.py")):
+            self.assertEqual(main(["--run", str(self.run), "--packet", str(self.root), "--company", "Sample",
+                                   "--ticker", "SAMP", "--id", "sample-20261104", "--method", "Structured", "--output", str(output)]), 0)
+        self.assertIn("analysis", load_saved_view(output))
+
+    def test_copies_matching_historical_benchmark_without_return_gap_math(self):
+        view = self.build()
+        self.assertEqual(view["benchmark"]["benchmark_annualized_return_percent"], "7.250000000000000001")
+        self.assertEqual(view["benchmark"]["context"], self.benchmark_context)
+        self.assertIsNone(view["benchmark"]["difference_percentage_points"])
+        self.assertTrue(view["benchmark"]["limits"])
+        output = self.root / "view.json"
+        SavedViewTests.write(output, view)
+        self.assertEqual(load_saved_view(output), view)
+        view["benchmark"]["benchmark_annualized_return_percent"] = "99"
+        with self.assertRaisesRegex(ValueError, "Benchmark must preserve"):
+            validate_saved_view(view)
+
+    def test_unmatched_or_missing_benchmark_has_no_selected_return(self):
+        original = self.build()
+        mutations = [
+            lambda c: c.update(analysis_date="2026-11-03"),
+            lambda c: c["benchmark"].update(symbol="OTHER"),
+            lambda c: c["benchmark"].update(currency="USD"),
+            lambda c: c["benchmark"].update(return_type="price_return"),
+            lambda c: c.update(status="unreviewed"),
+            lambda c: c.pop("calculation"),
+            lambda c: c["calculation"].pop("annualized_return_percent"),
+            lambda c: c.update(benchmark=None),
+            lambda c: c.update(calculation=[]),
+        ]
+        for index, mutate in enumerate(mutations):
+            view = copy.deepcopy(original)
+            mutate(view["benchmark"]["context"])
+            with self.subTest(mutation=index):
+                with self.assertRaisesRegex(ValueError, "Benchmark must preserve"):
+                    validate_saved_view(view)
+                view["benchmark"]["benchmark_annualized_return_percent"] = None
+                self.assertEqual(validate_saved_view(view), view)
+        view = copy.deepcopy(original)
+        view["benchmark"].update(context=None, benchmark_annualized_return_percent=None)
+        self.assertEqual(validate_saved_view(view), view)
+
+    def test_historical_return_selector_requires_a_finite_decimal_string(self):
+        from betaforge.saved_view import _historical_benchmark_return
+        for value in (None, "NaN", "Infinity", "-Infinity", "1,000", 7.25):
+            context = copy.deepcopy(self.benchmark_context)
+            context["calculation"]["annualized_return_percent"] = value
+            with self.subTest(value=value):
+                self.assertIsNone(_historical_benchmark_return(context, "2026-11-04"))
+        self.assertIsNone(_historical_benchmark_return([], "2026-11-04"))
+
+    def test_freeform_scenario_name_uses_stable_probability_id(self):
+        from betaforge.tools import write_json
+        report = json.loads((self.run / "analysis.json").read_text())
+        for key in ("identity", "validation_status", "review_status"):
+            report.pop(key)
+        for scenario in report["scenarios"]:
+            scenario.pop("present_value")
+            scenario.pop("future_target")
+        report["scenarios"][0]["name"] = "Bear — weaker demand"
+        self.tools.submit_analysis(report)
+        self.tools.save()
+        self.run_data["analysis_sha256"] = SavedViewTests.digest(self.run / "analysis.json")
+        write_json(self.run / "run.json", self.run_data)
+        view = self.build()
+        self.assertEqual(view["scenarios"][0]["name"], "Bear — weaker demand")
+        self.assertEqual(view["scenarios"][0]["weight"], view["probability"]["weights"]["bear"])
+
+    def test_saved_independent_review_is_bound_and_retained(self):
+        from betaforge.tools import write_json
+        review = {"schema_version": 1, "packet_sha256": self.tools.identity["packet_sha256"],
+                  "analysis_sha256": self.run_data["analysis_sha256"], "reviewer": "Independent reviewer",
+                  "verdict": "accept", "summary": "Conditional assumptions remain uncertain.", "findings": [], "disagreements": []}
+        path = self.run / "analysis-review.json"
+        write_json(path, review)
+        view = self.build()
+        self.assertEqual(view["analysis_review"], review)
+        self.assertEqual(view["provenance"]["review_sha256"], SavedViewTests.digest(path))
+        canonical_hash = view["provenance"]["review_sha256"]
+        path.write_text(json.dumps(review, indent=4) + "\n")
+        reformatted = self.build()
+        self.assertEqual(reformatted["analysis_review"], review)
+        self.assertEqual(reformatted["provenance"]["review_sha256"], canonical_hash)
+        review["analysis_sha256"] = "a" * 64
+        write_json(path, review)
+        with self.assertRaisesRegex(ValueError, "hash"):
+            self.build()
+
+    def test_run_artifact_and_tool_state_identity_tampering_are_rejected(self):
+        from betaforge.tools import write_json
+        mutations = [
+            ("inputs.json", lambda value: value[0].update(value="999")),
+            ("calculations.json", lambda value: value[0]["outputs"]["present_value"].update(value="999")),
+            ("tool-state.json", lambda value: value["identity"].update(packet_sha256="a" * 64)),
+            ("analysis.json", lambda value: value.update(summary="Changed report")),
+            ("run.json", lambda value: value.update(smoke=True)),
+        ]
+        for name, mutate in mutations:
+            path = self.run / name
+            original = path.read_bytes()
+            value = json.loads(original)
+            mutate(value)
+            write_json(path, value)
+            with self.subTest(artifact=name), self.assertRaises(ValueError):
+                self.build()
+            path.write_bytes(original)
+
+    def test_frozen_source_and_quote_verification_is_real(self):
+        source = self.root / "reports/sources/example.pdf"
+        source.write_bytes(b"changed PDF")
+        with self.assertRaisesRegex(ValueError, "hash"):
+            self.build()
+
+    def test_export_checks_original_quote_even_with_rebound_artifact_hashes(self):
+        from betaforge.tools import write_json
+        path = self.run / "analysis.json"
+        report = json.loads(path.read_text())
+        report["management_comparisons"][0]["evidence"]["quote"] = "A promise absent from the original report."
+        write_json(path, report)
+        changed_hash = SavedViewTests.digest(path)
+        self.run_data["analysis_sha256"] = changed_hash
+        write_json(self.run / "run.json", self.run_data)
+        state = json.loads((self.run / "tool-state.json").read_text())
+        state["analysis_sha256"] = changed_hash
+        write_json(self.run / "tool-state.json", state)
+        with self.assertRaisesRegex(ValueError, "quote"):
+            self.build()
+
+    def test_stale_narrative_is_rejected_at_export_and_display_load(self):
+        view = self.build()
+        (self.run / "answer.md").write_text("An older full report with different conclusions.")
+        with self.assertRaisesRegex(ValueError, "narrative differs"):
+            self.build()
+        view["narrative"] = "A substituted report."
+        view["provenance"]["narrative_sha256"] = hashlib.sha256(view["narrative"].encode()).hexdigest()
+        with self.assertRaisesRegex(ValueError, "narrative differs"):
+            validate_saved_view(view)
+
+    def test_bare_diagnostic_reference_preserves_unavailable_primary_output(self):
+        from betaforge.tools import write_json
+        cfo = self.tools.record_input("10", "Group CFO", "SEK", "assumption")
+        capex = self.tools.record_input("3", "Cash capex", "SEK", "assumption")
+        diagnostic = self.tools.calculate_financial("group_cash_conversion", {"cfo": cfo["id"], "cash_capex": capex["id"]},
+                                                    "Incomplete cash conversion", "Lease principal remains unknown")
+        self.assertIsNone(diagnostic["result"])
+        report = json.loads((self.run / "analysis.json").read_text())
+        for key in ("identity", "validation_status", "review_status"):
+            report.pop(key)
+        for scenario in report["scenarios"]:
+            scenario.pop("present_value")
+            scenario.pop("future_target")
+        report["sections"][0]["paragraphs"][0]["references"].append(diagnostic["id"])
+        self.tools.submit_analysis(report)
+        self.tools.save()
+        for name in ("inputs", "calculations"):
+            write_json(self.run / (name + ".json"), list(self.tools.state[name].values()))
+        self.run_data.update({name + "_sha256": SavedViewTests.digest(self.run / (name + ".json")) for name in ("inputs", "calculations", "analysis")})
+        write_json(self.run / "run.json", self.run_data)
+        view = self.build()
+        saved = next(record for record in view["saved_records"] if record["id"] == diagnostic["id"])
+        self.assertIsNone(saved["value"])
+        self.assertIn(diagnostic["id"], {calc["id"] for calc in view["calculations"]})
+
+    def test_load_rejects_canonical_and_display_tampering(self):
+        from betaforge.saved_view import _saved_json_hash
+        original = self.build()
+        mutations = [
+            lambda v: v["analysis"].update(extra="unknown"),
+            lambda v: v["analysis"]["scenarios"][0]["target_date"].update(value="2028"),
+            lambda v: v["analysis"]["scenarios"][0]["present_value"].update(value="999"),
+            lambda v: v["scenarios"][0].update(value="999"),
+            lambda v: v["analysis"]["sections"][0]["paragraphs"][0].update(references=["missing:p1"]),
+            lambda v: v["analysis"]["management_comparisons"][0].update(statement_date="2026-02-01"),
+            lambda v: v["sources"][0].update(published_at=None),
+            lambda v: v["saved_records"][0].update(scale="0"),
+            lambda v: v["calculations"][0].update(basis="Altered basis"),
+            lambda v: v["benchmark"].update(candidate_annualized_return_percent="99"),
+            lambda v: v["analysis"]["identity"].update(packet_sha256="a" * 64),
+            lambda v: v.update(narrative="Altered narrative"),
+        ]
+        for index, mutate in enumerate(mutations):
+            changed = copy.deepcopy(original)
+            mutate(changed)
+            # Exercise retained consistency checks even when an attacker updates the embedded hash.
+            changed["provenance"]["analysis_sha256"] = _saved_json_hash(changed["analysis"])
+            changed["provenance"]["summary_sha256"] = changed["provenance"]["analysis_sha256"]
+            with self.subTest(mutation=index), self.assertRaises(ValueError):
+                validate_saved_view(changed)
 
 
 if __name__ == "__main__":

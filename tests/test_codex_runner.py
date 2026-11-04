@@ -119,3 +119,142 @@ for line in sys.stdin:
 
 
 if __name__=='__main__':unittest.main()
+
+
+class StructuredRunnerTests(unittest.TestCase):
+    server_code = '''import sys,json
+for line in sys.stdin:
+ m=json.loads(line);method=m.get('method')
+ if 'id' not in m:continue
+ result={}
+ if method in ('thread/start','thread/resume'):result={'model':'gpt-6.1-sol','thread':{'id':'thread'}}
+ if method=='turn/start':result={'turn':{'id':'turn'}}
+ print(json.dumps({'id':m['id'],'result':result}),flush=True)
+ if method=='turn/start':
+  print(json.dumps({'method':'item/completed','params':{'item':{'type':'agentMessage','phase':'final_answer','text':'Unsubmitted prose.'}}}),flush=True)
+  print(json.dumps({'method':'turn/completed','params':{'turn':{'id':'turn','status':'completed'}}}),flush=True)
+'''
+
+    def invoke(self, root, tools, **options):
+        def fake_server(executable,cwd,event_path):
+            return AppServer('',cwd,event_path,command=[sys.executable,'-u','-c',self.server_code])
+        with patch('betaforge.codex_runner.EvidenceTools',return_value=tools), \
+             patch('betaforge.codex_runner.AppServer',side_effect=fake_server), \
+             patch('betaforge.codex_runner.subprocess.run',return_value=subprocess.CompletedProcess([],0,'fake codex')):
+            return run(root/'packet.json',root/'prompt.md',root/'run',timeout_seconds=5,structured=True,**options)
+
+    def tools(self):
+        tools=Mock(analysis_contract={},packet={},identity={'packet_sha256':'packet'})
+        tools.state={'calculations':{},'inputs':{},'rounds':[]}
+        tools.coverage.return_value={'complete':True,'delivered_pages':0}
+        tools.catalogue.return_value={};tools.get_calculation_definitions.return_value={}
+        tools.reopen_revision_research.side_effect=lambda: tools.state.pop('analysis_sha256',None)
+        return tools
+
+    def test_structured_completion_requires_submission_and_does_not_replace_saved_answer(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'prompt.md').write_text('Original instructions.')
+            state=self.invoke(root,self.tools())
+            self.assertEqual(state['status'],'incomplete_submission')
+            self.assertEqual(state['analysis_validation_status'],'not_submitted')
+            self.assertFalse((root/'run/answer.md').exists())
+            events=[json.loads(line) for line in (root/'run/events.jsonl').read_text().splitlines()]
+            thread=next(e['message']['params'] for e in events if e['message'].get('method')=='thread/start')
+            self.assertIn('submit_analysis',[t['name'] for t in thread['dynamicTools']])
+            self.assertIn('analysis_report.py',state['implementation_sha256'])
+
+    def test_feedback_revision_freezes_original_and_rejects_second_revision_or_changed_feedback(self):
+        from betaforge.tools import digest, write_json
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'prompt.md').write_text('Original instructions.')
+            tools=self.tools();first=self.invoke(root,tools)
+            output=root/'run'
+            (output/'analysis.json').write_text('{"draft": true}')
+            (output/'answer.md').write_text('Original draft')
+            first['analysis_sha256']=digest(output/'analysis.json')
+            write_json(output/'run.json',first)
+            tools.state['analysis_sha256']=first['analysis_sha256']
+            feedback=dict(schema_version=1,packet_sha256='packet',analysis_sha256=first['analysis_sha256'],reviewer='Independent',verdict='revise',summary='Challenge forecast.',findings=[],disagreements=[])
+            review=root/'feedback.json';write_json(review,feedback)
+            changed=dict(feedback,analysis_sha256='fabricated');write_json(review,changed)
+            with self.assertRaisesRegex(ValueError,'hash'):self.invoke(root,tools,resume=True,review_feedback=review)
+            self.assertFalse((output/'prior-invocations').exists())
+            write_json(review,feedback)
+            revised=self.invoke(root,tools,resume=True,review_feedback=review)
+            self.assertEqual(revised['revision_count'],1)
+            self.assertEqual(revised['content_review_status'],'revision_pending_review')
+            self.assertEqual((output/'prior-invocations/000-answer.md').read_text(),'Original draft')
+            self.assertEqual(json.loads((output/'prior-invocations/000-analysis.json').read_text()),{'draft':True})
+            self.assertEqual(revised['prompt_sha256'],first['prompt_sha256'])
+            self.assertTrue((output/'resume-prompt.txt').read_text().startswith('Original instructions.'))
+            self.assertIn('Challenge forecast.',(output/'resume-prompt.txt').read_text())
+            self.assertEqual(revised['review_feedback_sha256'],digest(output/'review-feedback.json'))
+            with self.assertRaisesRegex(ValueError,'one review revision'):self.invoke(root,tools,resume=True,review_feedback=review)
+            (output/'review-feedback.json').write_text('{}')
+            with self.assertRaisesRegex(ValueError,'feedback changed'):self.invoke(root,tools,resume=True)
+
+    def test_feedback_requires_explicit_structured_resume(self):
+        with self.assertRaisesRegex(ValueError,'requires --resume --structured'):
+            run('packet','prompt','unused',review_feedback='feedback')
+
+
+    def test_preflight_failure_closes_initialized_store(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'prompt.md').write_text('')
+            tools=self.tools()
+            with self.assertRaisesRegex(ValueError,'Prompt required'):
+                self.invoke(root,tools)
+            tools.store.close.assert_called_once()
+
+    def test_revision_startup_failure_preserves_recoverable_pending_state(self):
+        import test_tools
+        from betaforge.tools import digest, write_json
+        for failure in ('prompt', 'workspace', 'server'):
+            with self.subTest(failure=failure):
+                fixture=test_tools.ToolsTests('test_search_does_not_satisfy_reading_and_full_pages_do')
+                fixture.setUp()
+                try:
+                    root=fixture.root;output=(root/'newrun').resolve();prompt=root/'prompt.md'
+                    prompt.write_text('Original instructions.')
+                    def fake_server(executable,cwd,event_path):
+                        return AppServer('',cwd,event_path,command=[sys.executable,'-u','-c',self.server_code])
+                    def invoke(**options):
+                        with patch('betaforge.codex_runner.AppServer',side_effect=fake_server), \
+                             patch('betaforge.codex_runner.subprocess.run',return_value=subprocess.CompletedProcess([],0,'fake codex')):
+                            return run(fixture.packet,prompt,output,timeout_seconds=5,structured=True,**options)
+                    first=invoke()
+                    (output/'analysis.json').write_text('{"draft":true}')
+                    (output/'answer.md').write_text('Original draft')
+                    first.update(status='completed',analysis_sha256=digest(output/'analysis.json'))
+                    write_json(output/'run.json',first)
+                    tool_state=json.loads((output/'tool-state.json').read_text())
+                    tool_state['analysis_sha256']=first['analysis_sha256']
+                    write_json(output/'tool-state.json',tool_state)
+                    feedback=dict(schema_version=1,packet_sha256=first['identity']['packet_sha256'],analysis_sha256=first['analysis_sha256'],reviewer='Independent',verdict='revise',summary='Challenge forecast.',findings=[],disagreements=[])
+                    feedback_path=root/'feedback.json';write_json(feedback_path,feedback)
+                    original_write=Path.write_text;original_mkdir=Path.mkdir
+                    def write(path,*args,**kwargs):
+                        if path==output/'resume-prompt.txt':raise OSError('Injected prompt failure')
+                        return original_write(path,*args,**kwargs)
+                    def mkdir(path,*args,**kwargs):
+                        if path==output/'workspace':raise OSError('Injected workspace failure')
+                        return original_mkdir(path,*args,**kwargs)
+                    with patch('betaforge.codex_runner.subprocess.run',return_value=subprocess.CompletedProcess([],0,'fake codex')), \
+                         patch('betaforge.codex_runner.AppServer',side_effect=OSError('Injected startup failure') if failure=='server' else fake_server), \
+                         patch.object(Path,'write_text',write if failure=='prompt' else original_write), \
+                         patch.object(Path,'mkdir',mkdir if failure=='workspace' else original_mkdir):
+                        failed=run(fixture.packet,prompt,output,timeout_seconds=5,structured=True,resume=True,review_feedback=feedback_path)
+                    self.assertEqual(failed['status'],'failed')
+                    self.assertEqual(failed['revision_count'],1)
+                    self.assertIsNone(failed['analysis_sha256'])
+                    self.assertEqual(failed['review_feedback_sha256'],digest(output/'review-feedback.json'))
+                    pending=json.loads((output/'tool-state.json').read_text())
+                    self.assertEqual(pending['revision_count'],1)
+                    self.assertNotIn('analysis_sha256',pending)
+                    self.assertEqual((output/'prior-invocations/000-answer.md').read_text(),'Original draft')
+                    recovered=invoke(resume=True)
+                    self.assertIn(recovered['status'],('incomplete_reading','incomplete_submission'))
+                    self.assertEqual(recovered['revision_count'],1)
+                    self.assertIn('Challenge forecast.',(output/'resume-prompt.txt').read_text())
+                finally:
+                    fixture.tearDown()

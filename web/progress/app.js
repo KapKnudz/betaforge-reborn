@@ -16,6 +16,7 @@ let runsLoading = false;
 let runRequest = 0;
 let loadedRunId = null;
 const openTasks = new Set();
+const savedReferenceIds = new Set();
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -291,6 +292,7 @@ function renderCalculation(calc, sources) {
   for (const [name, input] of Object.entries(calc.inputs || {})) {
     const info = typeof input === "object" && input !== null ? input : { value: input };
     const context = element("div");
+    if (info.id && !savedReferenceIds.has("input-" + info.id)) { context.id = "input-" + info.id; savedReferenceIds.add(context.id); }
     context.append(element("p", "basis", [info.basis, info.period_end || info.year || (info.period ? text(info.period) : null), info.report_type, info.status].filter(Boolean).join(" · ")));
     if (info.id || info.metric) context.append(element("p", "exact", [info.id, info.metric].filter(Boolean).join(" · ")));
     if (info.pointer || info.source_pointer) context.append(element("p", "exact", "Source pointer: " + text(info.pointer || info.source_pointer)));
@@ -391,8 +393,9 @@ function currentCalculation(calc) {
 }
 function sourceRecord(record, sources) {
   const block = element("div");
+  if (record.id && !savedReferenceIds.has("record-" + record.id)) { block.id = "record-" + record.id; savedReferenceIds.add(block.id); }
   block.append(element("p", "basis", [record.kind, record.basis, record.status].filter(Boolean).join(" · ")), sourceRefs(record, sources));
-  const evidence = inputEvidence(record, sources);
+  const evidence = inputEvidence(record.evidence ? record : record.report_id && record.quote ? { evidence: record } : record, sources);
   if (evidence) block.append(evidence);
   block.append(detail("Exact saved source record", [element("pre", "", text(record))]));
   return block;
@@ -429,24 +432,219 @@ function renderMaterialInputs(rows, sources) {
   section.append(detail("Inspect material decisions (" + rows.length + ")", [table(["Material value", "Selected value / unit", "Economic period", "What it means", "Why use it"], records)]));
   return section;
 }
+function openSavedTarget(id, event) {
+  const target = document.getElementById(id);
+  if (!target) return;
+  if (event) event.preventDefault();
+  for (let parent = target.parentElement; parent; parent = parent.parentElement) if (parent.tagName === "DETAILS") parent.open = true;
+  target.scrollIntoView({ block: "start" });
+  target.tabIndex = -1;
+  target.focus({ preventScroll: true });
+}
+function savedLink(id, label, className = "source-ref") {
+  const link = element("a", className, label);
+  link.href = "#" + id;
+  link.addEventListener("click", (event) => openSavedTarget(id, event));
+  return link;
+}
+function referenceList(references, run) {
+  const node = element("div", "analysis-references");
+  for (const reference of references || []) {
+    const ref = String(reference);
+    const base = ref.split("#")[0];
+    const page = ref.match(/^(.*):p([1-9][0-9]*)$/);
+    const source = (run.sources || []).find((item) => item.id === (page ? page[1] : ref));
+    const calculation = [...(run.calculations || []), ...(run.original_calculations || [])].find((item) => item.id === base);
+    if (source) {
+      node.append(savedLink("source-" + source.id, source.title + (page ? " · physical page " + page[2] : "")));
+      if (page && source.url) {
+        try {
+          const url = new URL(source.url);
+          if (["https:", "http:"].includes(url.protocol) && !url.username && !url.password) {
+            url.hash = "page=" + page[2];
+            const link = element("a", "source-ref", "Open page " + page[2] + " ↗");
+            link.href = url.href;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            node.append(link);
+          }
+        } catch (error) { /* Saved reference remains readable. */ }
+      }
+    } else if (calculation) node.append(savedLink("calculation-" + base, ref));
+    else if ((run.calculations || []).some((calc) => Object.values(calc.inputs || {}).some((input) => input && input.id === ref))) node.append(savedLink("input-" + ref, ref));
+    else if ((run.saved_records || []).some((record) => record.id === ref)) node.append(savedLink("record-" + ref, ref));
+    else if ((run.material_inputs || []).some((row) => [row.selected, ...(row.candidates || []).map((item) => item.record)].some((record) => record && record.id === ref))) node.append(savedLink("record-" + ref, ref));
+    else node.append(element("span", "source-ref unlinked", ref + " · reference retained; detail unavailable in this export"));
+  }
+  return node;
+}
+function datedEndpoint(date) {
+  if (!date || !date.value) return "Date not recorded";
+  return date.value + (date.precision === "year" ? " · year precision" : date.precision === "month" ? " · month precision" : "");
+}
+function scenarioEndpoints(run) {
+  return run.analysis ? run.analysis.scenarios : (run.scenarios || []).filter((item) => item.present_value && item.future_target);
+}
+function endpointChart(run) {
+  const scenarios = scenarioEndpoints(run);
+  const wrapper = element("div", "endpoint-charts");
+  const endpoints = scenarios.flatMap((scenario) => [scenario.present_value, scenario.future_target]);
+  const units = new Set(endpoints.map((item) => item && item.unit));
+  const comparable = units.size === 1 && !units.has(undefined) && endpoints.every((item) => number(item && item.value) !== null && number(item.value) >= 0);
+  const maximum = comparable ? Math.max(1, ...endpoints.map((item) => number(item.value))) : 1;
+  const weightLabel = (scenario) => {
+    const weight = (run.probability || {}).weights && run.probability.weights[scenario.id];
+    return number(weight) === null ? "weight unavailable" : rounded(Number(weight) * 100) + "%";
+  };
+  for (const [key, heading, dateKey] of [["present_value", "Present value", "present_value_date"], ["future_target", "Future target", "target_date"]]) {
+    const panel = element("div", "endpoint-panel");
+    panel.append(element("h4", "", heading));
+    const values = scenarios.map((item) => number(item[key] && item[key].value));
+    if (!comparable) {
+      panel.append(element("p", "callout", "Comparable nonnegative saved endpoints are unavailable. Read the exact scenario records below."));
+    } else {
+      const svg = svgElement("svg", { viewBox: "0 0 500 " + (scenarios.length * 90 + 12), class: "chart endpoint-chart", role: "img", "aria-label": heading + ": " + scenarios.map((item) => item.name + ", saved weight " + weightLabel(item) + ", " + text(item[key].value) + " " + item[key].unit + ", " + datedEndpoint(item[dateKey])).join("; ") });
+      scenarios.forEach((scenario, index) => {
+        const y = 24 + index * 90;
+        const label = { bear: "Bear", base: "Base", bull: "Bull" }[scenario.id] || "Scenario";
+        svg.append(svgElement("text", { x: 16, y }, label + " · " + weightLabel(scenario)), svgElement("text", { x: 484, y, "text-anchor": "end" }, rounded(scenario[key].value) + " " + scenario[key].unit));
+        svg.append(svgElement("rect", { x: 16, y: y + 12, width: values[index] / maximum * 468, height: 13, class: "scenario-bar " + scenario.id }));
+        svg.append(svgElement("text", { x: 16, y: y + 49, class: "axis-text" }, datedEndpoint(scenario[dateKey])));
+      });
+      panel.append(svg);
+    }
+    wrapper.append(panel);
+  }
+  return wrapper;
+}
+function readableReport(markdown) {
+  const node = element("div", "report-body");
+  const lines = String(markdown || "").split(/\r?\n/);
+  let paragraph = [];
+  const flush = () => { if (paragraph.length) { node.append(element("p", "saved-text", paragraph.join("\n"))); paragraph = []; } };
+  const cells = (line) => line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    const heading = line.match(/^\s{0,3}(#{1,6})\s+(.+?)\s*#*$/);
+    if (heading) { flush(); node.append(element("h" + Math.min(6, heading[1].length + 3), "", heading[2])); }
+    else if (line.includes("|") && index + 1 < lines.length && /^\s*\|?\s*:?-{3,}/.test(lines[index + 1])) {
+      flush();
+      const headers = cells(line);
+      const rows = [];
+      index += 2;
+      while (index < lines.length && lines[index].includes("|") && lines[index].trim()) { rows.push(cells(lines[index])); index++; }
+      index--;
+      node.append(table(headers, rows));
+    } else if (!line.trim()) flush();
+    else paragraph.push(line);
+  }
+  flush();
+  if (!node.children.length) node.append(element("p", "unavailable", "No saved narrative is available."));
+  return node;
+}
+function analysisNavigation(run) {
+  const nav = element("nav", "analysis-nav");
+  nav.setAttribute("aria-label", "Company analysis sections");
+  const sections = run.analysis ? run.analysis.sections.map((section) => ["analysis-" + section.id, section.id.charAt(0).toUpperCase() + section.id.slice(1)]) : [["legacy-report", "Full saved report"]];
+  for (const [id, label] of [["company-scenarios", "Scenarios"], ...sections, ["company-metrics", "Metrics & management"], ...(run.analysis ? [["company-review", "Independent challenge"]] : []), ["company-working", "Sources & calculations"]]) nav.append(savedLink(id, label, ""));
+  return nav;
+}
+function renderAnalysis(run) {
+  const section = element("section", "company-section analysis-body");
+  if (!run.analysis) {
+    section.id = "legacy-report";
+    section.append(element("p", "eyebrow", "ORIGINAL SAVED ANALYSIS"), element("h3", "", "Read the full report"), element("p", "basis", "This legacy record has no structured analysis or independent structured review. Its original narrative is shown as saved; headings and tables are presented for reading."), readableReport(run.narrative));
+    return section;
+  }
+  section.append(element("p", "eyebrow", "THE INVESTMENT CASE"), element("h3", "", "Analysis & reasoning"));
+  for (const saved of run.analysis.sections) {
+    const block = element("article", "analysis-section");
+    block.id = "analysis-" + saved.id;
+    block.append(element("h4", "", saved.title));
+    for (const paragraph of saved.paragraphs) {
+      const entry = element("div", "analysis-paragraph");
+      const references = referenceList(paragraph.references, run);
+      entry.append(element("span", "paragraph-kind", paragraph.kind), readableReport(paragraph.text), paragraph.references.length > 3 ? detail("Sources & calculations (" + paragraph.references.length + ")", [references]) : references);
+      block.append(entry);
+    }
+    section.append(block);
+  }
+  return section;
+}
+function managementComparison(item, run) {
+  const block = element("article", "management-comparison");
+  block.id = "management-" + item.id;
+  const relationship = { direct: "Direct management " + item.statement_type, related: "Related management statement · " + item.statement_type, not_stated: "No direct guidance stated" }[item.relationship];
+  block.append(element("p", "detail-label", relationship), element("h5", "", item.metric_label), element("p", "saved-text", item.statement));
+  if (item.statement_date || item.target_period) block.append(element("p", "meta", "Statement date: " + text(item.statement_date) + " · Horizon: " + text(item.target_period)));
+  block.append(element("p", "basis", "Issuer basis: " + item.basis));
+  if (item.actual) block.append(element("p", "basis", "Saved comparison: " + item.actual));
+  const evidenceContent = [referenceList([...(item.references || []), ...(item.actual_references || [])], run)];
+  if (item.evidence) {
+    const evidence = item.evidence;
+    evidenceContent.push(element("p", "meta", "Report " + evidence.report_id + " · physical page " + evidence.page), element("blockquote", "saved-text", evidence.quote), referenceList([evidence.report_id + ":p" + evidence.page], run));
+  }
+  block.append(detail(item.evidence ? "Sources & management quotation" : "Sources checked", evidenceContent));
+  return block;
+}
+function scenarioRationale(run) {
+  const section = element("section", "company-section scenario-reasoning");
+  section.append(element("h3", "", "What each scenario assumes"));
+  for (const scenario of scenarioEndpoints(run)) {
+    const item = element("article", "scenario-case");
+    item.id = "scenario-" + scenario.id;
+    item.append(element("h4", "", scenario.name), element("p", "saved-text", scenario.rationale));
+    const valuation = element("p", "basis");
+    valuation.append(document.createTextNode("Present value · " + datedEndpoint(scenario.present_value_date) + ": "), savedValue(scenario.present_value.value, scenario.present_value.unit), document.createTextNode(". Future target · " + datedEndpoint(scenario.target_date) + ": "), savedValue(scenario.future_target.value, scenario.future_target.unit));
+    item.append(valuation);
+    const weight = (run.probability || {}).weights && run.probability.weights[scenario.id];
+    item.append(element("p", "basis", "Saved weight: " + (number(weight) === null ? "Unavailable" : rounded(Number(weight) * 100) + "%") + ". " + (scenario.probability_rationale || "No separate weight rationale saved.")));
+    const assumptions = [element("p", "saved-text", text(scenario.assumption_rationale)), referenceList([scenario.valuation_calculation_id, scenario.weight_ref, ...(scenario.references || [])].filter(Boolean), run)];
+    item.append(detail("Assumptions, sources & calculation", assumptions));
+    section.append(item);
+  }
+  return section;
+}
+function renderAnalysisReview(run) {
+  const section = element("section", "company-section analysis-review");
+  section.id = "company-review";
+  section.append(element("h3", "", "Independent challenge"));
+  const review = run.analysis_review;
+  if (!review) { section.append(element("p", "callout", "No independent structured review is saved for this analysis.")); return section; }
+  section.append(element("p", "meta", "Reviewer: " + text(review.reviewer) + " · Verdict: " + text(review.verdict)), element("p", "saved-text", review.summary));
+  for (const finding of review.findings || []) section.append(detail(finding.id + " · " + finding.verdict, [element("p", "saved-text", finding.reasoning), element("p", "basis", "Missing evidence: " + text(finding.missing_evidence)), referenceList(finding.references, run)]));
+  if ((review.disagreements || []).length) section.append(detail("Disagreements retained", [recordList(review.disagreements)]));
+  return section;
+}
 function renderCompany(run) {
+  savedReferenceIds.clear();
   const view = $("company-view");
   const opened = new Set(Array.from(view.querySelectorAll("details[open] > summary")).map((summary) => summary.textContent));
   view.replaceChildren();
   const sources = run.sources || [];
   const header = element("div", "company-header");
-  header.append(element("p", "eyebrow", "SAVED ANALYSIS · READ ONLY"), element("h2", "", text(run.company.name) + (run.company.ticker ? " · " + run.company.ticker : "")), element("p", "meta", "Analysis date: " + text(run.analysis_date) + " · Saved review: " + text(run.reviewed_at).slice(0, 10)), element("p", "meta", "Method: " + text(run.method)));
-  header.append(element("p", "conclusion", text(run.conclusion)));
-  view.append(header);
+  header.append(element("p", "eyebrow", "SAVED ANALYSIS · READ ONLY"), element("h2", "", text(run.company.name) + (run.company.ticker ? " · " + run.company.ticker : "")), element("p", "meta", "Analysis date: " + text(run.analysis_date) + (run.analysis ? " · Analysis completed: " : " · Saved financial review: ") + text(run.reviewed_at).slice(0, 10)), element("p", "meta", "Method: " + text(run.method)));
+  header.append(element("p", "conclusion", text(run.analysis ? run.analysis.summary : run.conclusion)));
+  if (run.analysis) header.append(savedLink("company-review", "Independent challenge: " + ({ accept: "accepted", revise: "changes requested" }[(run.analysis_review || {}).verdict] || "pending"), "challenge-status"));
+  view.append(header, analysisNavigation(run));
   const scenarioSection = element("section", "company-section");
-  scenarioSection.append(element("h3", "", "Valuation scenarios"), element("p", "basis", "Saved present values at the analysis date. Future targets and horizon assumptions remain in each saved basis; the workbench performs no valuation calculations."));
+  scenarioSection.id = "company-scenarios";
+  const endpoints = scenarioEndpoints(run);
+  scenarioSection.append(element("h3", "", "Valuation scenarios"), element("p", "basis", endpoints.length ? "Conditional scenario values at two dates; both panels share a scale. Dividend assumptions are shown below." : "Saved present values only. This legacy record does not provide structured dated future endpoints; the saved basis and original calculations remain available."));
   const scenarioGrid = element("div", "scenario-grid");
-  scenarioGrid.append(scenarioChart(run));
-  scenarioGrid.append(table(["Scenario", "Present value", "Weight", "Saved basis"], (run.scenarios || []).map((s) => {
+  scenarioGrid.append(endpoints.length ? endpointChart(run) : scenarioChart(run));
+  const scenarioTable = table(["Scenario", "Present value", "Weight", "Saved basis"], (run.scenarios || []).map((s) => {
     const basis = element("div");
-    basis.append(element("p", "basis", s.basis), detail("Exact value & calculation IDs", [element("p", "exact", text(s.value) + " " + s.unit + (s.weight !== undefined ? " · exact weight " + text(s.weight) : "")), element("p", "exact", (s.calculation_ids || []).join(", "))]));
+    basis.append(element("p", "basis", s.basis), referenceList(s.calculation_ids, run), detail("Exact value & calculation IDs", [element("p", "exact", text(s.value) + " " + s.unit + (s.weight !== undefined ? " · exact weight " + text(s.weight) : "")), element("p", "exact", (s.calculation_ids || []).join(", "))]));
     return [s.name, savedValue(s.value, s.unit), s.weight === undefined || s.weight === null ? "Unavailable" : rounded(Number(s.weight) * 100) + "%", basis];
-  })));
+  }));
+  scenarioGrid.append(endpoints.length ? detail("Saved scenario values & exact records", [scenarioTable]) : scenarioTable);
+  if (endpoints.length) {
+    scenarioGrid.classList.add("with-endpoints");
+    const links = element("div", "scenario-links");
+    for (const item of endpoints) links.append(savedLink("scenario-" + item.id, item.name + " · rationale & assumptions", ""));
+    scenarioSection.append(links);
+  }
   scenarioSection.append(scenarioGrid);
   const price = run.price || {};
   const priceNote = element("p", "basis");
@@ -455,9 +653,16 @@ function renderCompany(run) {
   const probability = run.probability || {};
   scenarioSection.append(element("p", "callout", probabilityDescription(probability)));
   if (probability.weights) scenarioSection.append(detail("Exact saved weights", [element("pre", "", text(probability.weights))]));
-  view.append(scenarioSection);
+  if (run.analysis && run.analysis.probability_limits && run.analysis.probability_limits !== probability.basis) scenarioSection.append(element("p", "basis", run.analysis.probability_limits));
+  view.append(scenarioSection, renderAnalysis(run));
+  if (endpoints.length) view.append(scenarioRationale(run));
   const calculations = run.calculations || [];
+  const metricSection = element("section", "company-section");
+  metricSection.id = "company-metrics";
+  metricSection.append(element("h3", "", "Metrics & management statements"));
   const metrics = element("div", "metrics");
+  const comparisons = run.analysis ? run.analysis.management_comparisons || [] : [];
+  const displayedComparisons = new Set();
   const metricDefinitions = [
     ["ebit_margin", "EBIT margin", "margin_percent"],
     ["incremental_ebit_margin", "Incremental EBIT margin", "incremental_margin_percent"],
@@ -475,28 +680,55 @@ function renderCompany(run) {
     const calc = candidates[0];
     const output = (calc.outputs || {})[calc.primary_output || primary] || {};
     const metric = element("div", "metric");
+    metric.id = "metric-" + formula;
     metric.append(element("span", "meta", label));
     const value = savedValue(output.value, ["ev_ebit", "pe"].includes(formula) && output.unit === "fraction" ? "×" : output.unit);
     value.classList.add("metric-value");
     const periodLabel = calc.period_end || calc.year ? economicPeriod(calc) : calculationPeriod(calc) || "Period not recorded";
     metric.append(value, element("span", "meta", periodLabel + " · " + (calc.label || calc.id)));
     const current = currentCalculation(calc);
-    const explanation = current ? (number(output.value) === null ? "Latest period selected; final ratio unavailable." : "Latest matched " + calc.report_type.toUpperCase() + " inputs.") : "Historical or undated result; a matched current-period result is not available.";
+    const explanation = run.analysis && calculationPeriod(calc) ? "Dated saved inputs; the calculation basis states periods and adjustments." : current ? (number(output.value) === null ? "Latest period selected; final ratio unavailable." : "Latest matched " + calc.report_type.toUpperCase() + " inputs.") : "Historical or undated result; a matched current-period result is not available.";
     metric.append(element("p", "basis", explanation + (calc.current_period_reason ? " " + calc.current_period_reason : "")));
     if (number(output.value) === null) metric.append(element("p", "basis unavailable", "See missing inputs in calculation details."));
+    if (run.analysis) {
+      const basis = Object.entries(calc.inputs || {}).map(([name, input]) => name + " · " + economicPeriod(input) + ". " + text(input && input.basis));
+      metric.append(detail("Calculation basis & periods", [element("p", "basis", text(calc.basis)), recordList(basis), referenceList([calc.id], run)]));
+    }
+    for (const item of comparisons.filter((item) => item.metric_key === formula || item.metric_key === primary)) {
+      metric.append(managementComparison(item, run));
+      displayedComparisons.add(item.id);
+    }
     metrics.append(metric);
   }
-  if (metrics.children.length) view.append(metrics);
+  if (metrics.children.length) metricSection.append(metrics);
+  const additional = comparisons.filter((item) => !displayedComparisons.has(item.id));
+  if (additional.length) {
+    const guidance = element("div", "management-grid");
+    for (const item of additional) guidance.append(managementComparison(item, run));
+    metricSection.append(guidance);
+  }
+  if (!metrics.children.length && !comparisons.length) metricSection.append(element("p", "basis", "No separate saved metrics or structured management comparisons are included."));
+  view.append(metricSection);
+  if (run.analysis) view.append(renderAnalysisReview(run));
   const reportingDates = sources.map((source) => source.period && source.period.end).filter(Boolean).sort();
   const recency = element("section", "company-section current-data");
-  recency.append(element("p", "basis", "Latest reporting period in saved sources: " + (reportingDates.pop() || "Unavailable") + ". Frozen analysis date: " + run.analysis_date + ". Review recorded: " + text(run.reviewed_at).slice(0, 10) + ". A later review date does not refresh the underlying data."));
+  recency.append(element("p", "basis", "Latest reporting period in saved sources: " + (reportingDates.pop() || "Unavailable") + ". Frozen analysis date: " + run.analysis_date + (run.analysis ? ". Saved run completed: " : ". Saved financial review: ") + text(run.reviewed_at).slice(0, 10) + ". This timestamp does not refresh the underlying data."));
   if ((run.current_data_limits || []).length) recency.append(detail("Current data limits", [recordList(run.current_data_limits)]));
   view.append(recency);
   if ((run.material_inputs || []).length) view.append(renderMaterialInputs(run.material_inputs, sources));
   const working = element("section", "company-section");
+  working.id = "company-working";
+  working.append(element("h3", "", "Sources & working"));
+  if ((run.saved_records || []).length) {
+    const records = run.saved_records.map((record) => {
+      const item = detail(record.label || record.metric || record.id, [materialValue(record), element("p", "basis", economicPeriod(record)), sourceRecord(record, sources)]);
+      return item;
+    });
+    working.append(detail("Referenced evidence & assumptions (" + records.length + ")", records));
+  }
   working.append(detail("Calculations & inputs (" + calculations.length + ")", calculations.length ? calculations.map((calc) => renderCalculation(calc, sources)) : [element("p", "unavailable", "No named calculations saved.")]));
   working.append(detail("Analysis & interpretation", (run.interpretation || []).length ? [recordList(run.interpretation)] : [element("p", "unavailable", "No separate interpretation saved.")]));
-  working.append(detail("Saved research narrative", [element("p", "saved-text", text(run.narrative))]));
+  if (run.analysis) working.append(detail("Original full report", [readableReport(run.narrative)]));
   working.append(detail("Notes & limitations", (run.notes || []).length ? [recordList(run.notes)] : [element("p", "unavailable", "No separate notes saved.")]));
   const benchmark = run.benchmark || {};
   const benchmarkContent = [table(["Saved statistic", "Percent / percentage points"], [["Candidate annualized return (%)", savedValue(benchmark.candidate_annualized_return_percent)], ["Benchmark annualized return (%)", savedValue(benchmark.benchmark_annualized_return_percent)], ["Difference (percentage points)", savedValue(benchmark.difference_percentage_points)]]), element("p", "basis", text(benchmark.interpretation)), element("p", "basis", text(benchmark.limits)), element("p", "basis", text(benchmark.context))];
@@ -523,8 +755,18 @@ function renderCompany(run) {
     sourceContent.push(item);
   }
   working.append(detail("Sources & report pages (" + sources.length + ")", sourceContent.length ? sourceContent : [element("p", "unavailable", "No sources included in this saved view.")]));
-  working.append(detail("Run provenance", [element("pre", "", text(run.provenance))]));
-  if (run.original_calculations) working.append(detail("Original calculation trace", [element("p", "basis", "Original saved operations and named formulas, preserved as recorded. These are separate from the financial-review records above."), element("pre", "trace", text(run.original_calculations))]));
+  const provenance = [element("pre", "", text(run.provenance))];
+  if (run.analysis) provenance.unshift(element("p", "meta", "Original submission review status: " + text(run.analysis.review_status)));
+  working.append(detail("Run provenance", provenance));
+  if ((run.original_calculations || []).length) {
+    const trace = [];
+    for (const calc of run.original_calculations) {
+      const item = detail(calc.label || calc.id, [element("pre", "trace", text(calc))]);
+      if (!calculations.some((record) => record.id === calc.id)) item.id = "calculation-" + calc.id;
+      trace.push(item);
+    }
+    working.append(detail("Original calculation trace", [element("p", "basis", "Original saved operations and named formulas, preserved as recorded."), ...trace]));
+  }
   view.append(working);
   if (loadedRunId === run.id) for (const details of view.querySelectorAll("details")) if (opened.has(details.firstElementChild.textContent)) details.open = true;
   loadedRunId = run.id;
@@ -551,6 +793,9 @@ async function loadRun(id) {
     $("company-status").textContent = "Saved analysis unavailable";
   }
 }
+function savedRunLabel(run) {
+  return run.company.name + (run.company.ticker ? " · " + run.company.ticker : "") + " · analysis " + text(run.analysis_date) + (run.analysis_kind === "structured" ? " · analysis completed " : " · saved financial review ") + text(run.reviewed_at).slice(0, 10);
+}
 async function loadRuns(force = false) {
   if (runsLoading || (runsLoaded && !force)) return;
   runsLoading = true;
@@ -560,7 +805,7 @@ async function loadRuns(force = false) {
     const selected = $("run-select").value;
     $("run-select").replaceChildren();
     for (const run of data.runs) {
-      const option = element("option", "", run.company.name + (run.company.ticker ? " · " + run.company.ticker : "") + " · analysis " + text(run.analysis_date) + " · review " + text(run.reviewed_at).slice(0, 10));
+      const option = element("option", "", savedRunLabel(run));
       option.value = run.id;
       $("run-select").append(option);
     }

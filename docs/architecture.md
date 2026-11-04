@@ -26,6 +26,7 @@ work/plan.json → local research workbench ← explicit saved-view export
 | Arithmetic | `betaforge/financials.py` | Named, versioned deterministic formulas defined in [calculations](calculations.md). |
 | Analyst access | `betaforge/tools.py` | Bounded reads, saved inputs, provenance and calculation calls. |
 | Execution | `betaforge/codex_runner.py` | Run limits, cancellation/resume, model interaction and saved outputs. |
+| Analysis report | `betaforge/analysis_report.py` | Structured reasoning, sourced management comparisons, dated scenario references and hash-bound review feedback. |
 | Private preservation | `scripts/archive_research.py` | Versioned research bundles and verified restore. |
 | Saved-run presentation | `betaforge/saved_view.py`, `scripts/export_saved_analysis.py` | Verify existing artifact identity and package saved results for local inspection; no new financial arithmetic. |
 | Project progress | `work/`, `scripts/serve_progress.py`, `web/progress/` | Session-maintained delivery state and its read-only local display. |
@@ -36,6 +37,7 @@ work/plan.json → local research workbench ← explicit saved-view export
 - Acquisition is independent of analysis. Opening a saved result does not fetch data or rerun the analyst. [ADR 0001](adr/0001-persist-company-evidence.md)
 - Raw provider values, report-derived facts and selected inputs retain their identities. SQLite and source files are backed up together; ingestion has one writer. [ADR 0002](adr/0002-local-evidence-storage.md)
 - Financial arithmetic belongs in the named formula registry. The analyst explains assumptions and choices; the interface displays their saved records. The first formulas use SEK and operating-company concepts. [Policy](analysis-policy.md), [formula conventions](calculations.md#common-conventions)
+- A new analysis follows the [bounded analyst and independent challenge process](analysis-workflow.md). Report structure and evidence identity are checked by code; economic judgment is reviewed separately. The session coordinator dispatches the reviewer through the existing harness, then requests at most one explicit analyst revision.
 - Shared modules take explicit company inputs. Issuer assumptions belong in examples or private analysis inputs.
 - Public Git holds code, policy, documentation and safe project status. Credentials, original evidence, watchlists and exact saved analyses belong in ignored/private storage. [Handoff](research-handoff.md)
 - The progress plan is delivery state, not financial evidence or investment confidence. The local workbench serves an explicit set of public files and optionally configured private saved-view exports. It never starts analysis. The first viewer does not complete the broader mapping and decision-record work. [Local viewing](saved-analysis-view.md)

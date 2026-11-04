@@ -155,6 +155,7 @@ class ProgressTests(unittest.TestCase):
         self.assertEqual(status, 200)
         summary = json.loads(body)["runs"][0]
         self.assertEqual(summary["company"]["name"], "Sample")
+        self.assertEqual(summary["analysis_kind"], "legacy")
         self.assertNotIn("narrative", summary)
         self.assertEqual(json.loads(self.request("/api/runs/sample-20261101")[2]), self.saved_view())
         for path in ("/api/runs/../private.json", "/api/runs/%2e%2e%2fprivate.json",

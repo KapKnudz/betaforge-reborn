@@ -10,7 +10,21 @@ Open **http://127.0.0.1:8765**. The project plan refreshes while the page is ope
 
 ## Add a saved company run
 
-Use a completed run, its original frozen packet and the deterministic financial review. Supply the company name and the valuation method actually used; the exporter does not infer them from generated prose.
+For a new structured run, use its frozen packet and saved `analysis.json`, inputs, calculations and tool state. Supply the company name and the valuation method actually used; the exporter does not infer them from generated prose.
+
+```sh
+.venv/bin/python scripts/export_saved_analysis.py \
+  --run data/COMPANY/runs/RUN --packet data/COMPANY/PACKET \
+  --company 'Company name' --ticker TICKER --id company-run \
+  --method 'Forward EV/EBIT scenarios' \
+  --output data/saved-views/company-run.json
+```
+
+The exporter verifies the original evidence and report quotations, copied scenario outputs, complete reading and exact saved artifacts. The narrative must equal the text generated from the canonical report. An optional `analysis-review.json` must match the current report and packet hashes; draft feedback stays with its original artifacts. Follow the [bounded analysis workflow](analysis-workflow.md).
+
+Structured review provenance hashes the validated JSON content using the tool's canonical encoding, so indentation and a trailing newline do not change its identity. The private archive preserves the original file bytes. Legacy financial-review hashes retain their original file-byte convention.
+
+For an older unstructured run, also provide its deterministic financial review:
 
 ```sh
 .venv/bin/python scripts/export_saved_analysis.py \
@@ -31,9 +45,10 @@ Identity checks bind the packet, frozen database, original inputs and calculatio
 
 ## Read the company tab
 
-- **Conclusion and scenarios:** the dated saved conclusion and present values. Future targets and discount assumptions remain in each case’s basis. Conditional case weights are proposals, with their saved qualifications.
+- **Analysis and scenarios:** the full structured report separates facts, interpretations and assumptions. Clearly dated present values and future targets link to case-specific rationale, assumptions and saved calculations. Separate endpoint charts share a scale and do not invent an annual price path. Legacy targets remain in their saved basis when no structured endpoint exists. Conditional weights retain their qualifications.
+- **Management comparisons:** direct targets, guidance and related operating drivers retain issuer definitions, publication dates, target periods and physical-page quotations. An absent margin target stays absent; issuer ROCE and utilization are not relabelled operating ROIC or EBIT margin.
 - **Calculations:** named formulas, inputs, units, scale, source IDs, physical-page evidence, outputs and missing inputs. The original run trace, including scalar operations and named formulas, is available separately.
-- **Sources and interpretation:** archived report identities and hashes, saved analysis, caveats and the distinction between an analysis date and a later review date.
+- **Sources and review:** archived report identities and hashes, saved analysis, caveats and a separately bound independent-review verdict. The analysis cutoff differs from execution completion. The compatibility field `reviewed_at` holds completion time for structured runs and financial-review time for legacy runs; the interface labels those dates accordingly. A review without a saved date receives no invented review timestamp.
 - **Material values:** definitions, exact selected sources, provider comparisons, residuals and selection reasons. Current R12 diagnostics take precedence when their financial periods match; annual-only fallbacks carry an explanation. [Period and mapping rules](material-inputs.md)
 
 The historical index comparison is context, not a future return forecast. Missing cash-conversion inputs remain missing. Showing a result does not verify its accounting definitions or prove its investment thesis.
