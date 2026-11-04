@@ -6,7 +6,7 @@
 .venv/bin/python scripts/serve_progress.py
 ```
 
-Open **http://127.0.0.1:8765**. Stop with `Ctrl+C`. The dashboard shows project progress; the saved-analysis viewer is a later milestone.
+Open **http://127.0.0.1:8765**. Stop with `Ctrl+C`. The workbench shows project progress and architecture; [explicit private exports](../docs/saved-analysis-view.md) add saved company research.
 
 ## Update rules
 
@@ -28,7 +28,7 @@ Open **http://127.0.0.1:8765**. Stop with `Ctrl+C`. The dashboard shows project 
 | `goal`, `scope` | Current destination and agreed release scope. |
 | `next_task` | Existing task ID to resume; `null` when the plan is complete. |
 | `milestones` | Delivery stages with stable IDs and a short summary. |
-| `tasks` | Stable ID, milestone ID, title, status, acceptance criteria, evidence paths, blocker and note. |
+| `tasks` | Stable ID, milestone ID, title, status, short `summary` and `purpose`, acceptance criteria, evidence paths, blocker and detailed note. Older plans may omit summary/purpose. |
 | `session` | Active/last task ID, summary and next concrete step. |
 | `references` | Links to the documents that own policy, architecture and procedures. |
 

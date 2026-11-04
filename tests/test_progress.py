@@ -14,7 +14,7 @@ class ProgressTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         (self.root / "work").mkdir()
         (self.root / "web/progress").mkdir(parents=True)
         (self.root / "web/progress/index.html").write_text("<h1>Progress</h1>")
@@ -107,6 +107,84 @@ class ProgressTests(unittest.TestCase):
         self.plan["session"]["task"] = "unknown-task"
         self.save_plan()
         self.assertEqual(self.request("/api/plan")[0], 503)
+
+    def test_optional_task_summaries_are_validated(self):
+        self.plan["tasks"][0].update(summary="Preserve evidence", purpose="Explain the inputs")
+        self.save_plan()
+        self.assertEqual(self.request("/api/plan")[0], 200)
+        self.plan["tasks"][0]["purpose"] = []
+        self.save_plan()
+        self.assertEqual(self.request("/api/plan")[0], 503)
+
+    def saved_view(self):
+        return {
+            "schema_version": 1, "id": "sample-20261101",
+            "company": {"name": "Sample", "ticker": "SAMP", "instrument_id": 1},
+            "analysis_date": "2026-11-01", "reviewed_at": "2026-11-03T12:00:00Z",
+            "method": "Saved scenario analysis", "price": None,
+            "conclusion": "Conditional saved result", "scenarios": [],
+            "probability": {"weights": {}, "basis": None, "status": "missing"},
+            "calculations": [], "original_calculations": [], "interpretation": [],
+            "notes": [], "narrative": "Saved report", "sources": [],
+            "benchmark": {"candidate_annualized_return_percent": None,
+                          "benchmark_annualized_return_percent": None,
+                          "difference_percentage_points": None,
+                          "interpretation": None, "limits": [], "context": None},
+            "provenance": {"database_sha256": "a" * 64, "packet_sha256": "b" * 64,
+                           "review_sha256": "c" * 64, "run_sha256": "d" * 64,
+                           "summary_sha256": "e" * 64, "narrative_sha256": "f" * 64,
+                           "model": "gpt-6.1-sol", "reasoning_effort": "high", "status": "completed",
+                           "started_at": "2026-11-01T12:00:00Z", "finished_at": "2026-11-01T12:01:00Z",
+                           "coverage": {}},
+        }
+
+    def configure_view(self):
+        file = self.root / "data/saved-view.json"
+        file.write_text(json.dumps(self.saved_view()))
+        self.stop()
+        self.server = progress.make_server(0, root=self.root, analyses=[file])
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        return file
+
+    def test_saved_runs_are_opt_in_and_only_expose_configured_exports(self):
+        self.assertEqual(json.loads(self.request("/api/runs")[2]), {"runs": []})
+        self.assertEqual(self.request("/api/runs/sample-20261101")[0], 404)
+        self.configure_view()
+        status, _, body = self.request("/api/runs")
+        self.assertEqual(status, 200)
+        summary = json.loads(body)["runs"][0]
+        self.assertEqual(summary["company"]["name"], "Sample")
+        self.assertNotIn("narrative", summary)
+        self.assertEqual(json.loads(self.request("/api/runs/sample-20261101")[2]), self.saved_view())
+        for path in ("/api/runs/../private.json", "/api/runs/%2e%2e%2fprivate.json",
+                     "/api/runs/unknown", "/api/runs/sample-20261101/answer.md", "/data/saved-view.json"):
+            with self.subTest(path=path):
+                self.assertEqual(self.request(path)[0], 404)
+        self.assertEqual(self.request("/api/runs/sample-20261101", "HEAD")[2], b"")
+        self.assertEqual(self.request("/api/runs", headers={"Host": "remote.example"})[0], 403)
+
+    def test_saved_view_refresh_failures_do_not_leak_paths_or_change_identity(self):
+        file = self.configure_view()
+        for content in ("{", json.dumps(dict(self.saved_view(), id="changed-id"))):
+            file.write_text(content)
+            for endpoint in ("/api/runs", "/api/runs/sample-20261101"):
+                status, _, body = self.request(endpoint)
+                self.assertEqual(status, 503)
+                self.assertNotIn(str(file).encode(), body)
+        file.unlink()
+        self.assertEqual(self.request("/api/runs")[0], 503)
+        file.symlink_to(self.root / ".env")
+        self.assertEqual(self.request("/api/runs/sample-20261101")[0], 503)
+
+    def test_duplicate_or_invalid_saved_views_fail_before_binding(self):
+        file = self.root / "data/saved-view.json"
+        file.write_text(json.dumps(self.saved_view()))
+        with self.assertRaisesRegex(ValueError, "Duplicate"):
+            progress.make_server(0, root=self.root, analyses=[file, file])
+        file.write_text('{"secret":"not a saved view"}')
+        with self.assertRaises(ValueError):
+            progress.make_server(0, root=self.root, analyses=[file])
 
     def test_missing_malformed_and_inconsistent_plan_return_safe_errors(self):
         for content in ("{", "[]", '{"version":1}', "null"):

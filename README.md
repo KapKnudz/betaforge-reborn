@@ -8,7 +8,7 @@ Personal company research: collect evidence, check financial definitions and pro
 |---|---|
 | `betaforge/` | Shared data storage, calculations and Codex integration |
 | `scripts/` | Commands to collect data, prepare evidence and run analyses |
-| `web/progress/` | Local project progress dashboard |
+| `web/progress/` | Local project and saved-research workbench |
 | `work/` | Current goal, priorities, blockers and next steps |
 | `docs/` | Architecture, investment policy, formulas and setup |
 | `examples/granges/` | Company-specific worked example |
@@ -31,7 +31,7 @@ python3 -m venv .venv
 .venv/bin/python scripts/serve_progress.py
 ```
 
-Open **http://127.0.0.1:8765** for current project progress.
+Open **http://127.0.0.1:8765** for priorities, progress and architecture. To show company results, [add a private saved-run export](docs/saved-analysis-view.md).
 
 ## Research workflow
 
@@ -39,4 +39,4 @@ Open **http://127.0.0.1:8765** for current project progress.
 2. Apply the [investment policy](docs/analysis-policy.md) and [defined calculations](docs/calculations.md).
 3. Preserve exact evidence and results using the [private backup and restore workflow](docs/research-handoff.md).
 
-The primary valuation is forward EV/EBIT with an explicit equity bridge. The [Gränges example](examples/granges/README.md) demonstrates the current workflow. Broader company validation and the saved-analysis viewer remain planned; the progress dashboard tracks that work.
+The primary valuation is forward EV/EBIT with an explicit equity bridge. The [Gränges example](examples/granges/README.md) demonstrates the workflow. Material mapping checks, broader company validation and fuller decision records remain on the plan.

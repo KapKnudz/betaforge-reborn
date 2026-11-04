@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-03T23:24:32+01:00",
+  "updated_at": "2026-11-04T09:31:00+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "material-mapping",
@@ -26,7 +26,7 @@
     {
       "id": "saved-review",
       "title": "Inspect saved valuations",
-      "status": "pending",
+      "status": "in_progress",
       "summary": "Connect source evidence and decision rationale to a read-only analysis viewer."
     },
     {
@@ -51,7 +51,9 @@
         "tests/test_acquisition.py"
       ],
       "blocker": null,
-      "note": "Existing implementation. General report discovery/OCR remains outside this completed task."
+      "note": "Existing implementation. General report discovery/OCR remains outside this completed task.",
+      "summary": "Download and preserve original API responses.",
+      "purpose": "Make every number traceable to its source."
     },
     {
       "id": "evidence-foundation",
@@ -67,7 +69,9 @@
         "docs/research/system-readiness-review.md"
       ],
       "blocker": null,
-      "note": "Existing stores passed read-only integrity, foreign-key and source-hash checks on 3 November. Wider operational claims remain bounded by the readiness review."
+      "note": "Existing stores passed read-only integrity, foreign-key and source-hash checks on 3 November. Wider operational claims remain bounded by the readiness review.",
+      "summary": "Store observations, revisions and frozen evidence.",
+      "purpose": "Replay research without changing its inputs."
     },
     {
       "id": "valuation-contract",
@@ -84,7 +88,9 @@
         "docs/codex-integration.md"
       ],
       "blocker": null,
-      "note": "Forward operating EV/EBIT is the primary model. This task does not establish predictive accuracy or complete accounting mappings."
+      "note": "Forward operating EV/EBIT is the primary model. This task does not establish predictive accuracy or complete accounting mappings.",
+      "summary": "Define the valuation method and named formulas.",
+      "purpose": "Show how assumptions become a valuation."
     },
     {
       "id": "generic-core",
@@ -100,7 +106,9 @@
         "docs/codex-integration.md"
       ],
       "blocker": null,
-      "note": "Main restructure is merged. A second real-company walkthrough remains a separate validation task."
+      "note": "Main restructure is merged. A second real-company walkthrough remains a separate validation task.",
+      "summary": "Separate reusable code from company examples.",
+      "purpose": "Support more companies without copying the system."
     },
     {
       "id": "project-workflow",
@@ -124,7 +132,9 @@
         "tests/test_progress.py"
       ],
       "blocker": null,
-      "note": "Implemented and independently reviewed. Clean proposed checkout: 91 tests, OK (1 skipped private-evidence class); all seven dashboard tests pass. Browser verified filtering, criteria navigation, stale-state warning and recovery. Working-tree suite: 95 passed, one pre-existing missing example-manifest error; unrelated rename preserved. JavaScript syntax, documentation links and whitespace checks pass. User approved publishing all 16 files. PR #2 is open for user review/merge: https://github.com/KapKnudz/betaforge-reborn/pull/2. Completion describes implementation and PR preparation, not merge."
+      "note": "Implemented and independently reviewed. Clean proposed checkout: 91 tests, OK (1 skipped private-evidence class); all seven dashboard tests pass. Browser verified filtering, criteria navigation, stale-state warning and recovery. Working-tree suite: 95 passed, one pre-existing missing example-manifest error; unrelated rename preserved. JavaScript syntax, documentation links and whitespace checks pass. User approved publishing all 16 files. PR #2 is open for user review/merge: https://github.com/KapKnudz/betaforge-reborn/pull/2. Completion describes implementation and PR preparation, not merge.",
+      "summary": "Keep project rules and delivery state in the repository.",
+      "purpose": "Resume work without repeating instructions."
     },
     {
       "id": "pr-review-loop",
@@ -146,7 +156,9 @@
         "tests/test_progress.py"
       ],
       "blocker": null,
-      "note": "Configured the project-local MIT Greploop adaptation and default agent/PR instructions, with open/push review settings and public context files. Fixed two valid findings; acknowledged the already-fixed handoff. Eight dashboard tests pass; clean checkout: 92 tests, OK with one skipped private-evidence class. Independent read-only review, skill validation and link/whitespace checks pass. First end-to-end cycle completed on 3 November at 17:39 CET: head 4f1c86f3ee3f3f05bd262f658817018c712774fa received 5/5, completed Greptile check126056153708 succeeded and all three prior threads were resolved. This is a dated receipt for that head, not approval of later commits. The final handoff commit is rechecked before declaring the PR ready; its receipt belongs in the PR conversation. User merge remains pending."
+      "note": "Configured the project-local MIT Greploop adaptation and default agent/PR instructions, with open/push review settings and public context files. Fixed two valid findings; acknowledged the already-fixed handoff. Eight dashboard tests pass; clean checkout: 92 tests, OK with one skipped private-evidence class. Independent read-only review, skill validation and link/whitespace checks pass. First end-to-end cycle completed on 3 November at 17:39 CET: head 4f1c86f3ee3f3f05bd262f658817018c712774fa received 5/5, completed Greptile check126056153708 succeeded and all three prior threads were resolved. This is a dated receipt for that head, not approval of later commits. The final handoff commit is rechecked before declaring the PR ready; its receipt belongs in the PR conversation. User merge remains pending.",
+      "summary": "Automate bounded review, fixes and re-review.",
+      "purpose": "Catch justified issues before the user merges."
     },
     {
       "id": "model-routing",
@@ -169,7 +181,9 @@
         "tests/test_codex_runner.py"
       ],
       "blocker": null,
-      "note": "Project defaults and three narrow agent roles installed; no Astra and no global configuration change. Strict installed-client validation and effective config/model catalogue checks pass. Live exact Sol/xhigh image/financial/calculation smoke succeeds. Independent Sol/high review found no actionable issues. Clean offline suite: 106 tests, OK with one skipped private-evidence class. Existing turns retain their executing model; new runs use the project defaults unless explicitly overridden."
+      "note": "Project defaults and three narrow agent roles installed; no Astra and no global configuration change. Strict installed-client validation and effective config/model catalogue checks pass. Live exact Sol/xhigh image/financial/calculation smoke succeeds. Independent Sol/high review found no actionable issues. Clean offline suite: 106 tests, OK with one skipped private-evidence class. Existing turns retain their executing model; new runs use the project defaults unless explicitly overridden.",
+      "summary": "Assign explicit models to research and implementation roles.",
+      "purpose": "Use the right worker while keeping financial judgment with the thinker."
     },
     {
       "id": "storage-hardening",
@@ -191,7 +205,9 @@
         "docs/research/system-readiness-review.md"
       ],
       "blocker": null,
-      "note": "Implemented guard-before-write schema compatibility, read-time source_first_captured_at/source_last_successful_check_at, same-capture and acquisition-aware KPI metadata selection, three measured indexes and a financial read join using the existing logical-key index. Immutable records/IDs and legacy observed_at are preserved; source check dates do not certify metadata interpretations. Clean suite: 116 tests, OK with one private-evidence skip. All rows in eight tables of the thirty-company replay match the baseline; ingestion committed before a test deadline, and validation/freeze resumed under the separately recorded final read implementation. Original corpus hash is unchanged; legacy read-only query checks pass without migration. Warm query timings improved with identical results, with exact private receipts attached to the existing research release. Independent read-only code review found no actionable findings. Predecessor PR #5 is merged; the storage PR targets main; final Greptile receipt belongs in the PR conversation. User merges."
+      "note": "Implemented guard-before-write schema compatibility, read-time source_first_captured_at/source_last_successful_check_at, same-capture and acquisition-aware KPI metadata selection, three measured indexes and a financial read join using the existing logical-key index. Immutable records/IDs and legacy observed_at are preserved; source check dates do not certify metadata interpretations. Clean suite: 116 tests, OK with one private-evidence skip. All rows in eight tables of the thirty-company replay match the baseline; ingestion committed before a test deadline, and validation/freeze resumed under the separately recorded final read implementation. Original corpus hash is unchanged; legacy read-only query checks pass without migration. Warm query timings improved with identical results, with exact private receipts attached to the existing research release. Independent read-only code review found no actionable findings. Predecessor PR #5 is merged; the storage PR targets main; final Greptile receipt belongs in the PR conversation. User merges. PR #6 is now merged into main.",
+      "summary": "Guard schema versions and expose capture freshness.",
+      "purpose": "Preserve stored evidence and distinguish period from retrieval date."
     },
     {
       "id": "material-mapping",
@@ -208,7 +224,9 @@
         "examples/granges/docs/research/granges-mapping-resolution.md"
       ],
       "blocker": null,
-      "note": "Reuse the existing mapping specification; do not build a second mapping platform."
+      "note": "Reuse the existing mapping specification; do not build a second mapping platform.",
+      "summary": "Record what each material number means and why it was selected.",
+      "purpose": "Prevent matching titles or numbers from hiding different accounting definitions."
     },
     {
       "id": "multi-company-validation",
@@ -225,13 +243,15 @@
         "docs/retrieval-design.md"
       ],
       "blocker": null,
-      "note": "General report discovery/preparation still needs a minimal reusable path; five annuals remain the reading baseline where available."
+      "note": "General report discovery/preparation still needs a minimal reusable path; five annuals remain the reading baseline where available.",
+      "summary": "Repeat the workflow on another issuer, then three to five businesses.",
+      "purpose": "Test the generic process against different accounting conventions."
     },
     {
       "id": "saved-analysis-viewer",
       "milestone": "saved-review",
       "title": "Expose saved evidence, decisions and valuation bridges",
-      "status": "pending",
+      "status": "in_progress",
       "acceptance": [
         "Material forecasts, multiples, probabilities and cash/claims assumptions have evidence and rationale.",
         "A read-only local viewer links financial history, source comparisons, named calculations and scenario results.",
@@ -243,7 +263,9 @@
         "docs/codex-integration.md"
       ],
       "blocker": null,
-      "note": "Reuse frozen packets and run artifacts. The project progress dashboard does not satisfy this task."
+      "note": "The first read-only company tab now displays existing saved scenarios, named calculations, report evidence, interpretations and missing inputs. Full decision records and broader company validation remain pending; this task is not complete.",
+      "summary": "Connect saved results to assumptions, calculations and evidence.",
+      "purpose": "Make the valuation reasoning inspectable without rerunning it."
     },
     {
       "id": "retained-use-clarification",
@@ -257,7 +279,9 @@
         "docs/research/frozen-dataset-feasibility.md"
       ],
       "blocker": null,
-      "note": "User confirmed on 3 November 2026 that permission is resolved and instructed capture to proceed. This prerequisite is settled for the project."
+      "note": "User confirmed on 3 November 2026 that permission is resolved and instructed capture to proceed. This prerequisite is settled for the project.",
+      "summary": "Confirm permission to reuse frozen data.",
+      "purpose": "Develop from preserved evidence after the subscription ends."
     },
     {
       "id": "freeze-development-corpus",
@@ -277,7 +301,9 @@
         "docs/research/frozen-dataset-feasibility.md"
       ],
       "blocker": null,
-      "note": "Completed the API-only corpus for ten distinct issuers: 970/970 responses, 880 source blobs and 264,214 current observations. Raw coverage/identity/basis/hash checks, SQLite integrity/foreign keys, clean archive restore and a downloaded remote-copy checksum pass. A metadata-format audit checked 22,335 percentage/MCURR observations with zero mismatches. Exact data and receipts are in the private release development-corpus-2026-11-03. Final clean suite: 103 tests, OK with one skipped private-evidence class. Greptile identified argument-order-dependent units; the verifier now ingests chronologically with reversed-order regression coverage. Original PDFs and accounting reconciliation remain separate pending tasks. PR #3 contains generic tooling/docs only and is merged into main."
+      "note": "Completed the API-only corpus for ten distinct issuers: 970/970 responses, 880 source blobs and 264,214 current observations. Raw coverage/identity/basis/hash checks, SQLite integrity/foreign keys, clean archive restore and a downloaded remote-copy checksum pass. A metadata-format audit checked 22,335 percentage/MCURR observations with zero mismatches. Exact data and receipts are in the private release development-corpus-2026-11-03. Final clean suite: 103 tests, OK with one skipped private-evidence class. Greptile identified argument-order-dependent units; the verifier now ingests chronologically with reversed-order regression coverage. Original PDFs and accounting reconciliation remain separate pending tasks. PR #3 contains generic tooling/docs only and is merged into main.",
+      "summary": "Freeze and privately verify the first ten companies.",
+      "purpose": "Provide a reproducible development dataset."
     },
     {
       "id": "complete-report-corpus",
@@ -294,7 +320,9 @@
         "docs/retrieval-design.md"
       ],
       "blocker": null,
-      "note": "API capture does not include original PDFs. Existing worked-example reports are preserved separately; remaining issuer reports can be acquired without live Börsdata access."
+      "note": "API capture does not include original PDFs. Existing worked-example reports are preserved separately; remaining issuer reports can be acquired without live Börsdata access.",
+      "summary": "Archive five annuals and five years of interims where available.",
+      "purpose": "Preserve the narrative and accounting evidence behind the numbers."
     },
     {
       "id": "expand-corpus-to-30",
@@ -313,7 +341,9 @@
         "docs/research/frozen-dataset-feasibility.md"
       ],
       "blocker": null,
-      "note": "Completed thirty distinct issuers: 2,910/2,910 responses, 2,620 source blobs, 724,710 current observations, 7–20 annual periods and 101,708 price rows. Original ten captures are unchanged. Source/basis/hash, SQLite integrity/foreign keys, 138,506 KPI metadata links and 64,905 percentage/MCURR unit checks pass with zero mismatches. Clean archive restore verified all 5,569 reviewed files; all seven downloaded original release assets match exact sizes/SHA256. Private release: development-corpus-30-2026-11-03. Three incomplete attempts were reacquired; bounded transport retry recovered two requests. Source import took 2,517.503 seconds; metadata lookup profiling remains in storage hardening. Original PDFs and accounting reconciliation are pending. PR #4 was reviewed at 5/5 and merged into the old feature branch; the main-landing task carries it into main. Final review receipts belong in PR conversations; the user merges."
+      "note": "Completed thirty distinct issuers: 2,910/2,910 responses, 2,620 source blobs, 724,710 current observations, 7–20 annual periods and 101,708 price rows. Original ten captures are unchanged. Source/basis/hash, SQLite integrity/foreign keys, 138,506 KPI metadata links and 64,905 percentage/MCURR unit checks pass with zero mismatches. Clean archive restore verified all 5,569 reviewed files; all seven downloaded original release assets match exact sizes/SHA256. Private release: development-corpus-30-2026-11-03. Three incomplete attempts were reacquired; bounded transport retry recovered two requests. Source import took 2,517.503 seconds; metadata lookup profiling remains in storage hardening. Original PDFs and accounting reconciliation are pending. PR #4 was reviewed at 5/5 and merged into the old feature branch; the main-landing task carries it into main. Final review receipts belong in PR conversations; the user merges.",
+      "summary": "Preserve verified API evidence for thirty operating companies.",
+      "purpose": "Broaden development coverage without constant live access."
     },
     {
       "id": "main-landing",
@@ -332,13 +362,43 @@
         "work/plan.json"
       ],
       "blocker": null,
-      "note": "PR #3 merged into main; PR #4 merged into the predecessor feature branch. Follow-up PR #5 carried the three reviewed commits unchanged onto main and added the main-base rule. Independent review, content-equivalence, plan-schema and whitespace checks passed; Greptile reviewed head 655e5c0 at 5/5 with no findings. PR #5 is merged into main."
+      "note": "PR #3 merged into main; PR #4 merged into the predecessor feature branch. Follow-up PR #5 carried the three reviewed commits unchanged onto main and added the main-base rule. Independent review, content-equivalence, plan-schema and whitespace checks passed; Greptile reviewed head 655e5c0 at 5/5 with no findings. PR #5 is merged into main.",
+      "summary": "Land reviewed model and corpus work on main.",
+      "purpose": "Keep the shared starting point current across workstations."
+    },
+    {
+      "id": "research-workbench-ui",
+      "milestone": "saved-review",
+      "title": "Make the local research workbench easy to scan",
+      "status": "done",
+      "summary": "Add a traditional visual style, progress chart, architecture and saved-company tab.",
+      "purpose": "See what is next and inspect existing research in one local place.",
+      "acceptance": [
+        "Show the actual plan with a prominent next action and task-completion graph.",
+        "Keep completed work concise with detailed evidence available.",
+        "Show architecture near the top and in a dedicated tab.",
+        "Display explicitly configured saved company results, formulas, sources and limitations without new provider or model calls.",
+        "Pass relevant tests, browser checks and independent read-only review."
+      ],
+      "evidence": [
+        "web/progress/index.html",
+        "web/progress/app.js",
+        "web/progress/style.css",
+        "betaforge/saved_view.py",
+        "scripts/export_saved_analysis.py",
+        "scripts/serve_progress.py",
+        "tests/test_progress.py",
+        "tests/test_saved_view.py",
+        "docs/saved-analysis-view.md"
+      ],
+      "blocker": null,
+      "note": "Implemented the traditional local workbench with plan bars, a next-action box, short what/why records, architecture and explicitly configured saved-company views. Clean proposed checkout: 134 tests, OK with one private-evidence class skipped; JavaScript syntax and whitespace checks pass. Browser checked desktop/narrow layouts, keyboard tabs, filtering, evidence drilldowns, empty state and stale-plan recovery. Independent read-only review findings were fixed and rechecked; mobile visual issues were fixed and rechecked. Greptile found two producer compatibility issues: mixed scalar/named run records and explicit null benchmarks. Both were fixed, covered using actual offline calculation records and independently rechecked. No provider/model calls or valuation recalculation. PR #8 is open against main for user review and merge: https://github.com/KapKnudz/betaforge-reborn/pull/8. The fresh final-head Greptile receipt belongs in the PR conversation."
     }
   ],
   "session": {
-    "task": "storage-hardening",
-    "summary": "PR #5 has merged the reviewed model/corpus changes into main. Storage hardening is implemented, independently reviewed and validated against the full frozen corpus.",
-    "next_step": "Finish the main-targeted storage PR and fresh current-head review for user merge. Next: material-mapping records and a second-company report walkthrough, broadening to three–five businesses; continue original-report acquisition alongside validation."
+    "task": "research-workbench-ui",
+    "summary": "PR #8 contains the validated traditional workbench and first saved-company view. Broader valuation validation remains open.",
+    "next_step": "Complete the bounded current-head Greptile review on PR #8; user reviews and merges. Then record material field definitions and selected-input rationale, validate another issuer and continue report archiving."
   },
   "references": [
     {

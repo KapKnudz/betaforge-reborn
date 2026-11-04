@@ -1,18 +1,21 @@
-"""Serve the local, read-only project plan at http://127.0.0.1:8765."""
+"""Serve the local, read-only research workbench at http://127.0.0.1:8765."""
 import argparse
 from functools import partial
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
+import sys
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from betaforge.saved_view import load_saved_view
 STATUSES = {"pending", "in_progress", "blocked", "done"}
 DOCUMENTS = (
     "AGENTS.md", "CONTRIBUTING.md", "README.md", "docs/architecture.md",
     "work/README.md", "docs/analysis-policy.md", "docs/calculations.md", "docs/company-workflow.md",
     "docs/research/system-readiness-review.md",
-    "docs/research/borsdata-retrieval-storage.md", "docs/codex-integration.md",
+    "docs/research/borsdata-retrieval-storage.md", "docs/codex-integration.md", "docs/saved-analysis-view.md",
 )
 ROUTES = {
     "/": ("web/progress/index.html", "text/html; charset=utf-8"),
@@ -62,6 +65,9 @@ def validate_plan(plan):
                 raise ValueError("Expected task list: " + field)
         if task.get("blocker") is not None and not isinstance(task["blocker"], str):
             raise ValueError("Invalid blocker")
+        for field in ("summary", "purpose"):
+            if field in task and not isinstance(task[field], str):
+                raise ValueError("Invalid task " + field)
     if "next_task" not in plan:
         raise ValueError("Missing next task")
     if plan["next_task"] is None:
@@ -83,8 +89,9 @@ def validate_plan(plan):
 
 
 class ProgressHandler(BaseHTTPRequestHandler):
-    def __init__(self, *args, root=ROOT, **kwargs):
+    def __init__(self, *args, root=ROOT, analyses=None, **kwargs):
         self.root = Path(root)
+        self.analyses = analyses or {}
         super().__init__(*args, **kwargs)
 
     def respond(self, status, body, content_type="text/plain; charset=utf-8", head=False):
@@ -105,6 +112,29 @@ class ProgressHandler(BaseHTTPRequestHandler):
             self.respond(403, b"Loopback access only.\n", head=head)
             return
         path = urlsplit(self.path).path
+        if path == "/api/runs" or path.startswith("/api/runs/"):
+            selected_id = None if path == "/api/runs" else path[len("/api/runs/"):]
+            if selected_id is not None and selected_id not in self.analyses:
+                self.respond(404, b'{"error":"Unknown saved analysis."}', "application/json; charset=utf-8", head=head)
+                return
+            try:
+                if selected_id is None:
+                    views = []
+                    for view_id, file in self.analyses.items():
+                        view = load_saved_view(file)
+                        if view["id"] != view_id:
+                            raise ValueError("Saved analysis identity changed")
+                        views.append(view)
+                    payload = {"runs": [{key: view[key] for key in ("id", "company", "analysis_date", "reviewed_at", "method")} for view in views]}
+                else:
+                    payload = load_saved_view(self.analyses[selected_id])
+                    if payload["id"] != selected_id:
+                        raise ValueError("Saved analysis identity changed")
+            except (OSError, ValueError, TypeError, KeyError):
+                self.respond(503, b'{"error":"Saved analysis unavailable. Check the configured export."}', "application/json; charset=utf-8", head=head)
+                return
+            self.respond(200, json.dumps(payload, ensure_ascii=False).encode(), "application/json; charset=utf-8", head=head)
+            return
         if path == "/api/plan":
             try:
                 plan = validate_plan(json.loads(read_file(self.root, "work/plan.json")))
@@ -139,16 +169,24 @@ class ProgressHandler(BaseHTTPRequestHandler):
         return
 
 
-def make_server(port=8765, root=ROOT):
-    return ThreadingHTTPServer(("127.0.0.1", port), partial(ProgressHandler, root=root))
+def make_server(port=8765, root=ROOT, analyses=()):
+    configured = {}
+    for file in analyses:
+        view = load_saved_view(file)
+        if view["id"] in configured:
+            raise ValueError("Duplicate saved analysis ID")
+        configured[view["id"]] = Path(file).absolute()
+    return ThreadingHTTPServer(("127.0.0.1", port), partial(ProgressHandler, root=root, analyses=configured))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--analysis", action="append", default=[], type=Path,
+                        help="Explicit saved-view JSON export; repeat to show multiple runs")
     args = parser.parse_args()
-    with make_server(args.port) as server:
-        print(f"Project progress: http://127.0.0.1:{server.server_port}", flush=True)
+    with make_server(args.port, analyses=args.analysis) as server:
+        print(f"Research workbench: http://127.0.0.1:{server.server_port}", flush=True)
         print("Read-only. Press Ctrl-C to stop.", flush=True)
         try:
             server.serve_forever()
