@@ -15,7 +15,7 @@ DOCUMENTS = (
     "AGENTS.md", "CONTRIBUTING.md", "README.md", "docs/architecture.md",
     "work/README.md", "docs/analysis-policy.md", "docs/calculations.md", "docs/company-workflow.md",
     "docs/research/system-readiness-review.md",
-    "docs/research/borsdata-retrieval-storage.md", "docs/codex-integration.md", "docs/saved-analysis-view.md", "docs/material-inputs.md",
+    "docs/research/borsdata-retrieval-storage.md", "docs/codex-integration.md", "docs/saved-analysis-view.md", "docs/material-inputs.md", "docs/analysis-workflow.md",
 )
 ROUTES = {
     "/": ("web/progress/index.html", "text/html; charset=utf-8"),
