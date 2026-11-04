@@ -1,11 +1,13 @@
 """Check the prototype's financial display and navigation contract with synthetic data."""
 import pathlib
+import shutil
 import subprocess
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
+@unittest.skipUnless(shutil.which("node"), "Node is required for the buildless UI check")
 class PrototypeTests(unittest.TestCase):
     def test_browser_helpers(self):
         script = r"""
@@ -50,15 +52,59 @@ global.document={createElement:t=>new Node(t),createTextNode:t=>{const n=new Nod
 const p=require('./web/prototypes/company/app.js');
 const input={report_type:'r12',period_start:'2025-10-01',period_end:'2026-09-30'};
 const calc={id:'calc:one',formula:'ebit_margin',label:'Current ratio',basis:'Saved basis',report_type:'r12',display_role:'current',...input,inputs:{revenue:input},outputs:{margin_percent:{value:'14.2',unit:'percent'}}};
-const run={company:{name:'Synthetic',ticker:'SYN'},analysis_date:'2026-11-01',price:{value:'123',scale:'0.01',currency:'USD'},reader_memo:{summary:'Test',sections:[{title:'Case',paragraphs:[{kind:'interpretation',text:'Saved text',references:['calc:one#margin_percent']}]}],scenarios:[]},probability:{status:'proposed',weights:{base:'1'}},analysis:{scenarios:[{id:'base',name:'Base',present_value:{value:'1.23456789',unit:'USD/shares'},future_target:{value:'2.3456789',unit:'USD/shares'}}],management_comparisons:[{metric_label:'ROCE',relationship:'related',statement:'Outlook',basis:'Issuer definition',statement_date:'2026-01-01',target_period:'2027',references:['calc:one'],actual_references:[]}]},calculations:[calc,{id:'calc:two',formula:'ev_ebit',outputs:{multiple:{value:'12.345',unit:'dimensionless'}}},{id:'calc:missing',formula:'pe',outputs:{multiple:{value:null,unit:'dimensionless'}}}],notes:['Legacy note']};
+const run={company:{name:'Synthetic',ticker:'SYN'},analysis_date:'2026-11-01',price:{value:'123',scale:'0.01',currency:'USD'},reader_memo:{summary:'Test',sections:[{title:'Case',paragraphs:[{kind:'interpretation',text:'Saved text',references:['calc:one#margin_percent']}]}],scenarios:[]},probability:{status:'proposed',weights:{base:'1'}},analysis:{scenarios:[{id:'base',name:'Base',present_value:{value:'1.23456789',unit:'USD/shares'},future_target:{value:'2.3456789',unit:'USD/shares'}}],management_comparisons:[{metric_label:'ROCE',relationship:'related',statement_type:'driver',statement:'Outlook',basis:'Issuer definition',statement_date:'2026-01-01',target_period:'2027',references:['calc:one'],actual_references:[]}]},calculations:[calc,{id:'calc:two',formula:'ev_ebit',outputs:{multiple:{value:'12.345',unit:'dimensionless'}}},{id:'calc:missing',formula:'pe',outputs:{multiple:{value:null,unit:'dimensionless'}}}],notes:['Legacy note']};
+run.analysis.management_comparisons.push(...[
+  ['Direct target','direct','target'],['Related guidance','related','guidance'],['Missing statement','not_stated','not_stated']
+].map(([metric_label,relationship,statement_type])=>({metric_label,relationship,statement_type})));
 p.render({run,quote:{value:'234',scale:'0.01',currency:'USD',date:'2026-10-30'}});
 function all(n){return [n,...n.children.flatMap(all)];} const nodes=all(roots.content), text=nodes.map(n=>n.textContent).join('|');
-for(const expected of ['1.23 USD','2.34 USD','Classification: interpretation','14.2 %','R12 · 2025-10-01 to 2026-09-30','Related management statement','2027','Complete source record','Legacy note','12.3 ×','Present value: 1.23 USD/shares · Future target: 2.35 USD/shares','Proposed weights · select a scenario for assumptions'])assert.ok(text.includes(expected),expected);
+for(const expected of ['1.23 USD','2.34 USD','Classification: interpretation','14.2 %','R12 · 2025-10-01 to 2026-09-30','2027','Complete source record','Legacy note','12.3 ×','Present value: 1.23 USD/shares · Future target: 2.35 USD/shares','Proposed weights · select a scenario for assumptions'])assert.ok(text.includes(expected),expected);
+for(const [metric,type,relationship] of [['ROCE','Driver','Related'],['Direct target','Target','Direct'],['Related guidance','Guidance','Related'],['Missing statement','Not stated','Not stated']]) {
+  const article=nodes.find(n=>n.tagName==='ARTICLE' && n.children.some(c=>c.tagName==='H3' && c.textContent===metric));
+  assert.ok(article,metric);
+  assert.ok(article.children.some(n=>n.textContent==='Statement type: '+type),metric+' statement type');
+  assert.ok(article.children.some(n=>n.textContent==='Relationship: '+relationship),metric+' relationship');
+}
 assert.ok(!text.includes('Unavailable ×'));
 const reference=nodes.find(n=>n.textContent==='calc:one#margin_percent' && n.tagName==='A');assert.ok(reference);reference.click({preventDefault(){}});const target=document.getElementById('reference-0');assert.ok(target.open);assert.ok(document.getElementById('evidence').open);
 assert.equal(p.periodLabel({report_type:'quarter',period_start:'2026-07-01',period_end:'2026-09-30'}),'QUARTER · 2026-07-01 to 2026-09-30');
 assert.equal(p.periodLabel({formula:'operating_roic',inputs:{ebit:input}}),'R12 · 2025-10-01 to 2026-09-30');
 assert.notEqual(p.periodLabel(calc),p.periodLabel({report_type:'quarter',period_start:'2026-07-01',period_end:'2026-09-30'}));
+const legacy={company:{name:'Legacy synthetic'},scenarios:[
+  {name:'Saved case',value:'81.1234567890123456789',unit:'USD/share',basis:'Original discounted cash basis',calculation_ids:['calc:one#margin_percent']},
+  {name:'Saved case',value:'102.34567890123456789',unit:'USD/share',basis:'Original target basis',calculation_ids:['calc:two#multiple']}
+],calculations:run.calculations};
+const original=JSON.stringify(legacy);
+p.render({run:legacy});
+const legacyNodes=all(roots.content), legacyText=legacyNodes.map(n=>n.textContent).join('|');
+const details=legacyNodes.filter(n=>n.className==='scenario-detail');
+assert.equal(details.length,2);
+assert.equal(new Set(details.map(n=>n.id)).size,2);
+assert.ok(!legacyNodes.some(n=>n.id==='scenario-undefined'));
+for(const [i,scenario] of legacy.scenarios.entries()) {
+  const row=legacyNodes.find(n=>n.tagName==='TR' && n.children.some(c=>c.children.some(a=>a.tagName==='A' && a.href==='#'+details[i].id)));
+  assert.ok(row,'legacy value row '+i);
+  assert.ok(all(row).some(n=>n.textContent===scenario.value+' '+scenario.unit));
+  assert.ok(all(row).some(n=>n.textContent===scenario.basis));
+  const link=all(row).find(n=>n.tagName==='A');link.click({preventDefault(){}});
+  assert.ok(details[i].open && document.getElementById('valuation-assumptions').open);
+  const detailText=all(details[i]).map(n=>n.textContent).join('|');
+  assert.ok(detailText.includes('Saved value: '+scenario.value+' '+scenario.unit));
+  assert.ok(detailText.includes('Saved basis: '+scenario.basis));
+  const reference=all(details[i]).find(n=>n.tagName==='A' && n.textContent===scenario.calculation_ids[0]);
+  assert.ok(reference);reference.click({preventDefault(){}});
+  const record=document.getElementById(reference.href.slice(1));
+  assert.ok(record.open && document.getElementById('evidence').open);
+  assert.ok(all(record).some(n=>n.tagName==='PRE' && n.textContent.includes(scenario.calculation_ids[0].split('#')[0])));
+}
+assert.ok(legacyText.includes('Saved scenario value'));
+assert.equal(legacyNodes.filter(n=>n.className==='dot-row').length,2);
+assert.equal(legacyNodes.filter(n=>n.className==='bar-button').length,0);
+assert.ok(legacyText.includes('Comparable saved endpoints are unavailable.'));
+assert.ok(!legacyText.includes('Present value:') && !legacyText.includes('Future target:'));
+assert.ok(!legacyText.includes('Includes discounted dividends') && !legacyText.includes('Excludes separately paid dividends'));
+assert.ok(!/\d+% weight/.test(legacyText));
+assert.equal(JSON.stringify(legacy),original);
 """
         subprocess.run(["node", "-e", script], cwd=ROOT, check=True)
 

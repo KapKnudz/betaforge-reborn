@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T17:47:19.671782+00:00",
+  "updated_at": "2026-11-04T18:01:39.011797+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "company-design-adoption",
@@ -516,7 +516,7 @@
         "tests/test_design_prototype_ui.py"
       ],
       "blocker": null,
-      "note": "The agreed design brief and isolated Terra/medium prototype are complete. The working Company interface remains separate. The preview reads one explicitly selected validated snapshot and optional read-only market store, with no provider, model or valuation calls. Clean proposed checkout: 189 offline tests passed, with one private-evidence class skipped. Desktop 1280 × 720 and mobile 390 × 844 checks covered chart activation, source navigation, keyboard focus, dates, financial display and overflow. Independent Sol technical and Terra visual reviews completed; material findings were corrected and rechecked. Exact research and screenshots remain private. User visual approval and production adoption are pending; publication and current-head Greptile receipts belong in the PR conversation."
+      "note": "The agreed design brief and isolated Terra/medium prototype are complete. The working Company interface remains separate. The preview reads one explicitly selected validated snapshot and optional read-only market store, with no provider, model or valuation calls. Clean proposed checkout: 189 offline tests passed, with one private-evidence class skipped. Desktop 1280 × 720 and mobile 390 × 844 checks covered chart activation, source navigation, keyboard focus, dates, financial display and overflow. Independent Sol technical and Terra visual reviews completed; material findings were corrected and rechecked. Exact research and screenshots remain private. User visual approval and production adoption are pending; publication and current-head Greptile receipts belong in the PR conversation. PR #14 review identified optional-Node setup, legacy scenario display and management statement classification issues. All three were fixed with render regression coverage and independent read-only recheck. The repeated 189-test offline suite passed (one private-evidence class skipped); Python-only PATH skipped both optional UI tests. Browser recheck confirmed distinct statement types and relationships. Final current-head Greptile receipt remains in the PR conversation."
     },
     {
       "id": "company-design-adoption",
