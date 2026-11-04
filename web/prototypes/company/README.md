@@ -1,6 +1,6 @@
 # Company design prototype
 
-Separate local design trial; the working Company page remains at `web/progress/`.
+Preserved local design trial. The approved presentation is maintained in the working Company page at `web/progress/`, which also provides company/memo navigation and the architecture/process view. Use the [workbench setup](../../../docs/saved-analysis-view.md) for regular research.
 
 ```sh
 .venv/bin/python scripts/preview_company_design.py --analysis PATH [--market-db PATH] [--port 8766]

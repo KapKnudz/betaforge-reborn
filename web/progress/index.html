@@ -7,6 +7,8 @@
   <title>Betaforge · Research journal</title>
   <link rel="stylesheet" href="/style.css">
   <script src="/app.js" defer></script>
+  <link rel="stylesheet" href="/process.css">
+  <script src="/process.js" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -35,13 +37,10 @@
       </div>
     </section>
     <section id="panel-architecture" class="tab-panel" role="tabpanel" aria-labelledby="tab-architecture" tabindex="0" hidden>
-      <div class="section-heading"><div><p class="eyebrow">DESIGN &amp; BOUNDARIES</p><h2>One chain of evidence.</h2></div><a href="/docs/docs/architecture.md" target="_blank" rel="noopener">Read the architecture ↗</a></div>
-      <p class="section-intro">Collection, interpretation, arithmetic and presentation have separate jobs. Saved results retain their source identities and assumptions.</p>
-      <ol class="flow architecture-flow"><li><strong>01 · Acquisition</strong><span>Börsdata and original reports. Preserve raw responses and source hashes.</span></li><li><strong>02 · Evidence</strong><span>SQLite observations and source files retain definitions, revisions and provenance.</span></li><li><strong>03 · Preparation</strong><span>Freeze one company packet with reports, evidence, policy and context.</span></li><li><strong>04 · Analysis</strong><span>Codex reads bounded evidence. Named, versioned formulas perform deterministic arithmetic.</span></li><li><strong>05 · Preservation</strong><span>Save the answer, calculations and audit records. Archive bundles with verified restore.</span></li><li><strong>06 · Review</strong><span>This first saved-review view reads explicitly configured records. It does not refresh evidence or launch analysis.</span></li></ol>
-      <div class="bottom-grid architecture-notes"><section><p class="eyebrow">OWNERSHIP</p><h2>Each layer has an owner.</h2><div class="table-wrap"><table><thead><tr><th>Layer</th><th>Module / entry point</th></tr></thead><tbody><tr><td>Acquisition</td><td><code>borsdata.py</code> and fetch scripts</td></tr><tr><td>Evidence</td><td><code>storage.py</code></td></tr><tr><td>Preparation</td><td><code>prepare_codex_packet.py</code></td></tr><tr><td>Arithmetic</td><td><code>financials.py</code></td></tr><tr><td>Analyst access</td><td><code>tools.py</code></td></tr><tr><td>Execution</td><td><code>codex_runner.py</code></td></tr><tr><td>Private preservation</td><td><code>archive_research.py</code></td></tr><tr><td>Project &amp; saved review</td><td><code>serve_progress.py</code> · <code>web/progress/</code></td></tr></tbody></table></div></section><section><p class="eyebrow">RULES OF THE WORKBENCH</p><h2>Keep the meaning visible.</h2><ul class="principles"><li>Opening a saved record never fetches data or reruns the analyst.</li><li>Financial choices belong in policy and saved assumptions. Arithmetic belongs in the formula registry.</li><li>Shared code takes explicit company inputs. Issuer assumptions belong in company examples or private inputs.</li><li>Public Git holds code and safe project status. Exact research and credentials remain private.</li><li>Task completion measures delivery, not investment confidence.</li></ul><p class="callout"><strong>First saved-review view.</strong> Financial mapping, broader company validation and later workflow controls still need their own acceptance evidence. A readable result does not establish accounting correctness or predictive accuracy.</p><a href="/docs/docs/analysis-policy.md" target="_blank" rel="noopener">Investment policy ↗</a> · <a href="/docs/docs/calculations.md" target="_blank" rel="noopener">Named calculations ↗</a></section></div>
+      <div id="process-view"></div>
     </section>
     <section id="panel-company" class="tab-panel" role="tabpanel" aria-labelledby="tab-company" tabindex="0" hidden>
-      <div class="company-controls"><label class="filter" for="run-select">Report version<select id="run-select"><option value="">Loading…</option></select></label></div>
+      <div class="company-controls"><label class="filter" for="company-select">Company<select id="company-select"><option value="">Loading…</option></select></label><label class="filter" for="run-select">Memo version<select id="run-select"><option value="">Loading…</option></select></label></div>
       <p id="company-status" class="connection" role="status" aria-live="polite">Loading report versions…</p>
       <div id="company-error" class="error" role="alert" hidden></div>
       <div id="company-empty" class="empty-state" hidden><p class="eyebrow">NO SAVED ANALYSIS CONFIGURED</p><h3>Bring a saved case to the desk.</h3><p>Start the local server with an explicit saved-view file:</p><pre>python3 scripts/serve_progress.py --analysis saved-view.json</pre><p><a href="/docs/docs/saved-analysis-view.md" target="_blank" rel="noopener">Saved-review setup and format ↗</a></p></div>

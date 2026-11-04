@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T19:31:35.778802+00:00",
+  "updated_at": "2026-11-04T20:17:26.098617+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "company-design-integration",
+  "next_task": "return-and-reader-review",
   "milestones": [
     {
       "id": "foundation",
@@ -545,28 +545,37 @@
     {
       "id": "company-design-integration",
       "milestone": "saved-review",
-      "title": "Apply the reviewed Company design to the working viewer",
-      "status": "pending",
-      "summary": "Review the refined prototype, then port the accepted presentation to the Company page.",
+      "title": "Unify company memos and explain the analysis process",
+      "status": "done",
+      "summary": "Bring the approved reader into the workbench with company navigation and visual architecture.",
       "purpose": "Make the accepted interface part of the regular research workflow.",
       "acceptance": [
-        "Confirm the refined prototype and production integration scope with the user.",
-        "Reuse existing saved-run and quote APIs, preserving report switching, source access and legacy results.",
-        "Verify desktop/mobile behavior, financial display and independent review before a focused main-targeted PR."
+        "Use the approved Company presentation in the main workbench, retaining report switching, financial details, sources and legacy results.",
+        "Separate company selection from memo-version selection; configured saved analyses remain the only exposed records and stale requests cannot mix companies.",
+        "Provide a simple technical map and a comprehensive, navigable analysis-process explanation distinguishing code, agent judgment and coordinator responsibilities.",
+        "Describe current enforcement and its limits accurately, including saved decision rationale, deterministic arithmetic, independent challenge and bounded revision.",
+        "Verify real and synthetic multi-company desktop/mobile behavior, the offline suite and independent read-only reviews before a focused main-targeted PR."
       ],
       "evidence": [
-        "DESIGN.md",
-        "web/prototypes/company/README.md",
-        "web/progress/"
+        "web/progress/app.js",
+        "web/progress/index.html",
+        "web/progress/style.css",
+        "web/progress/process.js",
+        "web/progress/process.css",
+        "docs/analysis-process.md",
+        "docs/saved-analysis-view.md",
+        "tests/test_progress_ui.py",
+        "tests/test_process_ui.py",
+        "tests/test_progress.py"
       ],
       "blocker": null,
-      "note": "The approved direction is implemented as a refined local prototype on port 8766. Production integration into the workbench on port 8765 is not part of PR #14. Keep the separate operating-to-capital-and-cash evidence review on the roadmap."
+      "note": "Integrated the approved reader into the existing workbench with separate instrument-based company and memo-version selection, stable defaults and selection memory. Preserved sourced calculations, material mappings, legacy views and dated quotes. Added a technical map, analyst decision sequence and expandable stages distinguishing code checks, agent judgment and coordinator-managed independent challenge. Independent content, code and visual reviews passed; a company-name-drift memo-label ambiguity was fixed and rechecked. The exact proposed checkout ran 192 offline tests, OK with one private-evidence class skipped. Desktop and actual 390 px checks covered navigation across two synthetic companies and three memos, switch-back/refresh, real legacy selection, source/keyboard focus, period charts, price references and overflow. Only one issuer currently has real saved research; this UI test does not establish financial validation for another company. The selected private reader artifact is byte-identical to its previous checkpoint; no model or provider run. Final publication/current-head Greptile receipt remains in the PR conversation; user reviews and merges."
     }
   ],
   "session": {
-    "task": "company-design-adoption",
-    "summary": "Approved direction refined with saved history, current comparisons and traceable return and price references.",
-    "next_step": "User reviews the refined prototype on port 8766; agree adoption into the working Company viewer. PR #14 is the isolated prototype, with final review receipts in its conversation."
+    "task": "company-design-integration",
+    "summary": "Company/memo navigation and visual architecture/analysis explanation implemented and verified.",
+    "next_step": "Review the focused integration PR, then resume the operating-to-capital-and-cash evidence review. Validate a second real issuer before claiming broad financial coverage."
   },
   "references": [
     {

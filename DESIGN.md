@@ -1,6 +1,6 @@
 # Betaforge design brief
 
-Agreed direction, 4 November 2026. A classic financial research workspace: clear figures, concise explanations and detail that opens when needed. The first deliverable is a separate Company-page prototype for visual review. Adoption into the working interface follows the user's review.
+Direction approved on 4 November 2026. A classic financial research workspace: clear figures, concise explanations and detail that opens when needed. The approved Company trial is now being integrated into the main workbench, with company/memo navigation and a visual explanation of the system and analysis process.
 
 ## References and purpose
 
@@ -15,7 +15,7 @@ The reader should quickly understand the business case, what the price requires,
 
 ## Company layout
 
-1. **Quiet header:** company and ticker; small labelled report selector at the upper right. Keep the project navigation subordinate to the company research.
+1. **Quiet header:** company and ticker; separate labelled company and memo-version selectors. Keep the memo selector at the upper right and project navigation subordinate to the company research.
 2. **Overview:** a short investment conclusion alongside a compact facts panel. Distinguish the latest stored market quote from the dated report price. Label conditional annual return and the report's required return accurately.
 3. **Valuation graphic:** show the three scenarios with legible values, units, probabilities and dates. Use different chart forms for present values and future share targets. Selecting a scenario opens its assumptions.
 4. **Full-width expandable sections:** Investment case; Valuation assumptions; Financials and management; Evidence. Each has a short useful summary. Details are closed initially; links open the relevant section and focus their target.
@@ -38,9 +38,11 @@ Use one overview and expandable sections rather than the current five Company su
 
 ## Prototype and review
 
-Terra/medium leads this user-approved visual prototype. Sol retains financial judgment and independent code review. This is a bounded design trial, not a claim that one model has superior design performance. Production implementation keeps the existing project roles.
+Terra/medium led the approved visual trial; production implementation follows the existing project roles. Sol retains financial judgment and independent code review. The trial does not establish superior design performance by one model.
 
-Build one local HTML/CSS/JavaScript prototype using the existing validated saved-view format. Keep it separate from `web/progress/`. Its preview command takes an explicit saved view and optionally a read-only quote store; opening it performs no provider or model call. Shared files contain no issuer-specific figures or prose.
+The working interface lives in `web/progress/`; `web/prototypes/company/` preserves the design trial. Reuse the existing validated saved-view format and read-only routes. Opening either view performs no provider or model call. Shared files contain no issuer-specific figures or prose.
+
+The Architecture view shows a concise technical map and expandable analysis stages. Distinguish code-enforced checks, agent judgment and coordinator actions with consistent labels. Describe saved reasoning and evidence, rather than presenting internal model deliberation as observable. These diagrams explain the system; they do not claim a run is in progress.
 
 Review the actual browser at 1280 × 720 and 390 × 844:
 

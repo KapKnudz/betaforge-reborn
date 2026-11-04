@@ -3,7 +3,7 @@
 const $ = (id) => document.getElementById(id);
 const labels = { pending: "Pending", in_progress: "In progress", blocked: "Blocked", done: "Done" };
 const publicDocs = new Set([
-  "AGENTS.md", "CONTRIBUTING.md", "README.md", "docs/architecture.md", "work/README.md",
+  "AGENTS.md", "CONTRIBUTING.md", "README.md", "DESIGN.md", "docs/analysis-process.md", "docs/architecture.md", "work/README.md",
   "docs/analysis-policy.md", "docs/calculations.md", "docs/company-workflow.md", "docs/research/system-readiness-review.md",
   "docs/research/borsdata-retrieval-storage.md", "docs/codex-integration.md", "docs/saved-analysis-view.md", "docs/material-inputs.md", "docs/analysis-workflow.md",
 ]);
@@ -12,11 +12,12 @@ let loading = false;
 let lastSuccess = null;
 let lastPlanText = null;
 let runsLoaded = false;
-let runsLoading = false;
+let indexRequest = 0;
+let indexedRuns = [];
+const selectedVersions = new Map();
 let runRequest = 0;
 let loadedRunId = null;
-let companyPanel = "overview";
-const companyPanels = ["overview", "business", "valuation", "financials", "evidence"];
+
 const openTasks = new Set();
 const savedReferenceIds = new Set();
 
@@ -221,15 +222,20 @@ function number(value) {
   if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) return null;
   return Number(value);
 }
-function rounded(value) {
+function rounded(value, minimumFractionDigits = 0) {
   const numeric = number(value);
-  return numeric === null ? "Unavailable" : numeric.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return numeric === null ? "Unavailable" : numeric.toLocaleString("en-GB", { minimumFractionDigits, maximumFractionDigits: 2 });
 }
-function savedValue(value, unit) {
+function savedValue(value, unit, minimumFractionDigits = 0) {
   const displayUnit = unit === "percent" ? "%" : unit === "dimensionless" ? "×" : unit;
   const missing = number(value) === null;
-  const node = element("span", missing ? "unavailable" : "", missing ? "Unavailable" : rounded(value) + (displayUnit ? (["%", "×"].includes(displayUnit) ? "" : " ") + displayUnit : ""));
+  const node = element("span", missing ? "unavailable" : "", missing ? "Unavailable" : rounded(value, minimumFractionDigits) + (displayUnit ? (["%", "×"].includes(displayUnit) ? "" : " ") + displayUnit : ""));
   node.title = "Exact saved value: " + text(value) + (unit ? " " + unit : "");
+  return node;
+}
+function headlinePrice(record, value) {
+  const node = savedValue(value, record.currency || record.unit, 2);
+  node.title = "Exact saved value: " + text(record.value) + " · unit " + text(record.unit) + " · scale " + text(record.scale) + " · currency " + text(record.currency);
   return node;
 }
 function sourceRefs(input, sources, originLabel) {
@@ -434,10 +440,8 @@ function openSavedTarget(id, event) {
   if (!target) return;
   if (event) event.preventDefault();
   if ($("panel-company") && $("panel-company").contains(target) && $("panel-company").hidden) selectTab("company");
-  if (target.dataset.companyPanel) selectCompanyPanel(target.dataset.companyPanel);
   if (target.tagName === "DETAILS") target.open = true;
   for (let parent = target.parentElement; parent; parent = parent.parentElement) {
-    if (parent.dataset.companyPanel) selectCompanyPanel(parent.dataset.companyPanel);
     if (parent.tagName === "DETAILS") parent.open = true;
   }
   target.scrollIntoView({ block: "start" });
@@ -488,7 +492,7 @@ function datedEndpoint(date) {
 function scenarioEndpoints(run) {
   return run.analysis ? run.analysis.scenarios : (run.scenarios || []).filter((item) => item.present_value && item.future_target);
 }
-function endpointChart(run) {
+function endpointChart(run, quote = null) {
   const scenarios = scenarioEndpoints(run);
   const wrapper = element("div", "endpoint-charts");
   const weightLabel = (scenario) => {
@@ -506,17 +510,23 @@ function endpointChart(run) {
     if (!comparable) {
       panel.append(element("p", "callout", "Comparable nonnegative saved endpoints are unavailable. Read the exact scenario records below."));
     } else {
-      const priceMatches = present && matchingPrice(run.price, scenarios.map((item) => item[key]));
-      const maximum = Math.max(1, ...values, priceMatches ? number(run.price.value) : 0);
+      const priceMatches = quote && matchingPrice({...quote, value: quote.normalized_value, scale: "1"}, scenarios.map((item) => item[key]));
+      const maximum = Math.max(1, ...values, priceMatches ? quote.normalized_value : 0);
       const svg = svgElement("svg", { viewBox: "0 0 500 250", class: "chart endpoint-chart " + (present ? "present-chart" : "future-chart"), role: "img", "aria-label": heading + (present ? " horizontal dot plot: " : " vertical columns: ") + scenarios.map((item) => item.name + ", saved weight " + weightLabel(item) + ", " + text(item[key].value) + " " + item[key].unit + ", " + datedEndpoint(item[dateKey])).join("; ") });
       svg.append(svgElement("text", { x: 16, y: 20, class: "axis-text" }, [...units][0]));
       if (present) {
         svg.append(svgElement("line", { x1: 130, x2: 430, y1: 213, y2: 213, class: "chart-axis" }), svgElement("text", { x: 130, y: 237, class: "axis-text" }, "0"), svgElement("text", { x: 430, y: 237, class: "axis-text", "text-anchor": "end" }, rounded(maximum)));
         if (priceMatches) {
-          const x = 130 + number(run.price.value) / maximum * 300;
+          const x = 130 + quote.normalized_value / maximum * 300;
           svg.append(svgElement("line", { x1: x, x2: x, y1: 35, y2: 213, class: "price-line" }));
         }
-      } else svg.append(svgElement("line", { x1: 25, x2: 475, y1: 188, y2: 188, class: "chart-axis" }));
+      } else {
+        svg.append(svgElement("line", { x1: 25, x2: 475, y1: 188, y2: 188, class: "chart-axis" }));
+        if (priceMatches) {
+          const y = 188 - quote.normalized_value / maximum * 135;
+          svg.append(svgElement("line", {x1: 25, x2: 475, y1: y, y2: y, class: "price-line"}));
+        }
+      }
       scenarios.forEach((scenario, index) => {
         const label = { bear: "Bear", base: "Base", bull: "Bull" }[scenario.id] || "Scenario";
         const link = svgElement("a", { href: "#scenario-" + scenario.id, "aria-label": scenario.name + ": rationale and assumptions" });
@@ -525,7 +535,7 @@ function endpointChart(run) {
           const y = 55 + index * 145 / Math.max(1, scenarios.length - 1);
           const x = 130 + values[index] / maximum * 300;
           link.append(svgElement("rect", { x: 0, y: y - 27, width: 500, height: Math.min(60, 145 / Math.max(1, scenarios.length - 1)), fill: "transparent", "pointer-events": "all", class: "chart-hit-area" }));
-          link.append(svgElement("text", { x: 16, y: y + 5 }, label), svgElement("circle", { cx: x, cy: y, r: 7, class: "scenario-dot " + scenario.id }), svgElement("text", { x, y: y - 13, "text-anchor": "middle" }, rounded(scenario[key].value)));
+          link.append(svgElement("text", { x: 16, y: y - 2 }, label), svgElement("text", {x: 16, y: y + 18, class: "axis-text"}, weightLabel(scenario) + " weight"), svgElement("circle", { cx: x, cy: y, r: 7, class: "scenario-dot " + scenario.id }), svgElement("text", { x, y: y - 13, "text-anchor": "middle" }, rounded(scenario[key].value)));
         } else {
           const slot = 440 / scenarios.length;
           const x = 30 + index * slot + slot / 2;
@@ -536,11 +546,65 @@ function endpointChart(run) {
         svg.append(link);
       });
       panel.append(svg);
-      if (priceMatches) panel.append(element("p", "chart-caption", "Dashed reference: report price " + rounded(run.price.value) + " " + run.price.currency + "/share · " + run.price.date + "."));
+      if (priceMatches) panel.append(element("p", "chart-caption market-reference-label", "Latest stored market price · " + quote.date + " · " + rounded(quote.normalized_value) + " " + quote.currency + "/share. " + (present ? "Dated comparison price." : "Present-day comparison, not a forecast.")));
     }
     panel.append(element("p", "chart-caption", present ? "Discounted share target plus discounted dividends. Saved required return; see valuation assumptions." : "Share target at the saved horizon. Separately paid dividends are excluded. Each chart has its own scale."));
     wrapper.append(panel);
   }
+  return wrapper;
+}
+function displayName(name) { return text(name).replace(/\s*\(publ\)\s*$/i, "").trim(); }
+function normalizedPrice(price) {
+  const value = number(price && price.value), scale = number(price && price.scale);
+  return value === null || scale === null || scale <= 0 || !Number.isFinite(value * scale) ? null : value * scale;
+}
+function tableCells(line) {
+  const source = String(line).trim(), cells = [];
+  let cell = "", trailingSeparator = false;
+  for (let index = 0; index < source.length; index++) {
+    const char = source[index], next = source[index + 1];
+    if (char === "\\" && (next === "\\" || next === "|")) { cell += next; index++; trailingSeparator = false; }
+    else if (char === "|") { cells.push(cell.trim()); cell = ""; trailingSeparator = true; }
+    else { cell += char; trailingSeparator = false; }
+  }
+  cells.push(cell.trim());
+  if (source.startsWith("|")) cells.shift();
+  if (trailingSeparator) cells.pop();
+  return cells;
+}
+function shortPeriod(value) {
+  return String(value).replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g, month => month.slice(0, 3));
+}
+function scalarCell(cell) {
+  const value = String(cell).trim();
+  return /^[+-]?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/.test(value) ? number(value.replace(/,/g, "")) : null;
+}
+let periodTableId = 0;
+function periodTable(headers, rows) {
+  const saved = table(headers, rows);
+  if (headers[0] !== "Period" || rows.length < 2 || rows.some(row => row.length !== headers.length || !row[0])) return saved;
+  const measures = headers.flatMap((label, index) => index && rows.every(row => scalarCell(row[index]) !== null) ? [{label, index, values: rows.map(row => scalarCell(row[index]))}] : []);
+  if (!measures.length) return saved;
+  const wrapper = element("div", "period-history"), label = element("label", "", "Measure"), select = element("select"), chart = element("div", "period-chart");
+  select.id = "period-measure-" + periodTableId++;
+  label.htmlFor = select.id;
+  select.setAttribute("aria-label", "Measure · saved period values");
+  measures.forEach((measure, index) => { const option = element("option", "", measure.label); option.value = String(index); select.append(option); });
+  function draw() {
+    const measure = measures[Number(select.value) || 0], minimum = Math.min(0, ...measure.values), maximum = Math.max(0, ...measure.values), range = maximum - minimum || 1;
+    const svg = svgElement("svg", {viewBox: "0 0 600 220", class: "chart period-chart-svg", role: "img", "aria-label": measure.label + " · exact saved period values"});
+    svg.append(svgElement("text", {x: 15, y: 18, class: "axis-text"}, measure.label));
+    const zero = 170 - (0 - minimum) / range * 120;
+    svg.append(svgElement("line", {x1: 15, x2: 585, y1: zero, y2: zero, class: "chart-axis"}));
+    measure.values.forEach((value, index) => {
+      const slot = 570 / rows.length, x = 15 + slot * (index + .5), y = 170 - (value - minimum) / range * 120;
+      svg.append(svgElement("rect", {x: x - Math.min(35, slot * .3), y: Math.min(y, zero), width: Math.min(70, slot * .6), height: Math.abs(y - zero), class: "scenario-bar"}), svgElement("text", {x, y: value < 0 ? y + 17 : y - 8, "text-anchor": "middle"}, rows[index][measure.index]), svgElement("text", {x, y: 207, "text-anchor": "middle", class: "axis-text", "aria-label": rows[index][0]}, shortPeriod(rows[index][0])));
+    });
+    chart.replaceChildren(svg);
+  }
+  select.addEventListener("change", draw);
+  draw();
+  wrapper.append(label, select, chart, element("p", "chart-caption", "Exact saved values and period labels. Source references and saved qualifications below retain period length, units and basis."), detail("Source table", [saved]));
   return wrapper;
 }
 function readableReport(markdown) {
@@ -548,19 +612,18 @@ function readableReport(markdown) {
   const lines = String(markdown || "").split(/\r?\n/);
   let paragraph = [];
   const flush = () => { if (paragraph.length) { node.append(element("p", "saved-text", paragraph.join("\n"))); paragraph = []; } };
-  const cells = (line) => line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index];
     const heading = line.match(/^\s{0,3}(#{1,6})\s+(.+?)\s*#*$/);
-    if (heading) { flush(); node.append(element("h" + Math.min(6, heading[1].length + 3), "", heading[2])); }
-    else if (line.includes("|") && index + 1 < lines.length && /^\s*\|?\s*:?-{3,}/.test(lines[index + 1])) {
+    if (heading) { flush(); node.append(element("h4", "", heading[2])); }
+    else if (line.includes("|") && index + 1 < lines.length && tableCells(lines[index + 1]).length && tableCells(lines[index + 1]).every(cell => /^:?-{3,}:?$/.test(cell))) {
       flush();
-      const headers = cells(line);
+      const headers = tableCells(line);
       const rows = [];
       index += 2;
-      while (index < lines.length && lines[index].includes("|") && lines[index].trim()) { rows.push(cells(lines[index])); index++; }
+      while (index < lines.length && lines[index].includes("|") && lines[index].trim()) { rows.push(tableCells(lines[index])); index++; }
       index--;
-      node.append(table(headers, rows));
+      node.append(periodTable(headers, rows));
     } else if (!line.trim()) flush();
     else paragraph.push(line);
   }
@@ -568,62 +631,40 @@ function readableReport(markdown) {
   if (!node.children.length) node.append(element("p", "unavailable", "No saved narrative is available."));
   return node;
 }
-function selectCompanyPanel(name, focus = false) {
-  if (!companyPanels.includes(name)) return;
-  companyPanel = name;
-  for (const id of companyPanels) {
-    const button = $("company-tab-" + id);
-    const panel = $("company-panel-" + id);
-    if (!button || !panel) continue;
-    button.setAttribute("aria-selected", String(id === name));
-    button.tabIndex = id === name ? 0 : -1;
-    panel.hidden = id !== name;
-    if (focus && id === name) button.focus();
+function companySections(view) {
+  const overview = element("section", "company-overview");
+  overview.id = "company-panel-overview";
+  const panels = {overview};
+  view.append(overview);
+  for (const [name, title, description] of [
+    ["business", "Investment case", "Business, opportunity and principal risks"],
+    ["valuation", "Valuation assumptions", "Scenario inputs, weights and reasoning"],
+    ["financials", "Financials and management", "Dated results, calculation basis and management outlook"],
+    ["evidence", "Evidence", "Original analysis, sources, definitions and calculation records"],
+  ]) {
+    const chapter = detail("", []);
+    chapter.className = "company-chapter";
+    chapter.id = "company-panel-" + name;
+    chapter.firstElementChild.append(element("strong", "", title), element("span", "", description));
+    const body = element("div", "chapter-body");
+    chapter.append(body);
+    view.append(chapter);
+    panels[name] = body;
   }
-}
-function companyNavigation(view) {
-  const nav = element("div", "company-tabs");
-  nav.setAttribute("role", "tablist");
-  nav.setAttribute("aria-label", "Investment memo");
-  const panels = {};
-  for (const name of companyPanels) {
-    const button = element("button", "", name.charAt(0).toUpperCase() + name.slice(1));
-    button.id = "company-tab-" + name;
-    button.type = "button";
-    button.setAttribute("role", "tab");
-    button.setAttribute("aria-controls", "company-panel-" + name);
-    button.addEventListener("click", () => { selectCompanyPanel(name); panels[name].scrollIntoView({ block: "start" }); });
-    button.addEventListener("keydown", (event) => {
-      let index = companyPanels.indexOf(name);
-      if (event.key === "ArrowRight") index = (index + 1) % companyPanels.length;
-      else if (event.key === "ArrowLeft") index = (index + companyPanels.length - 1) % companyPanels.length;
-      else if (event.key === "Home") index = 0;
-      else if (event.key === "End") index = companyPanels.length - 1;
-      else return;
-      event.preventDefault();
-      selectCompanyPanel(companyPanels[index], true);
-      panels[companyPanels[index]].scrollIntoView({ block: "start" });
-    });
-    nav.append(button);
-    const panel = element("section", "company-reader-panel");
-    panel.id = "company-panel-" + name;
-    panel.dataset.companyPanel = name;
-    panel.setAttribute("role", "tabpanel");
-    panel.setAttribute("aria-labelledby", button.id);
-    panel.tabIndex = 0;
-    panels[name] = panel;
-  }
-  view.append(nav, ...Object.values(panels));
   return panels;
 }
-function readerSection(section, run, showHeading = true) {
+function readerSection(section, run) {
   const block = element("article", "reader-section");
   block.id = "reader-" + section.id;
-  const titles = { thesis: "The investment case", drivers: "What drives the business", quality: "Business quality", management: "Management & capital", valuation: "Valuation approach", risks: "What could go wrong" };
-  if (showHeading) block.append(element("h3", "", titles[section.id] || section.title));
-  for (const paragraph of section.paragraphs || []) {
-    block.append(readableReport(paragraph.text));
-    block.append(detail((paragraph.kind || "Saved text") + " · sources & calculations", [referenceList(paragraph.references, run)]));
+  for (const [index, paragraph] of (section.paragraphs || []).entries()) {
+    const heading = String(paragraph.text || "").match(/^###\s+([^\n]+)\n+/);
+    const content = readableReport(heading ? paragraph.text.slice(heading[0].length) : paragraph.text);
+    content.append(detail((paragraph.kind || "Saved text") + " · sources & calculations", [referenceList(paragraph.references, run)]));
+    if (heading) {
+      const subsection = detail(heading[1], [content], section.id === "drivers" && index === 0);
+      subsection.className = "memo-subsection";
+      block.append(subsection);
+    } else block.append(content);
   }
   return block;
 }
@@ -698,13 +739,13 @@ function scenarioRationale(run, useMemo = true) {
     const item = detail(scenario.name, [], scenario.id === "base");
     item.className = "scenario-case";
     item.id = (useMemo ? "scenario-" : "canonical-scenario-") + scenario.id;
-    item.append(element("p", "saved-text", prose.rationale));
+    item.append(element("h4", "", "Business outcome"), element("p", "saved-text", prose.rationale));
     const valuation = element("p", "basis");
     valuation.append(document.createTextNode("Present value · " + datedEndpoint(scenario.present_value_date) + ": "), savedValue(scenario.present_value.value, scenario.present_value.unit), document.createTextNode(". Future target · " + datedEndpoint(scenario.target_date) + ": "), savedValue(scenario.future_target.value, scenario.future_target.unit));
     item.append(valuation);
     const weight = (run.probability || {}).weights && run.probability.weights[scenario.id];
-    item.append(element("p", "basis", "Saved weight: " + (number(weight) === null ? "Unavailable" : rounded(Number(weight) * 100) + "%") + ". " + (prose.probability_rationale || "No separate weight rationale saved.")));
-    const assumptions = [element("p", "saved-text", text(prose.assumption_rationale)), referenceList([scenario.valuation_calculation_id, scenario.weight_ref, ...(prose.references || [])].filter(Boolean), run)];
+    item.append(element("h4", "", "Why this weight"), element("p", "basis", "Saved weight: " + (number(weight) === null ? "Unavailable" : rounded(Number(weight) * 100) + "%") + ". " + (prose.probability_rationale || "No separate weight rationale saved.")));
+    const assumptions = [element("h4", "", "Valuation assumptions"), element("p", "saved-text", text(prose.assumption_rationale)), referenceList([scenario.valuation_calculation_id, scenario.weight_ref, ...(prose.references || [])].filter(Boolean), run)];
     item.append(detail("Assumptions, sources & calculation", assumptions));
     section.append(item);
   }
@@ -728,9 +769,21 @@ function returnUsesReportPrice(run) {
   const calculation = returns[0];
   const inputs = (calculation.inputs || []).filter((input) => input.field === "price");
   if (inputs.length !== 1 || (calculation.input_ids || {}).price !== price.id || inputs[0].id !== price.id) return false;
-  return ["value", "unit", "scale", "currency", "source_id"].every((key) => inputs[0][key] === price[key]) &&
+  return number(((calculation.outputs || {}).irr_percent || {}).value) !== null && ["value", "unit", "scale", "currency", "source_id"].every((key) => inputs[0][key] === price[key]) &&
     (inputs[0].date || inputs[0].period_end) === price.date &&
     (((calculation.outputs || {}).irr_percent || {}).value === (run.benchmark || {}).candidate_annualized_return_percent);
+}
+function returnExplanation(run) {
+  const calc = (run.original_calculations || []).find(item => item.formula === "expected_cashflow_irr" && item.operation === "financial_formula");
+  const rows = [["Report purchase price", rounded(normalizedPrice(run.price)) + " " + (run.price.currency || "") + " · " + run.price.date]];
+  for (const [field, label] of [["expected_annual_dividend_per_share", "Expected annual dividend / share"], ["expected_future_target", "Expected terminal share target"], ["years", "Years"]]) {
+    const input = (calc.inputs || []).find(item => item.field === field) || {};
+    rows.push([label, savedValue(input.calculation_value, input.unit === "dimensionless" ? "" : input.unit)]);
+  }
+  rows.push(["Final receipt · dividend plus share target", savedValue(((calc.outputs || {}).terminal_cash_flow || {}).value, ((calc.outputs || {}).terminal_cash_flow || {}).unit)], ["Saved annual return", savedValue(((calc.outputs || {}).irr_percent || {}).value, "percent")]);
+  const node = detail("How the conditional annual return is calculated", [element("p", "", "The saved model weights each scenario’s dividend and terminal share target at each payment date, then solves the annual rate that equates those cash flows with the report price. It does not average scenario returns. The formula uses constant model-year-end dividends and a common integer horizon, rather than actual dividend dates. A latest quote does not recalculate this result."), table(["Saved cash-flow input / output", "Value"], rows), referenceList([calc.id], run), savedLink("company-return", "Saved return and historical benchmark context")]);
+  node.id = "return-explanation";
+  return node;
 }
 function renderCompany(run) {
   savedReferenceIds.clear();
@@ -741,55 +794,56 @@ function renderCompany(run) {
   const sources = run.sources || [];
   const header = element("div", "company-header");
   const memo = run.reader_memo && run.reader_memo.schema_version === 1 ? run.reader_memo : run.analysis;
-  header.append(element("h2", "", text(run.company.name) + (run.company.ticker ? " · " + run.company.ticker : "")), element("p", "meta", "Analysis date: " + text(run.analysis_date)));
-  const figures = element("div", "company-figures");
-  const estimatedReturn = (run.benchmark || {}).candidate_annualized_return_percent;
-  if (number(estimatedReturn) !== null) {
-    const overview = element("p", "return-overview");
-    overview.append(document.createTextNode("Estimated annual return" + (returnUsesReportPrice(run) ? " · at report price" : "") + ": "), savedValue(estimatedReturn, "percent"), document.createTextNode(" "), savedLink("company-return", "Conditional · return assumptions", ""));
-    figures.append(overview);
-  }
+  header.append(element("h2", "", displayName(run.company.name) + (run.company.ticker ? " · " + run.company.ticker : "")), element("p", "meta", "Analysis date: " + text(run.analysis_date)));
+  view.append(header);
+  const panels = companySections(view);
+  const conclusion = element("div", "memo-conclusion");
+  conclusion.append(element("h3", "", "Investment conclusion"), element("p", "memo-lead", text(memo ? memo.summary : run.conclusion)), savedLink("company-panel-business", "Read the investment case →", ""));
+  const figures = element("aside", "company-facts");
+  const fact = (label, value, note) => {
+    const row = element("div", "company-fact");
+    row.append(element("span", "fact-label", label), value, element("small", "", note));
+    figures.append(row);
+    return row;
+  };
   const price = run.price || {};
-  const reportPrice = element("p", "basis market-price");
-  reportPrice.append(document.createTextNode("Report price: "), savedValue(price.value, price.unit === "currency/share" ? price.currency + "/share" : price.unit), document.createTextNode(" · " + text(price.date || price.period_end)));
-  const marketPrice = element("p", "basis market-price", "Latest market price: " + (Number.isInteger(run.company.instrument_id) && run.company.instrument_id > 0 ? "loading…" : "unavailable"));
+  const marketPrice = element("div", "market-price", "Loading…");
   marketPrice.id = "latest-market-price";
   marketPrice.setAttribute("role", "status");
+  const marketRow = fact("Latest market price", marketPrice, "Quote date unavailable");
+  marketRow.children[2].id = "latest-market-price-date";
+  const reportPrice = element("div", "report-price");
+  reportPrice.append(headlinePrice(price, normalizedPrice(price)));
+  fact("Report price", reportPrice, text(price.date || price.period_end));
+  const estimatedReturn = (run.benchmark || {}).candidate_annualized_return_percent;
+  const boundReturn = returnUsesReportPrice(run);
+  const returnRow = fact("Conditional annual return", savedValue(boundReturn ? estimatedReturn : null, "percent"), boundReturn ? "At report price · " + text(price.date) : "Report-price binding unavailable");
+  if (boundReturn) returnRow.append(savedLink("return-explanation", "How this return is calculated", ""));
+  const base = scenarioEndpoints(run).find(scenario => scenario.id === "base") || scenarioEndpoints(run)[0] || {};
+  const baseCalculation = (run.calculations || []).find(calc => calc.id === base.valuation_calculation_id) || {};
+  const required = number(((baseCalculation.inputs || {}).required_return || {}).calculation_value);
+  fact("Required return", savedValue(required === null ? null : required * 100, "percent"), "Report assumption");
+  panels.overview.append(conclusion, figures);
   const marketEvidence = element("div");
   marketEvidence.id = "latest-market-price-evidence";
-  figures.append(reportPrice, marketPrice);
-  header.append(figures);
-  view.append(header);
-  const panels = companyNavigation(view);
-  panels.overview.append(element("p", "memo-lead", text(memo ? memo.summary : run.conclusion)));
   panels.evidence.append(element("p", "meta", (run.analysis ? "Analysis completed: " : "Financial review: ") + text(run.reviewed_at).slice(0, 10) + " · Method: " + text(run.method)), detail("Report conclusion", [element("p", "saved-text", text(run.analysis ? run.analysis.summary : run.conclusion))]), detail("Price evidence", [element("p", "detail-label", "Report price"), element("p", "basis", text(price.basis)), sourceRefs(price, sources), element("pre", "", text(price)), marketEvidence]));
   if (run.reader_memo && memo === run.reader_memo) {
-    panels.overview.append(savedLink("company-panel-evidence", "Reader edition · original analysis & review →", "reader-edition-link"));
     panels.evidence.append(element("p", "basis", "Reader edition edited " + text(memo.edited_at) + ". The independent challenge applies to the canonical analysis, not this editorial rewrite."), detail("Reader edition provenance", [element("pre", "", text({schema_version: memo.schema_version, analysis_sha256: memo.analysis_sha256, edited_at: memo.edited_at}))]));
   }
+  if (boundReturn) panels.valuation.append(returnExplanation(run));
   if (scenarioEndpoints(run).length) panels.valuation.append(scenarioAssumptions(run));
   for (const section of (memo || {}).sections || []) {
-    if (["drivers", "quality", "management"].includes(section.id)) {
-      const title = {drivers: "What drives the business",quality: "Business quality",management: "Management & capital"}[section.id];
-      const chapter = detail(title, [readerSection(section, run, false)], section.id === "drivers");
-      chapter.className = "business-chapter";
-      panels.business.append(chapter);
-    } else if (section.id === "risks") {
-      const risks = detail("Risks & watchpoints", [readerSection(section, run, false)]);
-      risks.className = "business-chapter";
-      panels.valuation.append(risks);
-    } else {
-      const chapter = detail(section.id === "thesis" ? "Investment case" : "Valuation method & evidence gaps", [readerSection(section, run, false)]);
-      chapter.className = "business-chapter";
-      panels.valuation.append(chapter);
-    }
+    const chapter = element("section", "memo-section");
+    chapter.append(element("h3", "", section.title || section.id), readerSection(section, run));
+    (section.id === "valuation" ? panels.valuation : panels.business).append(chapter);
   }
   if (!memo) panels.business.append(element("p", "basis", "This saved run has no structured business sections. Read the original report in Evidence."), savedLink("legacy-report", "Read the original report", ""));
   const scenarioSection = element("section", "company-section");
   scenarioSection.id = "company-scenarios";
   const endpoints = scenarioEndpoints(run);
-  scenarioSection.append(element("h3", "", "Value at two dates"), element("p", "basis", endpoints.length ? "Saved scenario endpoints. Select a mark to read its rationale and assumptions." : "Present values as of " + text(run.analysis_date) + ". Future targets and assumptions remain in the report."));
+  scenarioSection.append(element("h3", "", "Valuation scenarios"), element("p", "basis", endpoints.length ? "Saved scenario endpoints. Select a mark to read its rationale and assumptions." : "Present values as of " + text(run.analysis_date) + ". Future targets and assumptions remain in the report."));
   const scenarioGrid = element("div", "scenario-grid");
+  scenarioGrid.id = "company-valuation-charts";
   scenarioGrid.append(endpoints.length ? endpointChart(run) : scenarioChart(run));
   const scenarioTable = table(["Scenario", "Present value", "Weight", "Saved basis"], (run.scenarios || []).map((s) => {
     const basis = element("div");
@@ -926,7 +980,6 @@ function renderCompany(run) {
     if (detailStates.has(key)) details.open = detailStates.get(key);
   }
   loadedRunId = run.id;
-  selectCompanyPanel(companyPanel);
   view.hidden = false;
   if (!sameRun && typeof location !== "undefined" && location.hash) revealSavedHash();
 }
@@ -937,34 +990,43 @@ function revealSavedHash() {
   if (target && $("company-view").contains(target)) openSavedTarget(id);
   else if ($("panel-company") && /^(company-|analysis-|reader-|scenario-|source-|calculation-|input-|record-|legacy-report)/.test(id)) selectTab("company");
 }
+function normalizeQuote(candidate, run) {
+  const reportCurrency = (run.price || {}).currency;
+  const date = candidate && typeof candidate.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(candidate.date) ? new Date(candidate.date + "T00:00:00Z") : null;
+  const value = normalizedPrice(candidate);
+  if (!candidate || candidate.instrument_id !== run.company.instrument_id || !/^[A-Z]{3}$/.test(candidate.currency) || (reportCurrency && candidate.currency !== reportCurrency) || candidate.unit !== "currency/share" || candidate.kind !== "daily_close" || value === null || value <= 0 || !date || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== candidate.date) return null;
+  return {...candidate, normalized_value: value};
+}
 async function loadMarketPrice(run, request) {
-  if (!Number.isInteger(run.company.instrument_id) || run.company.instrument_id <= 0) return;
   let quote = null;
-  try {
-    const response = await getJSON("/api/market-price/" + encodeURIComponent(run.company.instrument_id));
-    const candidate = response.quote;
-    const reportCurrency = (run.price || {}).currency;
-    const date = candidate && typeof candidate.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(candidate.date) ? new Date(candidate.date + "T00:00:00Z") : null;
-    if (candidate && candidate.instrument_id === run.company.instrument_id && /^[A-Z]{3}$/.test(candidate.currency) && (!reportCurrency || candidate.currency === reportCurrency) && candidate.unit === "currency/share" && String(candidate.scale) === "1" && candidate.kind === "daily_close" && number(candidate.value) !== null && number(candidate.value) > 0 && date && Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === candidate.date) quote = candidate;
-  } catch (error) { /* The report remains available without a separate market quote. */ }
+  if (Number.isInteger(run.company.instrument_id) && run.company.instrument_id > 0) {
+    try {
+      const response = await getJSON("/api/market-price/" + encodeURIComponent(run.company.instrument_id));
+      quote = normalizeQuote(response.quote, run);
+    } catch (error) { /* The report remains available without a separate market quote. */ }
+  }
   if (request !== runRequest || loadedRunId !== run.id) return;
   const price = $("latest-market-price");
-  price.replaceChildren(document.createTextNode("Latest market price: "));
-  if (!quote) { price.append(document.createTextNode("unavailable")); return; }
-  price.append(savedValue(quote.value, quote.currency + "/share"), document.createTextNode(" · Close · " + quote.date));
+  price.replaceChildren();
+  $("latest-market-price-date").textContent = quote ? "Close · " + quote.date : "No compatible stored quote";
+  if (!quote) { price.append(document.createTextNode("Unavailable")); return; }
+  price.append(headlinePrice(quote, quote.normalized_value));
   $("latest-market-price-evidence").replaceChildren(element("p", "detail-label", "Latest market price"), element("p", "basis", "Daily close from the configured evidence store. Adjustment basis is unverified."), element("pre", "", text(quote)));
+  if (scenarioEndpoints(run).length) $("company-valuation-charts").replaceChildren(endpointChart(run, quote));
 }
 async function loadRun(id) {
   const request = ++runRequest;
   $("company-error").hidden = true;
-  if (!id) { $("company-view").hidden = true; return; }
+  $("company-view").hidden = true;
+  if (!id) return;
+  const indexed = indexedRuns.find(run => run.id === id);
+  if (indexed) selectedVersions.set(String(indexed.company.instrument_id), id);
   $("company-status").hidden = false;
   $("company-status").textContent = "Loading saved analysis…";
-  // Hide the previous company while loading so a failed selection cannot mislabel it.
-  $("company-view").hidden = true;
   try {
     const run = await getJSON("/api/runs/" + encodeURIComponent(id));
     if (request !== runRequest) return;
+    if (run.id !== id || (indexed && run.company.instrument_id !== indexed.company.instrument_id)) throw new Error("Saved identity does not match selection");
     renderCompany(run);
     $("company-status").classList.remove("stale");
     $("company-status").textContent = "";
@@ -972,6 +1034,7 @@ async function loadRun(id) {
     await loadMarketPrice(run, request);
   } catch (error) {
     if (request !== runRequest) return;
+    $("company-view").hidden = true;
     $("company-error").hidden = false;
     $("company-error").textContent = "Could not load this saved analysis. Check the configured saved-view file and refresh.";
     $("company-status").classList.add("stale");
@@ -980,47 +1043,80 @@ async function loadRun(id) {
   }
 }
 function savedRunLabel(run, runs = []) {
-  const label = run.company.name + " · " + (run.analysis_kind === "structured" ? "Structured" : "Financial review") + " · " + text(run.reviewed_at).slice(0, 10);
-  const matches = runs.filter(other => savedRunLabel(other) === label);
+  const label = (run.analysis_kind === "structured" ? "Structured · completed " : "Financial review · ") + text(run.reviewed_at).slice(0, 10);
+  const matches = runs.filter(other => other.company.instrument_id === run.company.instrument_id && savedRunLabel(other) === label);
   if (matches.length < 2) return label;
-  const asOf = " · As of " + text(run.analysis_date);
+  const asOf = " · Cutoff " + text(run.analysis_date);
   return label + asOf + (matches.some(other => other.id !== run.id && other.analysis_date === run.analysis_date) ? " · " + run.id : "");
 }
+function newestMemo(a, b) {
+  const completion = run => Number.isFinite(Date.parse(run.reviewed_at)) ? Date.parse(run.reviewed_at) : 0;
+  return String(b.analysis_date || "").localeCompare(String(a.analysis_date || "")) || completion(b) - completion(a) || a.id.localeCompare(b.id);
+}
+function showCompany(id) {
+  const versions = indexedRuns.filter(run => String(run.company.instrument_id) === id).sort(newestMemo);
+  $("run-select").replaceChildren();
+  for (const run of versions) {
+    const option = element("option", "", savedRunLabel(run, versions));
+    option.value = run.id;
+    option.title = "Analysis cutoff: " + text(run.analysis_date) + (run.analysis_kind === "structured" ? " · Analysis completed: " : " · Financial review: ") + text(run.reviewed_at);
+    $("run-select").append(option);
+  }
+  const previous = selectedVersions.get(id);
+  const selected = versions.some(run => run.id === previous) ? previous : (versions[0] || {}).id || "";
+  $("run-select").value = selected;
+  $("run-select").disabled = !versions.length;
+  return loadRun(selected);
+}
 async function loadRuns(force = false) {
-  if (runsLoading || (runsLoaded && !force)) return;
-  runsLoading = true;
+  if (runsLoaded && !force) return;
+  const request = ++indexRequest;
+  ++runRequest;
+  $("company-view").hidden = true;
   $("company-error").hidden = true;
+  $("company-empty").hidden = true;
+  $("company-select").disabled = true;
+  $("run-select").disabled = true;
   $("company-status").hidden = false;
-  $("company-status").textContent = "Loading report versions…";
+  $("company-status").textContent = "Loading companies and memo versions…";
   try {
     const data = await getJSON("/api/runs");
-    const selected = $("run-select").value;
-    $("run-select").replaceChildren();
-    for (const run of data.runs) {
-      const option = element("option", "", savedRunLabel(run, data.runs));
-      option.value = run.id;
-      option.title = "Analysis date: " + text(run.analysis_date) + (run.analysis_kind === "structured" ? " · Analysis completed: " : " · Financial review: ") + text(run.reviewed_at).slice(0, 10);
-      $("run-select").append(option);
+    if (request !== indexRequest) return;
+    if (!Array.isArray(data.runs)) throw new Error("Invalid saved index");
+    const selected = $("company-select").value;
+    indexedRuns = data.runs.filter(run => run.company && Number.isInteger(run.company.instrument_id) && run.company.instrument_id > 0);
+    const companies = new Map();
+    for (const run of [...indexedRuns].sort(newestMemo)) {
+      const id = String(run.company.instrument_id);
+      if (!companies.has(id)) companies.set(id, run.company);
+    }
+    $("company-select").replaceChildren();
+    for (const [id, company] of [...companies].sort((a, b) => displayName(a[1].name).localeCompare(displayName(b[1].name)) || Number(a[0]) - Number(b[0]))) {
+      const option = element("option", "", displayName(company.name) + (company.ticker ? " · " + company.ticker : "") + " · #" + id);
+      option.value = id;
+      $("company-select").append(option);
     }
     runsLoaded = true;
     $("company-status").classList.remove("stale");
-    $("company-empty").hidden = data.runs.length > 0;
-    $("run-select").disabled = !data.runs.length;
-    if (!data.runs.length) {
-      $("run-select").append(element("option", "", "No saved analyses"));
-      $("company-view").hidden = true;
+    $("company-empty").hidden = companies.size > 0;
+    $("company-select").disabled = !companies.size;
+    if (!companies.size) {
+      $("company-select").append(element("option", "", "No saved companies"));
+      $("run-select").replaceChildren(element("option", "", "No saved memos"));
       $("company-status").textContent = "No local saved analysis has been explicitly configured.";
     } else {
-      if (data.runs.some((run) => run.id === selected)) $("run-select").value = selected;
-      await loadRun($("run-select").value);
+      $("company-select").value = companies.has(selected) ? selected : companies.keys().next().value;
+      await showCompany($("company-select").value);
     }
   } catch (error) {
+    if (request !== indexRequest) return;
+    runsLoaded = false;
     $("company-error").hidden = false;
     $("company-error").textContent = "Could not read the saved-analysis index. Check the local server and refresh.";
     $("company-status").classList.add("stale");
     $("company-status").hidden = false;
     $("company-status").textContent = "Saved-analysis index unavailable";
-  } finally { runsLoading = false; }
+  }
 }
 for (const name of ["project", "architecture", "company"]) {
   $("tab-" + name).addEventListener("click", () => selectTab(name));
@@ -1049,6 +1145,7 @@ window.addEventListener("hashchange", () => {
   revealTaskHash();
   revealSavedHash();
 });
+$("company-select").addEventListener("change", () => showCompany($("company-select").value));
 $("run-select").addEventListener("change", () => loadRun($("run-select").value));
 $("refresh").addEventListener("click", () => { refresh(); if (runsLoaded || !$("panel-company").hidden) loadRuns(true); });
 refresh();
