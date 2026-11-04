@@ -9,7 +9,7 @@ Personal company research: collect evidence, check financial definitions and pro
 | `betaforge/` | Shared data storage, calculations and Codex integration |
 | `scripts/` | Commands to collect data, prepare evidence and run analyses |
 | `web/progress/` | Local project and saved-research workbench |
-| `web/prototypes/` | Separate visual prototypes for review |
+| `web/prototypes/` | Preserved visual design trials |
 | `work/` | Current goal, priorities, blockers and next steps |
 | `docs/` | Architecture, investment policy, formulas and setup |
 | `examples/granges/` | Company-specific worked example |
@@ -20,7 +20,7 @@ Personal company research: collect evidence, check financial definitions and pro
 
 - **Continue work:** read [agent instructions](AGENTS.md) and the [current plan](work/plan.json).
 - **Understand boundaries:** read the [architecture](docs/architecture.md).
-- **Design the interface:** read the [design brief](DESIGN.md) and [Company prototype](web/prototypes/company/README.md).
+- **Design the interface:** read the [design brief](DESIGN.md).
 - **Make a change:** follow the [contribution and PR workflow](CONTRIBUTING.md).
 
 ## Run locally
@@ -33,7 +33,7 @@ python3 -m venv .venv
 .venv/bin/python scripts/serve_progress.py
 ```
 
-Open **http://127.0.0.1:8765** for priorities, progress and architecture. To show company results, [add a private saved-run export](docs/saved-analysis-view.md).
+Open **http://127.0.0.1:8765** for progress, visual architecture and the analysis process. To browse company memos, [add private saved-run exports](docs/saved-analysis-view.md).
 
 ## Research workflow
 

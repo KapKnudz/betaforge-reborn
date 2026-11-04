@@ -71,6 +71,20 @@ class ProgressTests(unittest.TestCase):
         self.save_plan()
         self.assertEqual(json.loads(self.request("/api/plan")[2])["goal"], self.plan["goal"])
 
+    def test_process_view_assets_and_guide_are_explicit_routes(self):
+        for name, content_type in (("process.js", "text/javascript"), ("process.css", "text/css")):
+            body = "public process explanation: " + name
+            (self.root / "web/progress" / name).write_text(body)
+            code, headers, actual = self.request("/" + name)
+            self.assertEqual((code, actual), (200, body.encode()))
+            self.assertTrue(headers["Content-Type"].startswith(content_type))
+            self.assertEqual(headers["Cache-Control"], "no-store")
+        (self.root / "docs").mkdir(exist_ok=True)
+        (self.root / "docs/analysis-process.md").write_text("Public process guide")
+        self.assertEqual(self.request("/docs/docs/analysis-process.md")[2], b"Public process guide")
+        self.assertEqual(self.request("/web/progress/process.js")[0], 404)
+        self.assertEqual(self.request("/docs/data/private.json")[0], 404)
+
     def test_completed_plan_allows_no_next_task(self):
         self.plan["next_task"] = None
         self.plan["tasks"][0]["status"] = "done"

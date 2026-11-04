@@ -17,7 +17,7 @@ from betaforge.saved_view import load_saved_view
 from betaforge.storage import EvidenceStore
 STATUSES = {"pending", "in_progress", "blocked", "done"}
 DOCUMENTS = (
-    "AGENTS.md", "CONTRIBUTING.md", "README.md", "docs/architecture.md",
+    "AGENTS.md", "CONTRIBUTING.md", "README.md", "DESIGN.md", "docs/architecture.md", "docs/analysis-process.md",
     "work/README.md", "docs/analysis-policy.md", "docs/calculations.md", "docs/company-workflow.md",
     "docs/research/system-readiness-review.md",
     "docs/research/borsdata-retrieval-storage.md", "docs/codex-integration.md", "docs/saved-analysis-view.md", "docs/material-inputs.md", "docs/analysis-workflow.md",
@@ -26,6 +26,8 @@ ROUTES = {
     "/": ("web/progress/index.html", "text/html; charset=utf-8"),
     "/style.css": ("web/progress/style.css", "text/css; charset=utf-8"),
     "/app.js": ("web/progress/app.js", "text/javascript; charset=utf-8"),
+    "/process.js": ("web/progress/process.js", "text/javascript; charset=utf-8"),
+    "/process.css": ("web/progress/process.css", "text/css; charset=utf-8"),
     **{"/docs/" + name: (name, "text/plain; charset=utf-8") for name in DOCUMENTS},
 }
 

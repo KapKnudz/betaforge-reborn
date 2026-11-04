@@ -2,6 +2,8 @@
 
 Betaforge separates data collection, interpretation, arithmetic and presentation. The [investment policy](analysis-policy.md) owns valuation choices; [adopted decisions](planning/decisions.md) record agreements; [work/plan.json](../work/plan.json) tracks delivery.
 
+The workbench's **Architecture** view shows the system map and analysis stages. [The process guide](analysis-process.md) explains each handoff, the analyst and reviewer roles, saved decisions, code checks and their limits.
+
 ```text
 Börsdata + original reports
             ↓
@@ -29,8 +31,8 @@ work/plan.json → local research workbench ← explicit saved-view export
 | Analysis report | `betaforge/analysis_report.py` | Structured reasoning, sourced management comparisons, dated scenario references and hash-bound review feedback. |
 | Private preservation | `scripts/archive_research.py` | Versioned research bundles and verified restore. |
 | Saved-run presentation | `betaforge/saved_view.py`, `scripts/export_saved_analysis.py` | Verify existing artifact identity and package saved results for local inspection; no new financial arithmetic. |
-| Project progress | `work/`, `scripts/serve_progress.py`, `web/progress/` | Session-maintained delivery state and its read-only local display. |
-| Design prototype | `DESIGN.md`, `web/prototypes/company/`, `scripts/preview_company_design.py` | Explore the agreed visual direction using an explicitly selected saved-view snapshot; adoption into the working viewer requires user review. |
+| Research workbench | `work/`, `scripts/serve_progress.py`, `web/progress/` | Session-maintained progress, visual architecture/process explanation and company/memo navigation over explicitly configured saved results. |
+| Design reference | `DESIGN.md`, `web/prototypes/company/`, `scripts/preview_company_design.py` | Preserve the approved design trial. The working Company view is maintained in `web/progress/`. |
 | Company examples | `examples/<company>/` | Issuer prompts, reconciliations, replay scripts and public example documents. |
 
 ## Boundaries

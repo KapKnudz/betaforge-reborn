@@ -1,6 +1,6 @@
 # Review saved analyses locally
 
-The workbench has three tabs: **Project** for priorities and completed work, **Architecture** for the data flow, and **Company** for saved research. Task bars count completed tasks; they do not measure investment confidence or time remaining.
+The workbench has three views: **Project** for priorities and completed work, **Architecture** for the technical map and analysis process, and **Company** for saved research. Task bars count completed tasks; they do not measure investment confidence or time remaining. The [process guide](analysis-process.md) separates code checks, analyst judgment and coordinator actions.
 
 ```sh
 .venv/bin/python scripts/serve_progress.py
@@ -43,6 +43,19 @@ For an older unstructured run, also provide its deterministic financial review:
 
 Repeat `--analysis` to show more saved runs. Use a new output filename for a revised export. The exporter verifies artifact identity and preserves saved decimal values, missing outputs and probability qualifications. It does not calculate a new valuation or call Börsdata or a model.
 
+For multiple companies, configure their saved memos in the same command:
+
+```sh
+.venv/bin/python scripts/serve_progress.py \
+  --analysis data/saved-views/company-a.json \
+  --analysis data/saved-views/company-b.json \
+  --market-db data/evidence/evidence.sqlite3
+```
+
+The Company selector groups these files by Börsdata instrument ID. Memo version then selects a report for that company. Only configured saved analyses appear; capturing a company's dataset does not produce its analysis automatically. Restart with the additional `--analysis` path when registering another memo.
+
+A newly selected company defaults to its newest analysis cutoff, then completion date. Your memo choice is retained when switching back or refreshing while it remains available. Identical visible version labels are distinguished by cutoff and, when necessary, analysis ID; company-name changes do not create a new company identity.
+
 Identity checks bind the packet, frozen database, original inputs and calculation records. Scenario references must exist in that supplied run/review. Summary and narrative hashes record the exact text copied into the export; older run metadata does not authenticate those sidecars. Their financial claims remain subject to the saved review and later mapping checks.
 
 ## Attach a reader memo
@@ -62,14 +75,18 @@ The memo is limited to 64 KiB: summary 1,000 characters, titles 150, paragraphs 
 
 Validation checks structure, analysis identity and reference availability. It does not verify the memo's truth, completeness or numeric consistency. Independent editorial review must compare the rewrite with the canonical report and cited evidence. The existing independent analysis review covers the canonical report; it does not approve the reader memo.
 
+Reader editions retain the original analysis ID. Configure the chosen edition once; the server rejects two files with the same ID. A genuinely new analysis uses its own ID and can appear as another memo version.
+
 ## Read the company tab
 
-- **Report versions:** the compact selector uses the report completion/review date. The company header keeps the analysis date separate. The original conclusion remains available in a disclosure; the return overview copies existing results rather than rewriting the report.
+- **Company and memo:** separate selectors choose the business and its saved report. The company header keeps the analysis cutoff separate from completion/review dates. The original conclusion remains available in a disclosure; the return overview copies existing results rather than rewriting the report.
 - **Analysis and scenarios:** the full structured report separates facts, interpretations and assumptions. Clearly dated present values and future targets link to case-specific rationale, assumptions and saved calculations. Present values use horizontal dots; future share targets use columns. Each chart has its own scale and no annual price path is invented. Present value includes discounted dividends; the future share target excludes separately paid dividends. Legacy targets remain in their saved basis when no structured endpoint exists. Conditional weights retain their qualifications.
 - **Management comparisons:** direct targets, guidance and related operating drivers retain issuer definitions, publication dates, target periods and physical-page quotations. An absent margin target stays absent; issuer ROCE and utilization are not relabelled operating ROIC or EBIT margin.
 - **Calculations:** named formulas, inputs, units, scale, source IDs, physical-page evidence, outputs and missing inputs. The original run trace, including scalar operations and named formulas, is available separately.
 - **Sources and review:** archived report identities and hashes, saved analysis, caveats and a separately bound independent-review verdict. The analysis cutoff differs from execution completion. The compatibility field `reviewed_at` holds completion time for structured runs and financial-review time for legacy runs; the interface labels those dates accordingly. A review without a saved date receives no invented review timestamp.
 - **Material values:** definitions, exact selected sources, provider comparisons, residuals and selection reasons. Current R12 diagnostics take precedence when their financial periods match; annual-only fallbacks carry an explanation. [Period and mapping rules](material-inputs.md)
+
+The reader opens with the conclusion, dated market/report prices and distinct valuation charts. Four expandable chapters keep business reasoning, valuation assumptions, financials/management and evidence accessible. Saved period tables can supply selectable charts; supplied labels distinguish actuals from forecasts. Dated current figures belong beside scenarios only when their meaning is explained. The latest compatible stored quote is a reference line on both valuation charts, without changing the report's inputs or return.
 
 The historical index comparison is context, not a future return forecast. Missing cash-conversion inputs remain missing. Showing a result does not verify its accounting definitions or prove its investment thesis.
 

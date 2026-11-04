@@ -2,6 +2,8 @@
 
 Use this process during a working session when producing a new valuation or revising one after review. The coordinator maintains the [plan](../work/plan.json). The [policy](analysis-policy.md) owns financial choices; the [calculation catalogue](calculations.md) owns arithmetic.
 
+[The visual process guide](analysis-process.md) explains the analyst's stated decisions and separates code-enforced checks, agent judgment and coordinator responsibilities.
+
 ```text
 frozen evidence + policy
           ↓

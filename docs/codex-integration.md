@@ -48,7 +48,7 @@ No arbitrary expression evaluator or shell tool is exposed through the client-ow
 
 Create a file named `CANCEL` inside the run directory to request cancellation, or send SIGTERM/SIGINT to the Python controller. The controller requests `turn/interrupt`, closes stdin, then uses bounded terminate/kill fallbacks. Polling occurs between tool dispatches; a PDF render has a 60-second maximum and is shortened to the remaining run deadline. Shutdown may add a short grace period after the deadline.
 
-Remove the `CANCEL` marker before deliberate continuation, then rerun the same command with `--resume`. Resume validates packet/database/report identity and the frozen prompt hash, restores input/calculation/coverage state and resumes the saved Codex thread. It does not silently restart the analysis with new evidence. A deliberately resumed invocation has a fresh deadline.
+Remove the `CANCEL` marker before deliberate continuation, then rerun the same command with `--resume`. Resume validates packet/database/report identity and the frozen prompt hash, restores input/calculation/coverage state and resumes the saved Codex thread. It does not silently restart the analysis with new evidence. Unstructured invocations receive a fresh deadline; structured continuations share the cumulative 7,200-second limit described below.
 
 New packets also freeze and verify the adopted policy/catalogue and optional industry/market contexts with source-file hashes. Resume now requires identical complete implementation hashes for tools, formulas, storage and runner. An old or changed implementation needs a separate run; the controller cannot silently mix financial definitions in one run.
 
