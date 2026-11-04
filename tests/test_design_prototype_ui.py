@@ -23,6 +23,16 @@ assert.deepEqual(p.periodMeasures(['Period','Profit, USD million','Mixed'],[['20
 for(const invalid of ['', '12%','1 / 2','1,2','Infinity','<script>'])assert.equal(p.scalarCell(invalid),null);
 assert.deepEqual(p.periodMeasures(['Year','Profit'],[['2021','1'],['2022','2']]),[]);
 assert.deepEqual(p.periodMeasures(['Period','Profit'],[['2021','1'],['2022']]),[]);
+assert.deepEqual(p.tableCells(String.raw`| Debt \| EBITDA | 12 |`),['Debt | EBITDA','12']);
+assert.deepEqual(p.tableCells(String.raw`Debt \| EBITDA | 12`),['Debt | EBITDA','12']);
+assert.deepEqual(p.tableCells(String.raw`\| Debt | 12 \|`),['| Debt','12 |']);
+assert.deepEqual(p.tableCells(' A | | 12 '),['A','','12']);
+assert.deepEqual(p.tableCells('| A || 12 |'),['A','','12']);
+assert.deepEqual(p.tableCells('| |'),['']);
+assert.deepEqual(p.tableCells('|'),[]);
+assert.deepEqual(p.tableCells('Debt'+'\\'.repeat(2)+'|12'),['Debt\\','12']);
+assert.deepEqual(p.tableCells('Debt'+'\\'.repeat(3)+'|12'),['Debt\\|12']);
+assert.deepEqual(p.tableCells('Debt'+'\\'.repeat(4)+'|12'),['Debt\\\\','12']);
 const quote={value:'123',scale:'0.01',currency:'USD',date:'2026-10-30'};
 assert.equal(p.quoteReference(quote,['USD/share','USD/shares']).value,1.23);
 for(const invalid of [null,{...quote,scale:null},{...quote,scale:0},{...quote,scale:-1},{...quote,value:'Infinity'},{...quote,value:0},{...quote,currency:null}])assert.equal(p.quoteReference(invalid,['USD/shares']),null);
@@ -149,6 +159,27 @@ const unbound=JSON.parse(JSON.stringify(rich));unbound.price.value='124';p.rende
 assert.ok(!document.getElementById('return-explanation'));assert.ok(!all(roots.content).some(n=>n.textContent==='6.73%'));
 const invalidHistory=JSON.parse(JSON.stringify(rich));invalidHistory.reader_memo.sections=[{id:'drivers',paragraphs:[{text:'| Period | Composite |\n| --- | --- |\n| 2021 | 1 / 2 |\n| 2022 | 2 / 3 |'}]}];
 p.render({run:invalidHistory});assert.ok(!all(roots.content).some(n=>n.tagName==='SELECT'));assert.ok(all(roots.content).some(n=>n.tagName==='TD' && n.textContent==='1 / 2'));
+const forecast=JSON.parse(JSON.stringify(rich));
+forecast.reader_memo.sections=[{id:'drivers',title:'Saved forecasts',paragraphs:[{text:String.raw`### Forecast assumptions
+
+| Period | Debt \| EBITDA, x | Notes |
+| --- | --- | --- |
+| 2027 forecast | 12 | Debt \| EBITDA |
+2028 forecast | 14 | Cash \\ balance
+`}]}];
+p.render({run:forecast});
+const forecastNodes=all(roots.content), forecastText=forecastNodes.map(n=>n.textContent).join('|');
+assert.ok(forecastNodes.some(n=>n.tagName==='TH' && n.textContent==='Debt | EBITDA, x'));
+const forecastRows=forecastNodes.filter(n=>n.tagName==='TR' && n.children.some(c=>c.textContent==='2027 forecast' || c.textContent==='2028 forecast'));
+assert.equal(forecastRows.length,2);
+assert.deepEqual(forecastRows.map(n=>n.children.map(c=>c.textContent)),[['2027 forecast','12','Debt | EBITDA'],['2028 forecast','14','Cash \\ balance']]);
+const forecastSelect=forecastNodes.find(n=>n.tagName==='SELECT');assert.ok(forecastSelect);
+assert.equal(forecastSelect.attributes['aria-label'],'Measure');
+assert.deepEqual(forecastSelect.children.map(n=>n.textContent),['Debt | EBITDA, x']);
+assert.deepEqual(forecastNodes.filter(n=>n.className==='trend-value').map(n=>n.textContent),['12','14']);
+assert.deepEqual(forecastNodes.filter(n=>n.className==='trend-period').map(n=>n.textContent),['2027 forecast','2028 forecast']);
+assert.ok(forecastNodes.some(n=>n.tagName==='SUMMARY' && n.textContent==='Source table'));
+assert.ok(!/historical|history/i.test(forecastText),'a Period header establishes no historical claim');
 const legacy={company:{name:'Legacy synthetic'},scenarios:[
   {name:'Saved case',value:'81.1234567890123456789',unit:'USD/share',basis:'Original discounted cash basis',calculation_ids:['calc:one#margin_percent']},
   {name:'Saved case',value:'102.34567890123456789',unit:'USD/share',basis:'Original target basis',calculation_ids:['calc:two#multiple']}

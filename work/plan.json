@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T19:24:16.884202+00:00",
+  "updated_at": "2026-11-04T19:31:35.778802+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "company-design-integration",
@@ -540,7 +540,7 @@
         "scripts/preview_company_design.py"
       ],
       "blocker": null,
-      "note": "User approved the direction and requested focused refinements. Implemented display-only name cleanup, saved-return provenance, matching-currency market-price lines, selectable saved history, descriptive sections and current-versus-scenario comparisons. The separate reader edition reuses preserved evidence; canonical analysis, assumptions and arithmetic are unchanged. Independent technical, editorial and visual checks passed. Desktop and 390 px browser checks verified price-line alignment, history selection, keyboard/scenario/source navigation, readable dates and table containment. Final offline-suite and current-head Greptile receipts are recorded in PR #14 and the private handoff. The working Company page remains separate; user review and merge are pending."
+      "note": "User approved the direction and requested focused refinements. Implemented display-only name cleanup, saved-return provenance, matching-currency market-price lines, selectable saved history, descriptive sections and current-versus-scenario comparisons. The separate reader edition reuses preserved evidence; canonical analysis, assumptions and arithmetic are unchanged. Independent technical, editorial and visual checks passed. Desktop and 390 px browser checks verified price-line alignment, history selection, keyboard/scenario/source navigation, readable dates and table containment. Final offline-suite and current-head Greptile receipts are recorded in PR #14 and the private handoff. The working Company page remains separate; user review and merge are pending. Greptile identified escaped table delimiters that could shift columns and a historical label on otherwise unclassified period tables. Both were corrected with regression coverage: escaped cells retain alignment, and generic chart labels stay neutral while saved forecast/actual period wording remains visible. Final review receipts remain in the PR conversation."
     },
     {
       "id": "company-design-integration",

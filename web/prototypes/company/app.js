@@ -13,6 +13,19 @@ function scalarCell(cell) {
   if (!/^[+-]?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/.test(text)) return null;
   return number(text.replace(/,/g,''));
 }
+function tableCells(line) {
+  const source=String(line).trim(), cells=[]; let cell='', trailingSeparator=false;
+  for(let index=0;index<source.length;index++) {
+    const char=source[index], next=source[index+1];
+    if(char==='\\' && (next==='\\' || next==='|')) { cell+=next; index++; trailingSeparator=false; }
+    else if(char==='|') { cells.push(cell.trim()); cell=''; trailingSeparator=true; }
+    else { cell+=char; trailingSeparator=false; }
+  }
+  cells.push(cell.trim());
+  if(source.startsWith('|'))cells.shift();
+  if(trailingSeparator)cells.pop();
+  return cells;
+}
 function periodMeasures(headers, rows) {
   if (headers[0] !== 'Period' || rows.length < 2 || rows.some(row=>row.length!==headers.length || !row[0])) return [];
   return headers.flatMap((label,index)=>index && rows.every(row=>scalarCell(row[index])!==null) ? [{label,index,values:rows.map(row=>scalarCell(row[index]))}] : []);
@@ -57,7 +70,7 @@ function findReference(run, reference) {
   return record ? {kind:'record',record,field:field || null} : null;
 }
 function revealTarget(node) { if (!node) return; let parent=node; while(parent) { if(parent.tagName==='DETAILS') parent.open=true; parent=parent.parentElement; } node.tabIndex=-1; node.scrollIntoView({block:'start'}); node.focus({preventScroll:true}); }
-if (typeof module !== 'undefined') module.exports = {displayName, quoteReference, scalarCell, periodMeasures, number, display, fixed, priceValue, dateLabel, safeUrl, returnUsesReportPrice, inputDisplay, findReference, revealTarget, calculationPeriod, currentCalculation, periodLabel, selectedMetrics};
+if (typeof module !== 'undefined') module.exports = {tableCells, displayName, quoteReference, scalarCell, periodMeasures, number, display, fixed, priceValue, dateLabel, safeUrl, returnUsesReportPrice, inputDisplay, findReference, revealTarget, calculationPeriod, currentCalculation, periodLabel, selectedMetrics};
 if (typeof document !== 'undefined') {
 const el = (tag, cls, text) => { const node = document.createElement(tag); if (cls) node.className = cls; if (text !== undefined && text !== null) node.textContent = text; return node; };
 const append = (parent, ...children) => { parent.append(...children); return parent; };
@@ -71,8 +84,8 @@ function table(headers, rows) { const wrap=el('div','table-wrap'), t=el('table')
 function periodTable(headers, rows, id) {
  const measures=periodMeasures(headers,rows), saved=table(headers,rows);
  if (!measures.length) return saved;
- const wrapper=el('div','history'), label=el('label','trend-label','Historical measure'), select=el('select'), chart=el('div','trend-chart');
- select.id=id; label.htmlFor=id; select.setAttribute('aria-label','Historical measure');
+ const wrapper=el('div','history'), label=el('label','trend-label','Measure'), select=el('select'), chart=el('div','trend-chart');
+ select.id=id; label.htmlFor=id; select.setAttribute('aria-label','Measure');
  measures.forEach((measure,i)=>{const option=el('option','',measure.label);option.value=String(i);select.append(option);});
  function draw() {
   const measure=measures[Number(select.value) || 0], min=Math.min(0,...measure.values), max=Math.max(0,...measure.values), range=max-min || 1;
@@ -84,18 +97,17 @@ function periodTable(headers, rows, id) {
    const period=el('span','trend-period',shortPeriod(rows[i][0]));period.title=rows[i][0];append(plot,zero,bar); append(column,el('span','trend-value',rows[i][measure.index]),plot,period);columns.append(column);
   }); chart.append(columns);
  }
- select.addEventListener('change',draw); draw(); append(wrapper,label,select,chart,el('p','caption','Exact saved values. Fiscal years and R12 remain separately labelled; periods may differ in length.'),detail('Saved history table',saved));return wrapper;
+ select.addEventListener('change',draw); draw(); append(wrapper,label,select,chart,el('p','caption','Exact saved values and period labels. See the source table and saved qualifications for period length and basis.'),detail('Source table',saved));return wrapper;
 }
 function readableReport(markdown, id) {
  const node=el('div','report-body'), lines=String(markdown || '').split(/\r?\n/); let paragraph=[], tableIndex=0;
  const flush=()=>{if(paragraph.length){node.append(el('p','saved-text',paragraph.join('\n')));paragraph=[];}};
- const cells=line=>line.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(cell=>cell.trim());
  for(let index=0;index<lines.length;index++) {
   const line=lines[index], heading=line.match(/^\s{0,3}(#{1,6})\s+(.+?)\s*#*$/);
   if(heading){flush();node.append(el('h4','',heading[2]));}
-  else if(line.includes('|') && index+1<lines.length && cells(lines[index+1]).every(cell=>/^:?-{3,}:?$/.test(cell))) {
-   flush(); const headers=cells(line), rows=[];index+=2;
-   while(index<lines.length && lines[index].includes('|') && lines[index].trim()){rows.push(cells(lines[index]));index++;}index--;
+  else if(line.includes('|') && index+1<lines.length && tableCells(lines[index+1]).length && tableCells(lines[index+1]).every(cell=>/^:?-{3,}:?$/.test(cell))) {
+   flush(); const headers=tableCells(line), rows=[];index+=2;
+   while(index<lines.length && lines[index].includes('|') && lines[index].trim()){rows.push(tableCells(lines[index]));index++;}index--;
    node.append(periodTable(headers,rows,id+'-measure-'+tableIndex++));
   } else if(!line.trim())flush(); else paragraph.push(line);
  }
