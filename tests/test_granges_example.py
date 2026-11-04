@@ -162,6 +162,37 @@ class FinancialReviewTests(unittest.TestCase):
             self.assertTrue(by_id[case + "-exit-multiple"]["evidence"])
             self.assertTrue(by_id[case + "-annual-retained-cash"]["evidence"])
 
+    def test_explicit_report_cfo_preserves_selection_and_both_reconciliation_residuals(self):
+        if not CURRENT_FACTS.exists():
+            self.skipTest("Private current-period facts are not installed")
+        original = build_review(PACKET, FACTS, RUN, current_facts_path=CURRENT_FACTS)
+        decisions = {row["id"]: row for row in build_material_inputs(original, PACKET)}
+        alternative = deepcopy(decisions["cfo"]["candidates"][1]["record"])
+        fact = {key: alternative[key] for key in ("value", "unit", "scale", "currency", "report_type", "period_start", "period_end", "evidence", "derivation")}
+        fact.update(metric="statutory_cash_flow_operations", year=2026, period=3,
+                    kind="flow", basis="Explicit report annual plus current YTD less prior YTD", status="derived_match")
+        source = json.loads(CURRENT_FACTS.read_text())
+        annual_ytd_value = fact["value"]
+        source["facts"].append(fact)
+        with tempfile.TemporaryDirectory() as name:
+            path = Path(name) / "explicit-current-facts.json"
+            for selected_value in (annual_ytd_value, str(Decimal(annual_ytd_value) + Decimal("0.5"))):
+                with self.subTest(selected_value=selected_value):
+                    source["facts"][-1]["value"] = selected_value
+                    path.write_text(json.dumps(source))
+                    review = build_review(PACKET, FACTS, RUN, current_facts_path=path)
+                    cfo = next(row for row in build_material_inputs(review, PACKET) if row["id"] == "cfo")
+                    self.assertEqual(cfo["selected"]["value"], selected_value)
+                    self.assertEqual(len(cfo["candidates"]), 3)
+                    residuals = [Decimal(item["residual"]["value"]) for item in cfo["candidates"]]
+                    if selected_value == annual_ytd_value:
+                        self.assertNotEqual(residuals[0], 0)
+                        self.assertEqual(residuals[1], 0)
+                        self.assertEqual(cfo["reconciliation_status"], "derived_match")
+                    else:
+                        self.assertTrue(all(residual != 0 for residual in residuals))
+                        self.assertEqual(cfo["reconciliation_status"], "disagrees")
+
     def test_review_keeps_cash_gaps_local_and_preserves_original_valuation(self):
         review = build_review(PACKET, FACTS, RUN, scenario_weights=[Decimal("0.25"), Decimal("0.55"), Decimal("0.20")])
         self.assertNotIn("current_facts", review)

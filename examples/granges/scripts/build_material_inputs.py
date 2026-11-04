@@ -177,6 +177,7 @@ def build_material_inputs(review, packet):
             if selected is None:
                 continue
             candidates = []
+            reconciliation = "derived_match" if field in {"cfo", "net_interest_cash_outside_cfo"} else "matched"
             if field == "group_net_income":
                 candidates = [compare(selected, provider("profit_To_Equity_Holders"), "Different group/parent attribution scopes; residual is arithmetic, not a reconciliation failure.")]
                 candidates[0]["reconciliation_status"] = "not_comparable"
@@ -195,13 +196,16 @@ def build_material_inputs(review, packet):
                 alternative = report_derivation("cfo-annual-ytd", annual_evidence,
                                                 [annual_ytd[4], annual_ytd[2], annual_ytd[3]],
                                                 ["FY2025", "Jan–Sep2026", "Jan–Sep2025"], [1, 1, -1], selected)
-                if normalized(quarter_sum) != normalized(selected):
-                    raise ValueError("Selected provider CFO differs from verified report quarter sum")
                 candidates = [compare(selected, quarter_sum, "Exact sum of the four displayed statutory quarterly CFO rows.", "documented"),
                               compare(selected, alternative, "Annual plus current YTD less prior YTD; displayed rounding leaves a retained residual.", "documented")]
+                reconciliation = "derived_match" if any(item["reconciliation_status"] == "matched" for item in candidates) else "disagrees"
+                if selected.get("provider") != "borsdata":
+                    reason = "Use the explicitly selected report CFO; preserve both report derivations and the provider quarter-sum candidate with their residuals. " + reason
+                    candidates.append(compare(selected, provider("cash_Flow_From_Operating_Activities"),
+                                              "Retained provider R12 CFO, independent of the explicit report override."))
                 evidence = [quarter_evidence, annual_evidence]
             add(field.replace("_", "-"), label, meaning, selected, ["Cash-quality diagnostic; retained-cash forecast challenge"], reason,
-                candidates=candidates, status="derived_match" if field in {"cfo", "net_interest_cash_outside_cfo"} else "matched",
+                candidates=candidates, status=reconciliation,
                 limits=["The primary post-lease conversion remains unavailable until gross outside-CFO interest and cash lease principal are verified."], evidence=evidence)
         for key, label in (("interest_paid_outside_cfo", "Fresh gross cash interest"), ("lease_principal_outside_cfo", "Fresh cash lease principal")):
             add(key.replace("_", "-"), label, "The specific cash outflow required by the adopted group cash-conversion formula.", None,
