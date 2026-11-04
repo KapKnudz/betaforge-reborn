@@ -3,6 +3,7 @@
 This module copies saved financial results. It never calls providers, runs a model,
 solves a formula, or infers a valuation from prose.
 """
+from copy import deepcopy
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation, localcontext
 import hashlib
@@ -14,6 +15,7 @@ from urllib.parse import parse_qsl, urlsplit
 
 
 MAX_BYTES = 16 * 1024 * 1024
+MAX_READER_MEMO_BYTES = 64 * 1024
 SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 HASH = re.compile(r"[a-f0-9]{64}")
 NUMBER = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
@@ -287,7 +289,7 @@ def _material_inputs(rows):
 
 def validate_saved_view(view):
     """Validate the bounded display schema before a server exposes it."""
-    _object(view, FIELDS, {"material_inputs", "current_data_limits", "analysis", "analysis_review", "saved_records"})
+    _object(view, FIELDS, {"material_inputs", "current_data_limits", "analysis", "analysis_review", "saved_records", "reader_memo"})
     if type(view["schema_version"]) is not int or view["schema_version"] != 1:
         raise ValueError("Unsupported saved-view version")
     if not isinstance(view["id"], str) or len(view["id"]) > 100 or not SLUG.fullmatch(view["id"]):
@@ -442,7 +444,7 @@ def validate_saved_view(view):
         _texts(view["current_data_limits"])
     if "analysis" in view:
         _validate_structured_view(view)
-    elif {"analysis_review", "saved_records"} & view.keys() or "analysis_sha256" in provenance:
+    elif {"analysis_review", "saved_records", "reader_memo"} & view.keys() or "analysis_sha256" in provenance:
         raise ValueError("Structured metadata requires its canonical analysis")
     _tree(view)
     return view
@@ -450,6 +452,61 @@ def validate_saved_view(view):
 
 def load_saved_view(path):
     return validate_saved_view(_json(path))
+
+
+def attach_reader_memo(view, memo):
+    """Attach editorial text to a copy, preserving the canonical saved analysis."""
+    validate_saved_view(view)
+    result = deepcopy(view)
+    result["reader_memo"] = deepcopy(memo)
+    return validate_saved_view(result)
+
+
+def _validate_reader_memo(memo, view, references):
+    """Check editorial structure and reference identity, not the prose's claims."""
+    from betaforge.analysis_report import SECTIONS, text
+    _object(memo, {"schema_version", "analysis_sha256", "edited_at", "summary", "sections", "scenarios"})
+    if type(memo["schema_version"]) is not int or memo["schema_version"] != 1:
+        raise ValueError("Unsupported reader-memo version")
+    if memo["analysis_sha256"] != view["provenance"]["analysis_sha256"]:
+        raise ValueError("Reader memo requires the current canonical analysis hash")
+    text(memo["edited_at"], "reader-memo timestamp", 80)
+    _timestamp(memo["edited_at"])
+    text(memo["summary"], "reader-memo summary", 1000)
+
+    sections = memo["sections"]
+    if not isinstance(sections, list) or len(sections) != len(SECTIONS):
+        raise ValueError("Reader memo requires the six canonical sections")
+    section_ids = []
+    for section in sections:
+        _object(section, {"id", "title", "paragraphs"})
+        section_ids.append(text(section["id"], "reader-memo section ID", 100))
+        text(section["title"], "reader-memo section title", 150)
+        if not isinstance(section["paragraphs"], list) or not 1 <= len(section["paragraphs"]) <= 6:
+            raise ValueError("Invalid reader-memo paragraphs")
+        for paragraph in section["paragraphs"]:
+            _object(paragraph, {"kind", "text", "references"})
+            if not isinstance(paragraph["kind"], str) or paragraph["kind"] not in {"fact", "interpretation", "assumption"}:
+                raise ValueError("Invalid reader-memo paragraph kind")
+            text(paragraph["text"], "reader-memo paragraph", 1500)
+            references(paragraph["references"])
+    if set(section_ids) != set(SECTIONS):
+        raise ValueError("Reader memo requires the six canonical sections")
+    scenarios = memo["scenarios"]
+    canonical_ids = {item["id"] for item in view["analysis"]["scenarios"]}
+    if not isinstance(scenarios, list) or len(scenarios) != len(canonical_ids):
+        raise ValueError("Reader memo requires each canonical scenario")
+    scenario_ids = []
+    for scenario in scenarios:
+        _object(scenario, {"id", "rationale", "assumption_rationale", "probability_rationale", "references"})
+        scenario_ids.append(text(scenario["id"], "reader-memo scenario ID", 100))
+        for key in ("rationale", "assumption_rationale", "probability_rationale"):
+            text(scenario[key], "reader-memo " + key, 1200)
+        references(scenario["references"])
+    if set(scenario_ids) != canonical_ids:
+        raise ValueError("Reader memo requires each canonical scenario")
+    if len(json.dumps(memo, ensure_ascii=False, allow_nan=False).encode("utf-8")) > MAX_READER_MEMO_BYTES:
+        raise ValueError("Reader memo exceeds 64 KiB")
 
 
 def _child(base, relative):
@@ -690,6 +747,8 @@ def _validate_structured_view(view):
             raise ValueError("Independent review hash mismatch")
     elif provenance["review_sha256"] is not None:
         raise ValueError("Independent review hash requires its retained review")
+    if "reader_memo" in view:
+        _validate_reader_memo(view["reader_memo"], view, references)
 
 
 def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_id, method):

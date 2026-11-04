@@ -45,10 +45,27 @@ Repeat `--analysis` to show more saved runs. Use a new output filename for a rev
 
 Identity checks bind the packet, frozen database, original inputs and calculation records. Scenario references must exist in that supplied run/review. Summary and narrative hashes record the exact text copied into the export; older run metadata does not authenticate those sidecars. Their financial claims remain subject to the saved review and later mapping checks.
 
+## Attach a reader memo
+
+Keep the canonical report intact when shortening its prose. Supply a private JSON memo and write a separate saved-view file:
+
+```sh
+.venv/bin/python scripts/attach_reader_memo.py \
+  --view data/saved-views/company-run.json \
+  --memo data/saved-views/company-reader-memo.json \
+  --output data/saved-views/company-run-with-memo.json
+```
+
+The optional `reader_memo` object has exactly `schema_version: 1`, `analysis_sha256` matching the view's provenance, a timezone-bearing ISO `edited_at`, `summary`, `sections` and `scenarios`. Its six section IDs are `thesis`, `drivers`, `quality`, `management`, `valuation` and `risks`. Each section contains `id`, `title` and one to six `paragraphs`; each paragraph contains `kind` (`fact`, `interpretation` or `assumption`), `text` and nonempty `references`. Each canonical scenario appears once with `id`, `rationale`, `assumption_rationale`, `probability_rationale` and nonempty `references`. References must resolve to existing saved records or available report pages. No numeric fields, new sources or valuation overrides are accepted.
+
+The memo is limited to 64 KiB: summary 1,000 characters, titles 150, paragraphs 1,500 and each scenario rationale 1,200; each reference list has at most 100 entries. Legacy views and stale analysis hashes are rejected. Attachment preserves the view ID, canonical analysis, original prose, prices, calculations, probabilities, provenance and saved review. It makes no provider or model calls and never overwrites an existing output. Configure the new file with `--analysis` to display it.
+
+Validation checks structure, analysis identity and reference availability. It does not verify the memo's truth, completeness or numeric consistency. Independent editorial review must compare the rewrite with the canonical report and cited evidence. The existing independent analysis review covers the canonical report; it does not approve the reader memo.
+
 ## Read the company tab
 
 - **Report versions:** the compact selector uses the report completion/review date. The company header keeps the analysis date separate. The original conclusion remains available in a disclosure; the return overview copies existing results rather than rewriting the report.
-- **Analysis and scenarios:** the full structured report separates facts, interpretations and assumptions. Clearly dated present values and future targets link to case-specific rationale, assumptions and saved calculations. Separate endpoint charts share a scale and do not invent an annual price path. Legacy targets remain in their saved basis when no structured endpoint exists. Conditional weights retain their qualifications.
+- **Analysis and scenarios:** the full structured report separates facts, interpretations and assumptions. Clearly dated present values and future targets link to case-specific rationale, assumptions and saved calculations. Present values use horizontal dots; future share targets use columns. Each chart has its own scale and no annual price path is invented. Present value includes discounted dividends; the future share target excludes separately paid dividends. Legacy targets remain in their saved basis when no structured endpoint exists. Conditional weights retain their qualifications.
 - **Management comparisons:** direct targets, guidance and related operating drivers retain issuer definitions, publication dates, target periods and physical-page quotations. An absent margin target stays absent; issuer ROCE and utilization are not relabelled operating ROIC or EBIT margin.
 - **Calculations:** named formulas, inputs, units, scale, source IDs, physical-page evidence, outputs and missing inputs. The original run trace, including scalar operations and named formulas, is available separately.
 - **Sources and review:** archived report identities and hashes, saved analysis, caveats and a separately bound independent-review verdict. The analysis cutoff differs from execution completion. The compatibility field `reviewed_at` holds completion time for structured runs and financial-review time for legacy runs; the interface labels those dates accordingly. A review without a saved date receives no invented review timestamp.

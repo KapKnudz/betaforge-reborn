@@ -231,6 +231,10 @@ supplied policy's writing rules. Explain the business mechanism, selected foreca
 and shareholder return implication. Name concrete cash uses and operating risks; support
 qualitative judgments with evidence. Price references need their date. Keep execution,
 extraction and revision bookkeeping out of the investment summary and in audit details.
+Aim for an opening conclusion of about 90 words and short, readable sections. Use compact
+tables for comparisons. Explain business economics, required improvement, capital needs
+and shareholder results; keep detailed reconciliations and revision history in evidence
+details. Keep material uncertainty beside the conclusion it limits when shortening prose.
 Select one operating equation. Explain 3-5 drivers and the company's own 5-10-year history
 where available; save one or two modest disappointment checks and two or three disconfirmers.
 Use saved named calculations. Required reading plus validated submission permits execution
