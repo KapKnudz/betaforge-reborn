@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T09:15:58+01:00",
+  "updated_at": "2026-11-04T09:20:15+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "material-mapping",
@@ -392,13 +392,13 @@
         "docs/saved-analysis-view.md"
       ],
       "blocker": null,
-      "note": "Implemented the traditional local workbench with plan bars, a next-action box, short what/why records, architecture and explicitly configured saved-company views. Clean proposed checkout: 131 tests, OK with one private-evidence class skipped; JavaScript syntax and whitespace checks pass. Browser checked desktop/narrow layouts, keyboard tabs, filtering, evidence drilldowns, empty state and stale-plan recovery. Independent read-only review findings were fixed and rechecked; mobile visual issues were fixed and rechecked. No provider/model calls or valuation recalculation. Focused PR and fresh Greptile review follow; user reviews and merges."
+      "note": "Implemented the traditional local workbench with plan bars, a next-action box, short what/why records, architecture and explicitly configured saved-company views. Clean proposed checkout: 131 tests, OK with one private-evidence class skipped; JavaScript syntax and whitespace checks pass. Browser checked desktop/narrow layouts, keyboard tabs, filtering, evidence drilldowns, empty state and stale-plan recovery. Independent read-only review findings were fixed and rechecked; mobile visual issues were fixed and rechecked. No provider/model calls or valuation recalculation. PR #8 is open against main for user review and merge: https://github.com/KapKnudz/betaforge-reborn/pull/8. The fresh final-head Greptile receipt belongs in the PR conversation."
     }
   ],
   "session": {
     "task": "research-workbench-ui",
-    "summary": "Traditional workbench and first saved-company view implemented and validated. The broader valuation-validation milestone remains open.",
-    "next_step": "Review and merge the focused workbench PR. Then record material field definitions and selected-input rationale; validate another issuer and continue report archiving."
+    "summary": "PR #8 contains the validated traditional workbench and first saved-company view. Broader valuation validation remains open.",
+    "next_step": "Complete the bounded current-head Greptile review on PR #8; user reviews and merges. Then record material field definitions and selected-input rationale, validate another issuer and continue report archiving."
   },
   "references": [
     {
