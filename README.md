@@ -9,6 +9,7 @@ Personal company research: collect evidence, check financial definitions and pro
 | `betaforge/` | Shared data storage, calculations and Codex integration |
 | `scripts/` | Commands to collect data, prepare evidence and run analyses |
 | `web/progress/` | Local project and saved-research workbench |
+| `web/prototypes/` | Separate visual prototypes for review |
 | `work/` | Current goal, priorities, blockers and next steps |
 | `docs/` | Architecture, investment policy, formulas and setup |
 | `examples/granges/` | Company-specific worked example |
@@ -19,6 +20,7 @@ Personal company research: collect evidence, check financial definitions and pro
 
 - **Continue work:** read [agent instructions](AGENTS.md) and the [current plan](work/plan.json).
 - **Understand boundaries:** read the [architecture](docs/architecture.md).
+- **Design the interface:** read the [design brief](DESIGN.md) and [Company prototype](web/prototypes/company/README.md).
 - **Make a change:** follow the [contribution and PR workflow](CONTRIBUTING.md).
 
 ## Run locally

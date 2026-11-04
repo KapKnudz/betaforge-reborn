@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T16:33:45.115581+00:00",
+  "updated_at": "2026-11-04T17:47:19.671782+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "return-and-reader-review",
+  "next_task": "company-design-adoption",
   "milestones": [
     {
       "id": "foundation",
@@ -492,12 +492,55 @@
       ],
       "blocker": null,
       "note": "Implemented five compact Company panels, a separate source-linked reader edition, clickable present-value dots and future-target columns, and expandable business, scenario, financial and audit details. The canonical report, calculations, prices and probabilities remain unchanged. Primary-source comparison found existing topic coverage but unresolved operating, reinvestment and cash support; future analyst guidance now favors a short owner memo. Independent editorial and technical reviews passed after corrections to financial display scale, source references, guidance wording and navigation. Clean proposed checkout: 181 offline tests, OK with one private-evidence class skipped; the final wording-only correction also passed the focused UI check. Desktop and 390 px browser checks passed for chart clicks, keyboard tabs, sources, legacy fallback, report switching and overflow. Exact reader content and receipts stay private. Publication/current-head Greptile receipt remains in the PR conversation; user reviews and merges. No new valuation run or changed financial assumptions."
+    },
+    {
+      "id": "company-design-prototype",
+      "milestone": "saved-review",
+      "title": "Define and preview the Company visual direction",
+      "status": "done",
+      "summary": "Use NBIM clarity and ABG memo structure in an isolated Terra-led prototype.",
+      "purpose": "Choose a concrete visual target before another production redesign.",
+      "acceptance": [
+        "A short DESIGN.md records the agreed visual references, layout, interaction rules and review criteria; AGENTS.md routes frontend work to it.",
+        "Terra creates one separate local prototype: concise overview and full-width expandable sections, replacing inner tabs only in the prototype.",
+        "Use existing validated saved results; preserve financial definitions, source distinctions and dates.",
+        "Browser-check desktop and narrow layouts, section expansion, chart/source navigation and financial display; independent read-only review.",
+        "Keep the current Company page available for comparison and record that prototype adoption awaits user review."
+      ],
+      "evidence": [
+        "DESIGN.md",
+        "AGENTS.md",
+        "web/prototypes/company/",
+        "scripts/preview_company_design.py",
+        "tests/test_design_preview.py",
+        "tests/test_design_prototype_ui.py"
+      ],
+      "blocker": null,
+      "note": "The agreed design brief and isolated Terra/medium prototype are complete. The working Company interface remains separate. The preview reads one explicitly selected validated snapshot and optional read-only market store, with no provider, model or valuation calls. Clean proposed checkout: 189 offline tests passed, with one private-evidence class skipped. Desktop 1280 × 720 and mobile 390 × 844 checks covered chart activation, source navigation, keyboard focus, dates, financial display and overflow. Independent Sol technical and Terra visual reviews completed; material findings were corrected and rechecked. Exact research and screenshots remain private. User visual approval and production adoption are pending; publication and current-head Greptile receipts belong in the PR conversation."
+    },
+    {
+      "id": "company-design-adoption",
+      "milestone": "saved-review",
+      "title": "Review the Company prototype before adoption",
+      "status": "pending",
+      "summary": "Review the separate prototype and choose the visual patterns to adopt.",
+      "purpose": "Agree the interface before changing the working Company page.",
+      "acceptance": [
+        "The user reviews the prototype against the current Company page and selected references.",
+        "Record concrete feedback in DESIGN.md and agree any production implementation scope."
+      ],
+      "evidence": [
+        "DESIGN.md",
+        "web/prototypes/company/README.md"
+      ],
+      "blocker": null,
+      "note": "Local prototype on port 8766; current workbench on port 8765. No production adoption is authorized by completion of the prototype. The existing operating-to-capital-and-cash review remains a separate analytical priority."
     }
   ],
   "session": {
-    "task": "company-investment-memo",
-    "summary": "The compact Company memo is implemented, independently reviewed and browser-verified. The original valuation is preserved; missing fundamental support is visible and recorded.",
-    "next_step": "Publish the focused PR and complete its bounded current-head Greptile cycle; user reviews and merges. Then resolve the main operating, reinvestment and cash-evidence gaps before a revised valuation."
+    "task": "company-design-prototype",
+    "summary": "Design brief and isolated Company prototype implemented and checked; user visual review is next.",
+    "next_step": "Compare the prototype on port 8766 with the working Company page on port 8765. Record visual feedback before production adoption; retain the separate operating-and-cash analysis priority."
   },
   "references": [
     {
