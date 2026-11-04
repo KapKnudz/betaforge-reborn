@@ -10,6 +10,7 @@ Version 1, 3 November 2026. This defines the calculations permitted by the [anal
 - Use Decimal arithmetic. Display rounding never changes the saved result. A denominator can be mathematically nonzero yet economically unsuitable; expose the limitation.
 - Each result identifies formula/version, source or assumption IDs, normalized inputs, output units and warnings/missing inputs. New financial definitions need an explicit named formula; no generic expression language or hidden scoring weights are used.
 - The tool wrapper rejects known quarter/YTD denominators in ordinary P/E and EV/EBIT. Capital diagnostics use an annual/R12 flow, its matching closing balance and an opening balance dated the day before the flow starts when dates are known. Undated analyst inputs still require an explicit basis; numerical checks do not independently verify scope or accounting interpretation.
+- Current diagnostics prefer the latest compatible quarter/R12 evidence. Annual history and annual-only disclosures remain labelled separately; the [period and input-selection rules](material-inputs.md) define the presentation and evidence requirements.
 
 ## Implemented named formulas
 

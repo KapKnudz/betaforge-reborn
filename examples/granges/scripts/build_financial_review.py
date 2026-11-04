@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, localcontext
 import hashlib
 import json
@@ -15,6 +15,7 @@ CASE_DATA = Path(__file__).resolve().parents[1] / "data"
 sys.path.insert(0, str(ROOT))
 from betaforge.financials import VERSION, evaluate
 from betaforge.storage import EvidenceStore
+from betaforge.tools import EvidenceTools
 
 
 def digest(path):
@@ -72,14 +73,39 @@ def verify_quote(evidence, catalogue, texts):
         raise ValueError("Quality fact source pointer mismatch")
 
 
-def load_quality_facts(path, catalogue, texts):
+def load_quality_facts(path, catalogue, texts, analysis_date=None):
     body, source_hash = read_json(path), digest(path)
     if body.get("instrument_id") != 426:
         raise ValueError("Quality facts are for a different company")
     records = {}
     for index, fact in enumerate(body["facts"]):
         verify_quote(fact["evidence"], catalogue, texts)
-        key = (fact["metric"], fact["year"])
+        report_type, year, period = fact["report_type"], fact["year"], fact["period"]
+        end = date.fromisoformat(fact["period_end"])
+        if analysis_date and end > date.fromisoformat(analysis_date):
+            raise ValueError("Quality fact period ends after the frozen analysis date")
+        if report_type not in {"year", "quarter", "r12"} or type(year) is not int or type(period) is not int:
+            raise ValueError("Invalid quality fact reporting period")
+        if end.year != year or (report_type == "year" and period != 5) or (report_type != "year" and period not in range(1, 5)):
+            raise ValueError("Quality fact date differs from its reporting period")
+        next_month = 1 if report_type == "year" else period * 3 % 12 + 1
+        next_year = year + (next_month == 1)
+        expected_end = date(next_year, next_month, 1) - timedelta(days=1)
+        if end != expected_end:
+            raise ValueError("Quality fact date differs from its reporting period")
+        start = fact.get("period_start")
+        if fact["kind"] == "stock":
+            if start is not None:
+                raise ValueError("Stock quality facts require a closing date without a flow period start")
+        elif fact["kind"] == "flow":
+            expected_start = (date(year, 1, 1) if report_type == "year" else
+                              date(year, period * 3 - 2, 1) if report_type == "quarter" else
+                              date(next_year - 1, next_month, 1))
+            if start != expected_start.isoformat():
+                raise ValueError("Quality fact flow dates differ from its reporting period")
+        else:
+            raise ValueError("Quality fact must identify stock or flow")
+        key = (fact["metric"], report_type, year, period, end.isoformat())
         if key in records:
             raise ValueError("Duplicate quality fact selection")
         record = dict(fact, id=f"quality:{source_hash[:16]}:{index}",
@@ -89,6 +115,32 @@ def load_quality_facts(path, catalogue, texts):
     for note in body.get("notes", []):
         verify_quote(note["evidence"], catalogue, texts)
     return records, body.get("notes", [])
+
+
+def select_fact(records, metric, year, report_type, period):
+    matches = [record for key, record in records.items() if key[:4] == (metric, report_type, year, period)]
+    if len(matches) != 1:
+        raise ValueError(f"Expected one explicit quality fact selection: {metric}, {year}, {report_type}, {period}")
+    return matches[0]
+
+
+def annual_fact(records, metric, year=2025):
+    return select_fact(records, metric, year, "year", 5)
+
+
+def calculation_period(formula, inputs):
+    records = [dict(record, field=field) for field, record in inputs.items() if record is not None]
+    warnings, period = EvidenceTools._financial_periods(formula, records)
+    flow_field = {"ebit_margin": "revenue", "incremental_ebit_margin": "revenue_current",
+                  "operating_roic": "ebit", "working_capital_to_sales": "revenue",
+                  "group_cash_conversion": "cfo", "pe": "diluted_eps", "ev_ebit": "ebit"}.get(formula)
+    selected = inputs.get(flow_field, {}) if flow_field else {}
+    if formula == "invested_capital":
+        selected = inputs.get("group_equity", {})
+    for key in ("report_type", "period_start", "period_end", "year", "period"):
+        if selected.get(key) is not None:
+            period[key] = selected[key]
+    return warnings, period
 
 
 def load_market_benchmark(context_path, analysis_date):
@@ -162,7 +214,7 @@ def normalized(record):
         return value * scale
 
 
-def build_review(packet, facts_path, run=None, operating_tax_rate=None, tax_reason=None, scenario_weights=None, market_benchmark_context=None):
+def build_review(packet, facts_path, run=None, operating_tax_rate=None, tax_reason=None, scenario_weights=None, market_benchmark_context=None, current_facts_path=None):
     packet, facts_path = Path(packet).resolve(), Path(facts_path).resolve()
     if operating_tax_rate is not None and not tax_reason:
         raise ValueError("An operating tax assumption requires a reason")
@@ -175,20 +227,38 @@ def build_review(packet, facts_path, run=None, operating_tax_rate=None, tax_reas
     if market_benchmark_context is not None and scenario_weights is None:
         raise ValueError("A candidate benchmark comparison requires explicit scenario weights")
     manifest, catalogue, texts = verify_packet(packet)
-    extra, notes = load_quality_facts(facts_path, catalogue, texts)
+    analysis_date = read_json(packet / "packet.json")["analysis_date"]
+    extra, notes = load_quality_facts(facts_path, catalogue, texts, analysis_date)
+    current = None
+    if current_facts_path is not None:
+        current_facts_path = Path(current_facts_path).resolve()
+        current, current_notes = load_quality_facts(current_facts_path, catalogue, texts, analysis_date)
+        if extra.keys() & current.keys():
+            raise ValueError("Duplicate quality fact selection across annual and current facts")
+        notes = notes + current_notes
     calculations = []
 
-    def calculate(label, formula, inputs, options=None):
+    def calculate(label, formula, inputs, options=None, display_role=None):
         values = {name: normalized(record) for name, record in inputs.items() if record is not None}
+        period_warnings, period = calculation_period(formula, inputs)
         result = evaluate(formula, values, options)
-        result.update(label=label, inputs=inputs, options=options or {})
+        result.update(label=label, inputs=inputs, options=options or {}, **period)
+        result["warnings"].extend(period_warnings)
+        if display_role:
+            result["display_role"] = display_role
+            if formula in {"pe", "ev_ebit"}:
+                result["current_period_reason"] = ("Frozen dated closing price paired with the latest selected R12 diluted EPS; economic period follows the earnings denominator."
+                    if formula == "pe" else "Latest selected R12 earnings denominator; the provider EV numerator remains a saved unit interpretation with no independently verified valuation date.")
+                if formula == "pe":
+                    result["price_date"] = inputs["price"].get("period_end")
         result["id"] = "quality-calc:" + hashlib.sha256(json.dumps(result, sort_keys=True).encode()).hexdigest()[:24]
         calculations.append(result)
         return result
 
     def derived(result, output):
         return dict(id=result["id"] + "#" + output, value=result["outputs"][output]["value"],
-                    unit=result["outputs"][output]["unit"], scale="1", kind="calculation", currency="SEK")
+                    unit=result["outputs"][output]["unit"], scale="1", kind="calculation", currency="SEK",
+                    **{key: result[key] for key in ("report_type", "period_start", "period_end", "year", "period") if key in result})
 
     def assumption(value, unit, reason):
         return dict(id="assumption:" + hashlib.sha256(json.dumps([str(value), unit, reason]).encode()).hexdigest()[:16], value=str(value),
@@ -206,7 +276,7 @@ def build_review(packet, facts_path, run=None, operating_tax_rate=None, tax_reas
             return matches[0]
 
         def fact(metric, year=2025):
-            return extra[(metric, year)]
+            return annual_fact(extra, metric, year)
 
         annual = {year: {"ebit": fact("reported_operating_profit", year), "revenue": fact("net_sales", year)}
                   for year in range(2021, 2026)}
@@ -250,11 +320,50 @@ def build_review(packet, facts_path, run=None, operating_tax_rate=None, tax_reas
                        cash_capex=store.get_observation("obs_b38bf3ea2cef4ff1f3ba1411"),
                        net_interest_cash_outside_cfo=store.get_observation("obs_22463bf6a71536ee6f27964d"),
                        group_net_income=store.get_observation("obs_ff0d44f1b6c2ca94bcb09d34")))
+        if current is not None:
+            def current_fact(metric, year=2026, report_type="r12"):
+                return select_fact(current, metric, year, report_type, 3)
+
+            for report_type, label in (("quarter", "Q3 2026"), ("r12", "R12 September 2026")):
+                periods = {year: dict(ebit=current_fact("reported_operating_profit", year, report_type),
+                                      revenue=current_fact("net_sales", year, report_type))
+                           for year in (2025, 2026)}
+                calculate(label + " reported EBIT margin", "ebit_margin", periods[2026], display_role="current")
+                calculate(label + " reported group incremental margin; qualified", "incremental_ebit_margin",
+                          dict(ebit_current=periods[2026]["ebit"], ebit_previous=periods[2025]["ebit"],
+                               revenue_current=periods[2026]["revenue"], revenue_previous=periods[2025]["revenue"]),
+                          dict(comparable_periods=True, revenue_passthrough=True), display_role="current")
+            current_capitals = {}
+            for year in (2025, 2026):
+                current_capitals[year] = calculate(f"September {year} operating invested capital proxy", "invested_capital",
+                    {name: current_fact(metric, year, "quarter") for name, metric in {
+                        "group_equity": "group_equity", "gross_debt_including_leases": "gross_debt_including_leases",
+                        "net_pension_liability": "net_pension_liability", "cash": "cash_and_equivalents",
+                        "non_operating_assets": "associates_joint_ventures_book_value"}.items()}, display_role="current")
+            calculate("R12 September 2026 operating ROIC; explicit analyst operating-tax proxy", "operating_roic",
+                      dict(ebit=current_fact("reported_operating_profit"),
+                           invested_capital_start=derived(current_capitals[2025], "invested_capital"),
+                           invested_capital_end=derived(current_capitals[2026], "invested_capital"),
+                           operating_tax_rate=roic_inputs["operating_tax_rate"]), display_role="current")
+            calculate("R12 September 2026 average inventories / sales", "working_capital_to_sales",
+                      dict(balance_start=current_fact("inventories", 2025, "quarter"),
+                           balance_end=current_fact("inventories", 2026, "quarter"), revenue=current_fact("net_sales")),
+                      dict(balance_basis="average"), display_role="current")
+            cfo_key = ("statutory_cash_flow_operations", "r12", 2026, 3, "2026-09-30")
+            cash_inputs = dict(cfo=current.get(cfo_key) or store.get_observation("obs_07f62b452118f0692883a22c"),
+                               cash_capex=store.get_observation("obs_9bf16f556aa471d059ac602a"),
+                               group_net_income=current_fact("group_net_income"))
+            net_interest_key = ("net_interest_cash_outside_cfo", "r12", 2026, 3, "2026-09-30")
+            if net_interest_key in current:
+                cash_inputs["net_interest_cash_outside_cfo"] = current[net_interest_key]
+            calculate("R12 September 2026 group cash conversion before dividends", "group_cash_conversion",
+                      cash_inputs, display_role="current")
         calculate("Parent-common FCF yield; ownership-matched cash flow not established", "fcf_yield", {},
                   dict(cash_flow_scope="parent_common", denominator_scope="market_cap"))
         price = store.get_observation("obs_5f3162480174db7f08137b5b")
         calculate("Dated price / R12 reported diluted EPS", "pe",
-                  dict(price=price, diluted_eps=saved("reported_eps_diluted", 2026, "r12", "issuer_report")))
+                  dict(price=price, diluted_eps=saved("reported_eps_diluted", 2026, "r12", "issuer_report")),
+                  display_role="current" if current is not None else None)
         provider_roic = store.get_observation("obs_16fda6d7672e1f3c38c3ae4b")
 
         parity, probability_proposal, benchmark_comparison = None, None, None
@@ -329,10 +438,11 @@ def build_review(packet, facts_path, run=None, operating_tax_rate=None, tax_reas
                                 "The index reinvests dividends. Candidate IRR accounts for the timing of interim cash distributions; it does not model their reinvested terminal wealth.",
                                 "The annual-rate difference is an indicative opportunity-cost comparison, not an identical holding-period or reinvestment experiment, and does not change the original 10% valuation discount rate."])
             calculate("Provider-convention EV / R12 reported EBIT; separate from full claim bridge", "ev_ebit",
-                      dict(enterprise_value=prior("input:9f1230aebe6a5a6a045e"), ebit=saved("operating_Income", 2026, "r12", period=3)))
+                      dict(enterprise_value=prior("input:9f1230aebe6a5a6a045e"), ebit=saved("operating_Income", 2026, "r12", period=3)),
+                      display_role="current" if current is not None else None)
 
-    return dict(schema_version=1, formula_version=VERSION, instrument_id=426,
-                frozen_analysis_date="2026-11-01", reviewed_at=datetime.now(timezone.utc).isoformat(),
+    review = dict(schema_version=1, formula_version=VERSION, instrument_id=426,
+                frozen_analysis_date=analysis_date, reviewed_at=datetime.now(timezone.utc).isoformat(),
                 packet=str(packet), database_sha256=manifest["database_sha256"],
                 quality_facts=str(facts_path), quality_facts_sha256=digest(facts_path),
                 calculations=calculations, preserved_valuation=parity, probability_proposal=probability_proposal,
@@ -346,12 +456,26 @@ def build_review(packet, facts_path, run=None, operating_tax_rate=None, tax_reas
                     "Supplier-finance components remain identified inside their reported liabilities. Reclassifying them as valuation debt requires a separate, consistent convention.",
                     "The approved post-lease group cash conversion is unavailable without verified cash lease principal. FY2025 gross cash interest and Q3 net cash interest are kept distinct. No parent-owner FCF yield is inferred.",
                     "The base valuation is an unchanged EV/EBIT scenario with explicit debt, leases, pensions, NCI and dividends. It keeps the old assumptions of NCI at book value, unchanged lease/pension claims and unchanged issued-share count as a dilution proxy. It is not a full DCF or a new investment recommendation."])
+    if current is not None:
+        review.update(current_facts=str(current_facts_path), current_facts_sha256=digest(current_facts_path),
+                      diagnostic_cutoff=dict(analysis_date=analysis_date, quarter_end="2026-09-30",
+                                             r12_start="2025-10-01", r12_end="2026-09-30"),
+                      current_data_limits=[
+                          "Latest profitability uses reported consolidated Q3 and R12 figures with matched prior-year periods. Aluminium pass-through, acquisitions, FX and one-offs qualify incremental margins.",
+                          "Latest inventory/sales and operating ROIC use September 2025/2026 closing balances and the matching R12 flow. Two-point averages do not measure intrayear capital peaks; the annual operating-tax proxy remains an assumption.",
+                          "Trade receivables and trade payables / sales retain FY2025 annual balances: interim receivable/payable aggregates do not establish actual trade components.",
+                          "R12 statutory CFO uses the saved provider quarter-sum convention unless an explicit report fact is supplied. Rounded issuer annual/YTD roll-forward totals can differ; the selected records remain visible.",
+                          "Gross outside-CFO cash interest and lease principal remain missing. Known cash after capex and any verified signed net-interest subtotal are shown; neither establishes final group conversion or parent-common FCF."])
+    return review
 
 
 def render_markdown(review):
     lines = ["# Gränges financial quality review", "", "Deterministic review of the frozen 1 November 2026 evidence. New quality facts are separate from the original valuation.", ""]
     for statement in review["interpretation"]:
         lines += ["- " + statement]
+    if review.get("current_data_limits"):
+        lines += ["", "## Latest diagnostic limits", ""]
+        lines += ["- " + limit for limit in review["current_data_limits"]]
     lines += ["", "| Calculation | Primary output | Missing input or qualification |", "|---|---|---|"]
     for calc in review["calculations"]:
         output = calc["outputs"][calc["primary_output"]]
@@ -386,6 +510,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--packet", type=Path, default=ROOT / "data/granges-codex/packet-20261101")
     parser.add_argument("--facts", type=Path, default=CASE_DATA / "quality-facts-20261103.json")
+    parser.add_argument("--current-facts", type=Path, help="Verified latest-quarter/R12 facts; annual-only behavior when omitted")
     parser.add_argument("--original-run", type=Path, default=ROOT / "data/granges-codex/runs/20261101-full")
     parser.add_argument("--output", required=True, help="New directory; existing outputs are never overwritten")
     parser.add_argument("--operating-tax-rate", type=Decimal)
@@ -398,7 +523,7 @@ def main(argv=None):
         parser.error("Output directory already exists")
     if any(output.is_relative_to(Path(source).resolve()) for source in (args.packet, args.original_run)):
         parser.error("Output must be outside frozen evidence and the original model run")
-    review = build_review(args.packet, args.facts, args.original_run, args.operating_tax_rate, args.tax_reason, args.scenario_weights, args.market_benchmark_context)
+    review = build_review(args.packet, args.facts, args.original_run, args.operating_tax_rate, args.tax_reason, args.scenario_weights, args.market_benchmark_context, args.current_facts)
     output.mkdir(parents=True)
     (output / "review.json").write_text(json.dumps(review, indent=2, ensure_ascii=False) + "\n")
     (output / "review.md").write_text(render_markdown(review))
