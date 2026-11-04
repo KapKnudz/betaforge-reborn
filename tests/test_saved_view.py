@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from betaforge.saved_view import MAX_BYTES, build_saved_view, load_saved_view, validate_saved_view
+from betaforge.saved_view import MAX_BYTES, attach_reader_memo, build_saved_view, load_saved_view, validate_saved_view
 
 
 def minimal_view():
@@ -494,6 +494,113 @@ class StructuredSavedViewTests(unittest.TestCase):
 
     def build(self):
         return build_saved_view(None, self.run, self.root, "Sample", "SAMP", "sample-20261104", "Saved structured analysis")
+
+    @staticmethod
+    def reader_memo(view):
+        return {
+            "schema_version": 1, "analysis_sha256": view["provenance"]["analysis_sha256"],
+            "edited_at": "2026-11-04T16:00:00+00:00", "summary": "A shorter investment case.",
+            "sections": [{"id": section["id"], "title": section["title"], "paragraphs": [
+                {"kind": "interpretation", "text": "Read the saved evidence before deciding.", "references": ["example:p1"]}]
+                } for section in view["analysis"]["sections"]],
+            "scenarios": [{"id": scenario["id"], "rationale": "A conditional outcome.",
+                           "assumption_rationale": "The saved inputs explain the operating assumptions.",
+                           "probability_rationale": "The weights remain conditional judgments.",
+                           "references": scenario["references"]}
+                          for scenario in view["analysis"]["scenarios"]],
+        }
+
+    def test_reader_memo_preserves_every_original_field_and_does_not_alias_inputs(self):
+        original = self.build()
+        memo = self.reader_memo(original)
+        original_bytes = json.dumps(original, ensure_ascii=False).encode()
+        memo_before = copy.deepcopy(memo)
+        attached = attach_reader_memo(original, memo)
+        attached_memo = attached.pop("reader_memo")
+        self.assertEqual(attached_memo, memo_before)
+        self.assertEqual(attached, original)
+        self.assertEqual(json.dumps(original, ensure_ascii=False).encode(), original_bytes)
+        attached["analysis"]["summary"] = "Local copy changed"
+        memo["sections"][0]["paragraphs"][0]["text"] = "Caller changed"
+        self.assertEqual(json.dumps(original, ensure_ascii=False).encode(), original_bytes)
+        self.assertEqual(attached_memo, memo_before)
+
+    def test_reader_memo_rejects_stale_invalid_or_unavailable_content(self):
+        original = self.build()
+        mutations = [
+            lambda m: m.update(analysis_sha256="f" * 64),
+            lambda m: m.update(schema_version=True),
+            lambda m: m.update(edited_at="2026-11-04T16:00:00"),
+            lambda m: m.update(summary="x" * 1001),
+            lambda m: m.update(sources=[]),
+            lambda m: m.update(sections=m["sections"][:-1]),
+            lambda m: m["sections"][0].update(id=m["sections"][1]["id"]),
+            lambda m: m["sections"][0].update(title=1),
+            lambda m: m["sections"][0].update(paragraphs=[]),
+            lambda m: m["sections"][0].update(paragraphs=m["sections"][0]["paragraphs"] * 7),
+            lambda m: m["sections"][0]["paragraphs"][0].update(kind=[]),
+            lambda m: m["sections"][0]["paragraphs"][0].update(text="x" * 1501),
+            lambda m: m["sections"][0]["paragraphs"][0].update(value="5"),
+            lambda m: m["sections"][0]["paragraphs"][0].update(references=[]),
+            lambda m: m["sections"][0]["paragraphs"][0].update(references=["missing:p1"]),
+            lambda m: m["sections"][0]["paragraphs"][0].update(references=["example:p0"]),
+            lambda m: m["sections"][0]["paragraphs"][0].update(references=["example:p3"]),
+            lambda m: m["scenarios"][0].update(references=["input:missing"]),
+            lambda m: m["scenarios"][0].update(references=["example:p1"] * 101),
+            lambda m: m["scenarios"][0].update(probability_rationale="x" * 1201),
+            lambda m: m["scenarios"][0].update(weight="0.5"),
+            lambda m: m["scenarios"][0].update(id=m["scenarios"][1]["id"]),
+            lambda m: m.update(scenarios=m["scenarios"][:-1]),
+        ]
+        for index, mutate in enumerate(mutations):
+            memo = self.reader_memo(original)
+            mutate(memo)
+            with self.subTest(mutation=index), self.assertRaises(ValueError):
+                attach_reader_memo(original, memo)
+        oversized = self.reader_memo(original)
+        for section in oversized["sections"]:
+            section["paragraphs"] *= 6
+            for paragraph in section["paragraphs"]:
+                paragraph["text"] = "å" * 1500
+        with self.assertRaisesRegex(ValueError, "64 KiB"):
+            attach_reader_memo(original, oversized)
+        with self.assertRaisesRegex(ValueError, "canonical analysis"):
+            attach_reader_memo(minimal_view(), self.reader_memo(original))
+
+    def test_reader_memo_cli_preserves_original_and_restricts_new_output(self):
+        from scripts.attach_reader_memo import main
+        original = self.build()
+        original_path, memo_path = self.root / "view.json", self.root / "memo.json"
+        SavedViewTests.write(original_path, original)
+        SavedViewTests.write(memo_path, self.reader_memo(original))
+        original_bytes = original_path.read_bytes()
+        args = ["--view", str(original_path), "--memo", str(memo_path)]
+        output = self.root / "data/reader-view.json"
+        with patch("scripts.attach_reader_memo.__file__", str(self.root / "scripts/attach_reader_memo.py")):
+            for invalid in (self.root / "public.json", self.root / "data/bf-borsdata-research/view.json",
+                            self.root / "data/../view.json"):
+                with self.subTest(output=invalid), self.assertRaises(SystemExit):
+                    main(args + ["--output", str(invalid)])
+            self.assertEqual(main(args + ["--output", str(output)]), 0)
+            attached = load_saved_view(output)
+            self.assertEqual(attached.pop("reader_memo"), self.reader_memo(original))
+            self.assertEqual(attached, original)
+            output_bytes = output.read_bytes()
+            with self.assertRaises(SystemExit):
+                main(args + ["--output", str(output)])
+            self.assertEqual(output.read_bytes(), output_bytes)
+            link = self.root / "data/link"
+            link.symlink_to(self.root, target_is_directory=True)
+            with self.assertRaises(SystemExit):
+                main(args + ["--output", str(link / "unsafe.json")])
+            memo_link = self.root / "memo-link.json"
+            memo_link.symlink_to(memo_path)
+            with self.assertRaises(SystemExit):
+                main(["--view", str(original_path), "--memo", str(memo_link), "--output", str(self.root / "data/new.json")])
+            memo_path.write_text('{"schema_version": 1, "schema_version": 1}')
+            with self.assertRaises(SystemExit):
+                main(args + ["--output", str(self.root / "data/new.json")])
+        self.assertEqual(original_path.read_bytes(), original_bytes)
 
     def test_exports_actual_completed_run_without_legacy_review_or_summary(self):
         view = self.build()

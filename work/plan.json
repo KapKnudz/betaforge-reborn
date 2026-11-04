@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T15:50:10.308823+00:00",
+  "updated_at": "2026-11-04T16:33:45.115581+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "return-and-reader-review",
@@ -434,10 +434,11 @@
         "docs/planning/return-and-reader-proposal.md",
         "docs/calculations.md",
         "AGENTS.md",
-        "docs/planning/decisions.md"
+        "docs/planning/decisions.md",
+        "docs/research/investment-memo-gap-review.md"
       ],
       "blocker": null,
-      "note": "The main operating assumptions now take priority over payment-timing refinements. Independent read-only evidence review found that the central case needs stronger joint driver and cash support; no replacement company assumptions are adopted. The standing generic-analysis boundary is recorded in AGENTS.md and adopted decisions: shared financial changes need a reusable analytical benefit, while issuer-specific forecast corrections stay in the company analysis. Policy/proposal updates require compatible history, an evidence bridge for material departures and a sensitivity addressing the main dependency, without a historical-peak ceiling. Independent documentation review passed. The 10% starting hurdle, 9% sensitivity and historical SIXRX distinction remain adopted. Existing formulas and saved analyses are unchanged; the remaining implementation is still proposed. User clarified that supported financial assumptions may be defended: a challenge triggers reassessment, while the report explains the evidence, business mechanism and selected magnitude beside each material forecast."
+      "note": "The main operating assumptions now take priority over payment-timing refinements. Independent read-only evidence review found that the central case needs stronger joint driver and cash support; no replacement company assumptions are adopted. The standing generic-analysis boundary is recorded in AGENTS.md and adopted decisions: shared financial changes need a reusable analytical benefit, while issuer-specific forecast corrections stay in the company analysis. Policy/proposal updates require compatible history, an evidence bridge for material departures and a sensitivity addressing the main dependency, without a historical-peak ceiling. Independent documentation review passed. The 10% starting hurdle, 9% sensitivity and historical SIXRX distinction remain adopted. Existing formulas and saved analyses are unchanged; the remaining implementation is still proposed. User clarified that supported financial assumptions may be defended: a challenge triggers reassessment, while the report explains the evidence, business mechanism and selected magnitude beside each material forecast. The compact reader edition is implemented separately. The next evidence priority is a supportable operating-to-capital-and-cash bridge: joint forecast drivers, incremental capital needs and cash retained after all distributions. Matched peers and ownership/claim evidence remain explicit limits. Reuse the simple existing formulas; do not tune shared logic to the worked example."
     },
     {
       "id": "company-reader-language",
@@ -464,12 +465,39 @@
       ],
       "blocker": null,
       "note": "Implemented the compact report-version selector, removed decorative/read-only branding and replaced the opaque lead with the existing estimated return plus expandable original conclusion. Latest daily market quotes are read separately from the configured evidence store; report price, return and valuation remain bound to their historical records. Price-only acquisition reuses the existing safe client and ingestion. Six primary investor-writing examples informed concise instructions in the frozen policy and structured report contract; no investor strategy or new valuation formula is imported. Independent code/editorial reviews passed after fixes to return-price binding, missing report-price handling and legacy date labels. Clean proposed checkout: 178 offline tests, OK with one private-evidence class skipped; eleven installed-evidence tests pass. Desktop/narrow browser checks cover quote/report dates, source details, legacy selection and reference targets, with no console errors or overflow. Original financial and review artifacts remain byte-identical to the existing private archive. Exact new quote evidence stays private. The current-head Greptile receipt belongs in the PR conversation; user reviews and merges. No fresh valuation run or dividend-schedule change is claimed. PR #12 is open. Greptile identified identical visible report labels when completion dates match; the fix adds an as-of date or version ID only for collisions, with regression checks. Regression checks, the repeated 178-test offline suite (one private-evidence class skipped), and a focused independent read-only recheck pass. Primary-source originals and the saved-view/quote supplement passed a clean private restore check. Final current-head review remains pending."
+    },
+    {
+      "id": "company-investment-memo",
+      "milestone": "saved-review",
+      "title": "Make company research a compact investment memo",
+      "status": "done",
+      "summary": "A calm memo layout, distinct valuation views and concise business explanations.",
+      "purpose": "Understand the case, assumptions and missing evidence without a long scroll.",
+      "acceptance": [
+        "A compact old-school Company view with clear local navigation and expandable evidence.",
+        "Present-value and future-target charts are visibly distinct, dated and linked to scenario reasoning.",
+        "Reader prose follows the existing investment philosophy and primary investor examples without changing saved financial assumptions.",
+        "Compare the current analysis with the primary examples and record material missing fundamentals separately from presentation gaps.",
+        "Focused behavior checks, desktop/narrow browser verification and independent read-only review pass."
+      ],
+      "evidence": [
+        "web/progress/app.js",
+        "web/progress/style.css",
+        "docs/research/investment-memo-gap-review.md",
+        "betaforge/saved_view.py",
+        "scripts/attach_reader_memo.py",
+        "tests/test_saved_view.py",
+        "tests/test_progress_ui.py",
+        "docs/saved-analysis-view.md"
+      ],
+      "blocker": null,
+      "note": "Implemented five compact Company panels, a separate source-linked reader edition, clickable present-value dots and future-target columns, and expandable business, scenario, financial and audit details. The canonical report, calculations, prices and probabilities remain unchanged. Primary-source comparison found existing topic coverage but unresolved operating, reinvestment and cash support; future analyst guidance now favors a short owner memo. Independent editorial and technical reviews passed after corrections to financial display scale, source references, guidance wording and navigation. Clean proposed checkout: 181 offline tests, OK with one private-evidence class skipped; the final wording-only correction also passed the focused UI check. Desktop and 390 px browser checks passed for chart clicks, keyboard tabs, sources, legacy fallback, report switching and overflow. Exact reader content and receipts stay private. Publication/current-head Greptile receipt remains in the PR conversation; user reviews and merges. No new valuation run or changed financial assumptions."
     }
   ],
   "session": {
-    "task": "company-reader-language",
-    "summary": "PR #12 implements the Company-page cleanup, separate quote context and researched analyst writing guidance. The Greptile report-label issue is fixed and independently rechecked; all 178 offline tests pass with one private-evidence class skipped.",
-    "next_step": "Complete the fresh current-head Greptile review on PR #12 and retain its receipt in the conversation and local handoff. The primary-source library is preserved in private storage with a clean restore check. User reviews and merges, then resume the remaining generic operating/cash-schedule scope."
+    "task": "company-investment-memo",
+    "summary": "The compact Company memo is implemented, independently reviewed and browser-verified. The original valuation is preserved; missing fundamental support is visible and recorded.",
+    "next_step": "Publish the focused PR and complete its bounded current-head Greptile cycle; user reviews and merges. Then resolve the main operating, reinvestment and cash-evidence gaps before a revised valuation."
   },
   "references": [
     {
