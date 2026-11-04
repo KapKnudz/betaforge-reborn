@@ -31,6 +31,10 @@ Use one overview and expandable sections rather than the current five Company su
 - Show units and periods with figures. Display monetary totals in clearly labelled millions where helpful. Preserve exact saved values in supporting details.
 - Charts have clear dates, minimal gridlines and short legends. Explain dividend treatment beside valuation charts. Historical performance comparisons require compatible return series; forecast paths require actual saved forecasts.
 - Controls look actionable, have visible keyboard focus and work without hover. Use native disclosures where possible. Keep source and calculation links available through the detail layers.
+- Use descriptive subheadings within business and valuation sections. Keep long qualifications folded; show the business model, operating record and material assumptions first.
+- Put dated actuals beside scenario assumptions. State differences in accounting basis and leave unavailable comparisons explicit. Explain briefly why the main drivers affect value.
+- Add the latest stored market price as a dated reference in both valuation charts when currency and per-share units match. The line on a future-target chart is today's comparison price, not a forecast.
+- Make the saved annual-return calculation inspectable beside the headline figure. Keep its purchase-price date distinct from the latest quote. Use compatible saved tables for trend charts, with their units, periods, qualifications and source links.
 
 ## Prototype and review
 

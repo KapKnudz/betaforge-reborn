@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T18:01:39.011797+00:00",
+  "updated_at": "2026-11-04T19:24:16.884202+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "company-design-adoption",
+  "next_task": "company-design-integration",
   "milestones": [
     {
       "id": "foundation",
@@ -521,26 +521,52 @@
     {
       "id": "company-design-adoption",
       "milestone": "saved-review",
-      "title": "Review the Company prototype before adoption",
-      "status": "pending",
-      "summary": "Review the separate prototype and choose the visual patterns to adopt.",
+      "title": "Refine the approved Company structure and comparisons",
+      "status": "done",
+      "summary": "Retain the approved direction and refine business structure, charts and current comparisons.",
       "purpose": "Agree the interface before changing the working Company page.",
       "acceptance": [
-        "The user reviews the prototype against the current Company page and selected references.",
-        "Record concrete feedback in DESIGN.md and agree any production implementation scope."
+        "Record the approved visual direction and reader feedback in DESIGN.md.",
+        "Display descriptive business and valuation headings, source-bound historical charts and dated actuals beside scenario assumptions.",
+        "Explain the saved annual return and show the latest compatible quote as a dated reference on both valuation charts.",
+        "Preserve canonical financial records and complete desktop/mobile, relevant tests and independent read-only review.",
+        "Keep the refined prototype separate; production integration remains a subsequent task."
       ],
       "evidence": [
         "DESIGN.md",
-        "web/prototypes/company/README.md"
+        "web/prototypes/company/app.js",
+        "web/prototypes/company/style.css",
+        "tests/test_design_prototype_ui.py",
+        "scripts/preview_company_design.py"
       ],
       "blocker": null,
-      "note": "Local prototype on port 8766; current workbench on port 8765. No production adoption is authorized by completion of the prototype. The existing operating-to-capital-and-cash review remains a separate analytical priority."
+      "note": "User approved the direction and requested focused refinements. Implemented display-only name cleanup, saved-return provenance, matching-currency market-price lines, selectable saved history, descriptive sections and current-versus-scenario comparisons. The separate reader edition reuses preserved evidence; canonical analysis, assumptions and arithmetic are unchanged. Independent technical, editorial and visual checks passed. Desktop and 390 px browser checks verified price-line alignment, history selection, keyboard/scenario/source navigation, readable dates and table containment. Final offline-suite and current-head Greptile receipts are recorded in PR #14 and the private handoff. The working Company page remains separate; user review and merge are pending."
+    },
+    {
+      "id": "company-design-integration",
+      "milestone": "saved-review",
+      "title": "Apply the reviewed Company design to the working viewer",
+      "status": "pending",
+      "summary": "Review the refined prototype, then port the accepted presentation to the Company page.",
+      "purpose": "Make the accepted interface part of the regular research workflow.",
+      "acceptance": [
+        "Confirm the refined prototype and production integration scope with the user.",
+        "Reuse existing saved-run and quote APIs, preserving report switching, source access and legacy results.",
+        "Verify desktop/mobile behavior, financial display and independent review before a focused main-targeted PR."
+      ],
+      "evidence": [
+        "DESIGN.md",
+        "web/prototypes/company/README.md",
+        "web/progress/"
+      ],
+      "blocker": null,
+      "note": "The approved direction is implemented as a refined local prototype on port 8766. Production integration into the workbench on port 8765 is not part of PR #14. Keep the separate operating-to-capital-and-cash evidence review on the roadmap."
     }
   ],
   "session": {
-    "task": "company-design-prototype",
-    "summary": "Design brief and isolated Company prototype implemented and checked; user visual review is next.",
-    "next_step": "Compare the prototype on port 8766 with the working Company page on port 8765. Record visual feedback before production adoption; retain the separate operating-and-cash analysis priority."
+    "task": "company-design-adoption",
+    "summary": "Approved direction refined with saved history, current comparisons and traceable return and price references.",
+    "next_step": "User reviews the refined prototype on port 8766; agree adoption into the working Company viewer. PR #14 is the isolated prototype, with final review receipts in its conversation."
   },
   "references": [
     {
