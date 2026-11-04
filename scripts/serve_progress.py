@@ -1,15 +1,20 @@
 """Serve the local, read-only research workbench at http://127.0.0.1:8765."""
 import argparse
+from datetime import date, datetime
+from decimal import Decimal, DecimalException
 from functools import partial
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
+import re
+import sqlite3
 import sys
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from betaforge.saved_view import load_saved_view
+from betaforge.storage import EvidenceStore
 STATUSES = {"pending", "in_progress", "blocked", "done"}
 DOCUMENTS = (
     "AGENTS.md", "CONTRIBUTING.md", "README.md", "docs/architecture.md",
@@ -88,10 +93,49 @@ def validate_plan(plan):
     return plan
 
 
+def read_market_price(database, instrument_id):
+    """Expose only a valid stored daily close, preserving its source units."""
+    if database is None:
+        return None
+    with EvidenceStore(database, readonly=True) as store:
+        records = store.query_financials(instrument_id, report_type="price", fields=["price_close"], limit=1)
+    if not records:
+        return None
+    row = records[0]
+    try:
+        if (row.get("provider") != "borsdata" or row.get("instrument_id") != instrument_id or
+                row.get("report_type") != "price" or row.get("metric") != "price_close" or
+                row.get("unit") != "currency/share" or row.get("currency_mode") != "quote" or
+                not isinstance(row.get("value"), str) or not isinstance(row.get("scale"), str) or
+                not re.fullmatch(r"[A-Z]{3}", row.get("currency") or "") or
+                not re.fullmatch(r"src_[0-9a-f]{24}", row.get("source_id") or "")):
+            return None
+        value, scale = Decimal(row["value"]), Decimal(row["scale"])
+        amount = value * scale
+        if any(not number.is_finite() or number <= 0 for number in (value, scale, amount)):
+            return None
+        day = row["period_end"]
+        if date.fromisoformat(day).isoformat() != day:
+            return None
+        retrieved = row.get("source_first_captured_at") or row["observed_at"]
+        checked = row.get("source_last_successful_check_at") or row["observed_at"]
+        for stamp in (retrieved, checked):
+            if not isinstance(stamp, str) or datetime.fromisoformat(stamp.replace("Z", "+00:00")).tzinfo is None:
+                return None
+        return {"instrument_id": instrument_id, "value": row["value"], "scale": row["scale"],
+                "unit": row["unit"], "currency": row["currency"], "date": day,
+                "source_id": row["source_id"], "provider": "Börsdata", "kind": "daily_close",
+                "retrieved_at": retrieved, "checked_at": checked}
+    except (ValueError, TypeError, KeyError, DecimalException):
+        return None
+
+
 class ProgressHandler(BaseHTTPRequestHandler):
-    def __init__(self, *args, root=ROOT, analyses=None, **kwargs):
+    def __init__(self, *args, root=ROOT, analyses=None, market_db=None, instruments=(), **kwargs):
         self.root = Path(root)
         self.analyses = analyses or {}
+        self.market_db = market_db
+        self.instruments = instruments
         super().__init__(*args, **kwargs)
 
     def respond(self, status, body, content_type="text/plain; charset=utf-8", head=False):
@@ -112,6 +156,18 @@ class ProgressHandler(BaseHTTPRequestHandler):
             self.respond(403, b"Loopback access only.\n", head=head)
             return
         path = urlsplit(self.path).path
+        if path.startswith("/api/market-price/"):
+            selected = path[len("/api/market-price/"):]
+            if selected not in self.instruments:
+                self.respond(404, b'{"error":"Unknown saved company."}', "application/json; charset=utf-8", head=head)
+                return
+            try:
+                payload = {"quote": read_market_price(self.market_db, int(selected))}
+            except (OSError, sqlite3.Error, ValueError, TypeError, KeyError):
+                self.respond(503, b'{"error":"Market price unavailable. Check the configured evidence store."}', "application/json; charset=utf-8", head=head)
+                return
+            self.respond(200, json.dumps(payload, ensure_ascii=False).encode(), "application/json; charset=utf-8", head=head)
+            return
         if path == "/api/runs" or path.startswith("/api/runs/"):
             selected_id = None if path == "/api/runs" else path[len("/api/runs/"):]
             if selected_id is not None and selected_id not in self.analyses:
@@ -170,14 +226,24 @@ class ProgressHandler(BaseHTTPRequestHandler):
         return
 
 
-def make_server(port=8765, root=ROOT, analyses=()):
+def make_server(port=8765, root=ROOT, analyses=(), market_db=None):
     configured = {}
+    instruments = set()
     for file in analyses:
         view = load_saved_view(file)
         if view["id"] in configured:
             raise ValueError("Duplicate saved analysis ID")
         configured[view["id"]] = Path(file).absolute()
-    return ThreadingHTTPServer(("127.0.0.1", port), partial(ProgressHandler, root=root, analyses=configured))
+        instruments.add(str(view["company"]["instrument_id"]))
+    if market_db is not None:
+        market_db = Path(market_db).absolute()
+        try:
+            # Opening through EvidenceStore checks its version without creating or migrating it.
+            read_market_price(market_db, 0)
+        except (OSError, sqlite3.Error, ValueError, TypeError, KeyError):
+            raise ValueError("Market evidence store unavailable or unsupported") from None
+    return ThreadingHTTPServer(("127.0.0.1", port), partial(
+        ProgressHandler, root=root, analyses=configured, market_db=market_db, instruments=instruments))
 
 
 def main():
@@ -185,8 +251,10 @@ def main():
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--analysis", action="append", default=[], type=Path,
                         help="Explicit saved-view JSON export; repeat to show multiple runs")
+    parser.add_argument("--market-db", type=Path,
+                        help="Existing evidence SQLite store for latest stored daily closes")
     args = parser.parse_args()
-    with make_server(args.port, analyses=args.analysis) as server:
+    with make_server(args.port, analyses=args.analysis, market_db=args.market_db) as server:
         print(f"Research workbench: http://127.0.0.1:{server.server_port}", flush=True)
         print("Read-only. Press Ctrl-C to stop.", flush=True)
         try:

@@ -33,6 +33,8 @@ The analyst reads the required reports, investigates material questions and subm
 
 The report explains three to five drivers, useful quality diagnostics, one operating equation, the equity bridge, company-specific probabilities, modest disappointments and evidence that would break the thesis. It uses the policy rather than inventing a scorecard. A management ROCE target is compared with issuer ROCE; related utilization or pricing guidance is labelled as a driver when shown beside EBIT margin.
 
+Apply the policy's [writing rules](analysis-policy.md#output-and-calculation-discipline). The opening explains the investment case and its main uncertainty in plain financial language; each important forecast connects evidence, business mechanism and magnitude. The [investor examples](research/investor-writing-examples.md) are optional source reading for the coordinator, not additional issuer evidence or a replacement investment strategy. Review the forecast rationale, cash explanation and conclusion for clarity as part of the existing challenge.
+
 Completion: required pages are delivered and `submit_analysis` accepts the report. This checks structure, source identity and saved calculation references. It does not certify economic judgment.
 
 ## 3. Challenge the draft independently

@@ -1,6 +1,6 @@
 # Betaforge: adopted planning decisions
 
-Updated 3 November 2026. This records current decisions. The [analysis policy](../analysis-policy.md) and [calculation catalogue](../calculations.md) define the rules frozen into new analysis packets; dated research notes retain their evidence and proposal status.
+Updated 4 November 2026. This records current decisions. The [analysis policy](../analysis-policy.md) and [calculation catalogue](../calculations.md) define the rules frozen into new analysis packets; dated research notes retain their evidence and proposal status.
 
 ## Destination and scope
 
@@ -35,6 +35,16 @@ New packets freeze the policy and calculation catalogue with relative paths and 
 
 Business quality and investment attractiveness at today's price are separate judgments. An excellent business is not currently investable when its price demands performance the outlook does not support.
 
+## Generic analysis before company tuning
+
+Confirmed by the user on 4 November 2026: improve the shared framework only when the change has value for generic analysis. Gränges is a worked example that can reveal a reusable weakness; its desired valuation or individual forecast assumptions are not targets for tuning shared formulas, defaults or rules.
+
+Before proposing a shared financial change, identify the general failure mode, its economic materiality and why existing functionality does not handle it. Separate a reusable analysis requirement from a correction to one issuer's assumptions. Keep issuer-specific evidence and forecast revisions in the company analysis; preserve prior runs.
+
+Review the main operating assumptions before refining smaller valuation details. Assess volume and profitability together, with comparable annual/R12 history and evidence for structural changes. A historical peak is a reference, not an automatic ceiling; one strong quarter does not establish a sustainable annual run rate. The [analysis policy](../analysis-policy.md#valuation-methods) owns this review discipline.
+
+Use contrasting company conditions to challenge a proposed generic rule; record wider validation as pending until demonstrated. Matching a preferred company valuation is not an acceptance criterion. Reuse existing evidence and formulas before adding financial machinery.
+
 ## Valuation roles
 
 The primary model is a simple forward operating EV/EBIT scenario approach:
@@ -52,11 +62,11 @@ Market-implied EBIT is a complementary backward check under stated assumptions. 
 
 ## Return hurdle
 
-The candidate statistic is **IRR of probability-weighted cash flows**. Weight each modeled dividend/terminal payment at its date, then solve for the annual rate equating those cash flows with the starting share price. It must exceed the measured benchmark hurdle before a hurdle-pass claim. Do not average scenario IRRs or annualize only expected terminal wealth.
+On 4 November 2026, the user selected a **10% starting personal required annual equity return**, **9% sensitivity** and explained company-specific overrides. The selected personal rate is the investment threshold and starting discount rate for shareholder cash flows. The [analysis policy](../analysis-policy.md#probabilities-and-returns) owns the full rule.
 
-The user selected **SIX Return Index (SIXRX)** as the primary reference: trailing ten-year annualized total return with reinvested dividends, measured as of the analysis date. This broad-market opportunity-cost reference is not a forecast of the index's future return or automatically the company's discount rate. The earlier Investor AB B reference is superseded as a historical prior decision. Do not silently substitute another index if SIXRX data is unavailable. No fixed universal hurdle rate is adopted; measure the historical index return for the selected analysis date. The [dated example measurement](../../examples/granges/docs/research/sixrx-benchmark.md) does not set the rate for future analyses, and an example discount rate is not automatically the market hurdle.
+The candidate statistic remains **IRR of probability-weighted cash flows**. Weight each modeled dividend/terminal payment at its date, then solve for the annual rate equating those cash flows with the starting share price. Compare it with the selected personal hurdle. Do not average scenario IRRs or annualize only expected terminal wealth. A discount-rate change alone does not change those modeled returns.
 
-The exact data source and calculation conventions still need verification, including consistent currency, dates, and treatment of distributions and corporate actions.
+**SIX Return Index (SIXRX)** remains the historical comparison: trailing ten-year annualized total return with reinvested dividends, measured as of the analysis date. It no longer acts as the investment threshold. This supersedes the earlier benchmark-hurdle rule for new analyses; historical packets retain their original conventions. Do not silently substitute another index when SIXRX data is unavailable. Verify consistent currency, dates, distributions and corporate-action conventions. The [dated example measurement](../../examples/granges/docs/research/sixrx-benchmark.md) does not forecast future index returns or establish the company's cost of equity.
 
 ## Scenario probability ownership
 

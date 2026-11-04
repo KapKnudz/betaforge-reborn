@@ -11,10 +11,10 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/">BETAFORGE<span>A research journal</span></a>
-    <div class="toolbar"><span class="local-label">LOCAL · READ ONLY</span><button id="refresh" type="button">Refresh</button></div>
+    <div class="toolbar"><button id="refresh" type="button">Refresh</button></div>
   </header>
   <main>
-    <div class="page-heading"><div><p class="eyebrow">EVIDENCE · JUDGMENT · VALUE</p><h1>The research workbench.</h1></div><p class="intro">A record of the work, the reasoning and the sources behind a valuation.</p></div>
+    <div class="page-heading"><h1>Research workbench</h1></div>
     <div class="tabs" role="tablist" aria-label="Workbench views">
       <button id="tab-project" role="tab" aria-controls="panel-project" aria-selected="true" type="button">Project</button>
       <button id="tab-architecture" role="tab" aria-controls="panel-architecture" aria-selected="false" tabindex="-1" type="button">Architecture</button>
@@ -41,8 +41,8 @@
       <div class="bottom-grid architecture-notes"><section><p class="eyebrow">OWNERSHIP</p><h2>Each layer has an owner.</h2><div class="table-wrap"><table><thead><tr><th>Layer</th><th>Module / entry point</th></tr></thead><tbody><tr><td>Acquisition</td><td><code>borsdata.py</code> and fetch scripts</td></tr><tr><td>Evidence</td><td><code>storage.py</code></td></tr><tr><td>Preparation</td><td><code>prepare_codex_packet.py</code></td></tr><tr><td>Arithmetic</td><td><code>financials.py</code></td></tr><tr><td>Analyst access</td><td><code>tools.py</code></td></tr><tr><td>Execution</td><td><code>codex_runner.py</code></td></tr><tr><td>Private preservation</td><td><code>archive_research.py</code></td></tr><tr><td>Project &amp; saved review</td><td><code>serve_progress.py</code> · <code>web/progress/</code></td></tr></tbody></table></div></section><section><p class="eyebrow">RULES OF THE WORKBENCH</p><h2>Keep the meaning visible.</h2><ul class="principles"><li>Opening a saved record never fetches data or reruns the analyst.</li><li>Financial choices belong in policy and saved assumptions. Arithmetic belongs in the formula registry.</li><li>Shared code takes explicit company inputs. Issuer assumptions belong in company examples or private inputs.</li><li>Public Git holds code and safe project status. Exact research and credentials remain private.</li><li>Task completion measures delivery, not investment confidence.</li></ul><p class="callout"><strong>First saved-review view.</strong> Financial mapping, broader company validation and later workflow controls still need their own acceptance evidence. A readable result does not establish accounting correctness or predictive accuracy.</p><a href="/docs/docs/analysis-policy.md" target="_blank" rel="noopener">Investment policy ↗</a> · <a href="/docs/docs/calculations.md" target="_blank" rel="noopener">Named calculations ↗</a></section></div>
     </section>
     <section id="panel-company" class="tab-panel" role="tabpanel" aria-labelledby="tab-company" tabindex="0" hidden>
-      <div class="section-heading"><div><p class="eyebrow">SAVED COMPANY RESEARCH</p><h2>Read the case. Inspect the working.</h2></div><label class="filter">Saved analysis <select id="run-select" aria-label="Saved analysis"><option value="">Loading…</option></select></label></div>
-      <p id="company-status" class="connection" role="status" aria-live="polite">Saved records are loaded only from this local server.</p>
+      <div class="company-controls"><label class="filter" for="run-select">Report version<select id="run-select"><option value="">Loading…</option></select></label></div>
+      <p id="company-status" class="connection" role="status" aria-live="polite">Loading report versions…</p>
       <div id="company-error" class="error" role="alert" hidden></div>
       <div id="company-empty" class="empty-state" hidden><p class="eyebrow">NO SAVED ANALYSIS CONFIGURED</p><h3>Bring a saved case to the desk.</h3><p>Start the local server with an explicit saved-view file:</p><pre>python3 scripts/serve_progress.py --analysis saved-view.json</pre><p><a href="/docs/docs/saved-analysis-view.md" target="_blank" rel="noopener">Saved-review setup and format ↗</a></p></div>
       <div id="company-view" hidden></div>
