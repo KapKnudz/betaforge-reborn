@@ -49,6 +49,12 @@ run.original_calculations.push({id: "calc:irr", operation: "financial_formula", 
 sandbox.run = run;
 assert.equal(vm.runInContext('savedRunLabel({...run, analysis_kind: "structured"})', sandbox), "Sample · Structured · 2026-11-04");
 assert.equal(vm.runInContext('savedRunLabel({...run, analysis_kind: "legacy"})', sandbox), "Sample · Financial review · 2026-11-04");
+sandbox.versions = [run, {...run, id: "older", analysis_date: "2026-10-01"}];
+assert.equal(vm.runInContext('savedRunLabel(versions[0], versions)', sandbox), "Sample · Financial review · 2026-11-04 · As of 2026-11-01");
+assert.equal(vm.runInContext('savedRunLabel(versions[1], versions)', sandbox), "Sample · Financial review · 2026-11-04 · As of 2026-10-01");
+sandbox.versions = [run, {...run, id: "revised"}];
+assert.equal(vm.runInContext('savedRunLabel(versions[0], versions)', sandbox), "Sample · Financial review · 2026-11-04 · As of 2026-11-01 · structured");
+assert.equal(vm.runInContext('savedRunLabel(versions[1], versions)', sandbox), "Sample · Financial review · 2026-11-04 · As of 2026-11-01 · revised");
 vm.runInContext("renderCompany(run)", sandbox);
 assert(view.textContent.includes("Structured lead"));
 const header = () => all(view).find(node => node.className === "company-header");

@@ -838,8 +838,12 @@ async function loadRun(id) {
     $("company-status").textContent = "Saved analysis unavailable";
   }
 }
-function savedRunLabel(run) {
-  return run.company.name + " · " + (run.analysis_kind === "structured" ? "Structured" : "Financial review") + " · " + text(run.reviewed_at).slice(0, 10);
+function savedRunLabel(run, runs = []) {
+  const label = run.company.name + " · " + (run.analysis_kind === "structured" ? "Structured" : "Financial review") + " · " + text(run.reviewed_at).slice(0, 10);
+  const matches = runs.filter(other => savedRunLabel(other) === label);
+  if (matches.length < 2) return label;
+  const asOf = " · As of " + text(run.analysis_date);
+  return label + asOf + (matches.some(other => other.id !== run.id && other.analysis_date === run.analysis_date) ? " · " + run.id : "");
 }
 async function loadRuns(force = false) {
   if (runsLoading || (runsLoaded && !force)) return;
@@ -852,7 +856,7 @@ async function loadRuns(force = false) {
     const selected = $("run-select").value;
     $("run-select").replaceChildren();
     for (const run of data.runs) {
-      const option = element("option", "", savedRunLabel(run));
+      const option = element("option", "", savedRunLabel(run, data.runs));
       option.value = run.id;
       option.title = "Analysis date: " + text(run.analysis_date) + (run.analysis_kind === "structured" ? " · Analysis completed: " : " · Financial review: ") + text(run.reviewed_at).slice(0, 10);
       $("run-select").append(option);
