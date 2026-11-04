@@ -331,8 +331,9 @@ function scenarioChart(run) {
   const height = 70 + scenarios.length * 66;
   const left = 110;
   const plotWidth = 290;
-  const svg = svgElement("svg", { viewBox: "0 0 " + width + " " + height, class: "chart", role: "img", "aria-label": "Saved scenario present values in " + unit + (comparablePrice ? ", with dated saved price reference" : "") });
-  svg.append(svgElement("text", { x: left, y: 25, class: "axis-text" }, "PRESENT VALUE TODAY · " + unit));
+  const displayUnit = unit.replace(/ today$/, "");
+  const svg = svgElement("svg", { viewBox: "0 0 " + width + " " + height, class: "chart", role: "img", "aria-label": "Scenario present values as of " + text(run.analysis_date) + " in " + displayUnit + (comparablePrice ? ", with report price reference dated " + price.date : "") });
+  svg.append(svgElement("text", { x: left, y: 25, class: "axis-text" }, "Present value · " + text(run.analysis_date) + " · " + displayUnit));
   scenarios.forEach((scenario, index) => {
     const y = 46 + index * 66;
     svg.append(svgElement("text", { x: 15, y: y + 18 }, scenario.name), svgElement("rect", { x: left, y, width: values[index] / max * plotWidth, height: 27, class: "scenario-bar" }), svgElement("text", { x: left + values[index] / max * plotWidth + 8, y: y + 18 }, rounded(scenario.value)));
@@ -342,7 +343,7 @@ function scenarioChart(run) {
     svg.append(svgElement("line", { x1: x, x2: x, y1: 37, y2: height - 28, class: "price-line" }));
   }
   wrapper.append(svg);
-  wrapper.append(element("p", "chart-caption", comparablePrice ? "Dashed reference: saved price " + rounded(price.value) + " " + (price.unit === "currency/share" ? price.currency + "/share" : price.unit) + " · " + text(price.date || price.period_end) + ". This is a frozen observation, not a live quote." : "Saved present values only. No compatible dated price reference is available."));
+  wrapper.append(element("p", "chart-caption", comparablePrice ? "Dashed reference: report price " + rounded(price.value) + " " + (price.unit === "currency/share" ? price.currency + "/share" : price.unit) + " · " + text(price.date) + "." : "Saved present values only. No compatible dated price reference is available."));
   return wrapper;
 }
 function probabilityDescription(probability) {
@@ -616,6 +617,17 @@ function renderAnalysisReview(run) {
   if ((review.disagreements || []).length) section.append(detail("Disagreements retained", [recordList(review.disagreements)]));
   return section;
 }
+function returnUsesReportPrice(run) {
+  const price = run.price;
+  const returns = (run.original_calculations || []).filter((calc) => calc.operation === "financial_formula" && calc.formula === "expected_cashflow_irr");
+  if (!price || !price.id || !price.source_id || returns.length !== 1) return false;
+  const calculation = returns[0];
+  const inputs = (calculation.inputs || []).filter((input) => input.field === "price");
+  if (inputs.length !== 1 || (calculation.input_ids || {}).price !== price.id || inputs[0].id !== price.id) return false;
+  return ["value", "unit", "scale", "currency", "source_id"].every((key) => inputs[0][key] === price[key]) &&
+    (inputs[0].date || inputs[0].period_end) === price.date &&
+    (((calculation.outputs || {}).irr_percent || {}).value === (run.benchmark || {}).candidate_annualized_return_percent);
+}
 function renderCompany(run) {
   savedReferenceIds.clear();
   const view = $("company-view");
@@ -623,20 +635,35 @@ function renderCompany(run) {
   view.replaceChildren();
   const sources = run.sources || [];
   const header = element("div", "company-header");
-  header.append(element("p", "eyebrow", "SAVED ANALYSIS · READ ONLY"), element("h2", "", text(run.company.name) + (run.company.ticker ? " · " + run.company.ticker : "")), element("p", "meta", "Analysis date: " + text(run.analysis_date) + (run.analysis ? " · Analysis completed: " : " · Saved financial review: ") + text(run.reviewed_at).slice(0, 10)), element("p", "meta", "Method: " + text(run.method)));
-  header.append(element("p", "conclusion", text(run.analysis ? run.analysis.summary : run.conclusion)));
+  header.append(element("h2", "", text(run.company.name) + (run.company.ticker ? " · " + run.company.ticker : "")), element("p", "meta", "Analysis date: " + text(run.analysis_date) + (run.analysis ? " · Analysis completed: " : " · Financial review: ") + text(run.reviewed_at).slice(0, 10) + " · Method: " + text(run.method)));
+  const estimatedReturn = (run.benchmark || {}).candidate_annualized_return_percent;
+  if (number(estimatedReturn) !== null) {
+    const overview = element("p", "return-overview");
+    overview.append(document.createTextNode("Estimated annual return" + (returnUsesReportPrice(run) ? " · at report price" : "") + ": "), savedValue(estimatedReturn, "percent"), document.createTextNode(" · conditional on the report's scenarios. "), savedLink("company-return", "Assumptions & limitations", ""));
+    header.append(overview);
+  }
+  const price = run.price || {};
+  const reportPrice = element("p", "basis market-price");
+  reportPrice.append(document.createTextNode("Report price: "), savedValue(price.value, price.unit === "currency/share" ? price.currency + "/share" : price.unit), document.createTextNode(" · " + text(price.date || price.period_end)));
+  const marketPrice = element("p", "basis market-price", "Latest market price: " + (Number.isInteger(run.company.instrument_id) && run.company.instrument_id > 0 ? "loading…" : "unavailable"));
+  marketPrice.id = "latest-market-price";
+  marketPrice.setAttribute("role", "status");
+  const marketEvidence = element("div");
+  marketEvidence.id = "latest-market-price-evidence";
+  header.append(marketPrice, reportPrice, detail("Price evidence", [element("p", "detail-label", "Report price"), element("p", "basis", text(price.basis)), sourceRefs(price, sources), element("pre", "", text(price)), marketEvidence]));
+  header.append(detail("Report conclusion", [element("p", "saved-text", text(run.analysis ? run.analysis.summary : run.conclusion))]));
   if (run.analysis) header.append(savedLink("company-review", "Independent challenge: " + ({ accept: "accepted", revise: "changes requested" }[(run.analysis_review || {}).verdict] || "pending"), "challenge-status"));
   view.append(header, analysisNavigation(run));
   const scenarioSection = element("section", "company-section");
   scenarioSection.id = "company-scenarios";
   const endpoints = scenarioEndpoints(run);
-  scenarioSection.append(element("h3", "", "Valuation scenarios"), element("p", "basis", endpoints.length ? "Conditional scenario values at two dates; both panels share a scale. Dividend assumptions are shown below." : "Saved present values only. This legacy record does not provide structured dated future endpoints; the saved basis and original calculations remain available."));
+  scenarioSection.append(element("h3", "", "Valuation scenarios"), element("p", "basis", endpoints.length ? "Conditional scenario values at two dates; both panels share a scale. Dividend assumptions are shown below." : "Present values as of " + text(run.analysis_date) + ". Future targets and assumptions remain in the report."));
   const scenarioGrid = element("div", "scenario-grid");
   scenarioGrid.append(endpoints.length ? endpointChart(run) : scenarioChart(run));
   const scenarioTable = table(["Scenario", "Present value", "Weight", "Saved basis"], (run.scenarios || []).map((s) => {
     const basis = element("div");
     basis.append(element("p", "basis", s.basis), referenceList(s.calculation_ids, run), detail("Exact value & calculation IDs", [element("p", "exact", text(s.value) + " " + s.unit + (s.weight !== undefined ? " · exact weight " + text(s.weight) : "")), element("p", "exact", (s.calculation_ids || []).join(", "))]));
-    return [s.name, savedValue(s.value, s.unit), s.weight === undefined || s.weight === null ? "Unavailable" : rounded(Number(s.weight) * 100) + "%", basis];
+    return [s.name, savedValue(s.value, String(s.unit || "").replace(/ today$/, "")), s.weight === undefined || s.weight === null ? "Unavailable" : rounded(Number(s.weight) * 100) + "%", basis];
   }));
   scenarioGrid.append(endpoints.length ? detail("Saved scenario values & exact records", [scenarioTable]) : scenarioTable);
   if (endpoints.length) {
@@ -646,10 +673,6 @@ function renderCompany(run) {
     scenarioSection.append(links);
   }
   scenarioSection.append(scenarioGrid);
-  const price = run.price || {};
-  const priceNote = element("p", "basis");
-  priceNote.append(document.createTextNode("Frozen price observation: "), savedValue(price.value, price.unit === "currency/share" ? price.currency + "/share" : price.unit), document.createTextNode(" · date " + text(price.date || price.period_end) + " · " + text(price.basis)), sourceRefs(price, sources, "Frozen API observation"));
-  scenarioSection.append(priceNote);
   const probability = run.probability || {};
   scenarioSection.append(element("p", "callout", probabilityDescription(probability)));
   if (probability.weights) scenarioSection.append(detail("Exact saved weights", [element("pre", "", text(probability.weights))]));
@@ -712,7 +735,7 @@ function renderCompany(run) {
   if (run.analysis) view.append(renderAnalysisReview(run));
   const reportingDates = sources.map((source) => source.period && source.period.end).filter(Boolean).sort();
   const recency = element("section", "company-section current-data");
-  recency.append(element("p", "basis", "Latest reporting period in saved sources: " + (reportingDates.pop() || "Unavailable") + ". Frozen analysis date: " + run.analysis_date + (run.analysis ? ". Saved run completed: " : ". Saved financial review: ") + text(run.reviewed_at).slice(0, 10) + ". This timestamp does not refresh the underlying data."));
+  recency.append(element("p", "basis", "Latest reporting period in saved sources: " + (reportingDates.pop() || "Unavailable") + ". Frozen analysis date: " + run.analysis_date + (run.analysis ? ". Saved run completed: " : ". Financial review: ") + text(run.reviewed_at).slice(0, 10) + ". This timestamp does not refresh the underlying data."));
   if ((run.current_data_limits || []).length) recency.append(detail("Current data limits", [recordList(run.current_data_limits)]));
   view.append(recency);
   if ((run.material_inputs || []).length) view.append(renderMaterialInputs(run.material_inputs, sources));
@@ -732,6 +755,7 @@ function renderCompany(run) {
   working.append(detail("Notes & limitations", (run.notes || []).length ? [recordList(run.notes)] : [element("p", "unavailable", "No separate notes saved.")]));
   const benchmark = run.benchmark || {};
   const benchmarkContent = [table(["Saved statistic", "Percent / percentage points"], [["Candidate annualized return (%)", savedValue(benchmark.candidate_annualized_return_percent)], ["Benchmark annualized return (%)", savedValue(benchmark.benchmark_annualized_return_percent)], ["Difference (percentage points)", savedValue(benchmark.difference_percentage_points)]]), element("p", "basis", text(benchmark.interpretation)), element("p", "basis", text(benchmark.limits)), element("p", "basis", text(benchmark.context))];
+  benchmarkContent[0].id = "company-return";
   working.append(detail("Return & benchmark", benchmarkContent));
   const sourceContent = [];
   for (const source of sources) {
@@ -772,10 +796,28 @@ function renderCompany(run) {
   loadedRunId = run.id;
   view.hidden = false;
 }
+async function loadMarketPrice(run, request) {
+  if (!Number.isInteger(run.company.instrument_id) || run.company.instrument_id <= 0) return;
+  let quote = null;
+  try {
+    const response = await getJSON("/api/market-price/" + encodeURIComponent(run.company.instrument_id));
+    const candidate = response.quote;
+    const reportCurrency = (run.price || {}).currency;
+    const date = candidate && typeof candidate.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(candidate.date) ? new Date(candidate.date + "T00:00:00Z") : null;
+    if (candidate && candidate.instrument_id === run.company.instrument_id && /^[A-Z]{3}$/.test(candidate.currency) && (!reportCurrency || candidate.currency === reportCurrency) && candidate.unit === "currency/share" && String(candidate.scale) === "1" && candidate.kind === "daily_close" && number(candidate.value) !== null && number(candidate.value) > 0 && date && Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === candidate.date) quote = candidate;
+  } catch (error) { /* The report remains available without a separate market quote. */ }
+  if (request !== runRequest || loadedRunId !== run.id) return;
+  const price = $("latest-market-price");
+  price.replaceChildren(document.createTextNode("Latest market price: "));
+  if (!quote) { price.append(document.createTextNode("unavailable")); return; }
+  price.append(savedValue(quote.value, quote.currency + "/share"), document.createTextNode(" · Close · " + quote.date));
+  $("latest-market-price-evidence").replaceChildren(element("p", "detail-label", "Latest market price"), element("p", "basis", "Daily close from the configured evidence store. Adjustment basis is unverified."), element("pre", "", text(quote)));
+}
 async function loadRun(id) {
   const request = ++runRequest;
   $("company-error").hidden = true;
   if (!id) { $("company-view").hidden = true; return; }
+  $("company-status").hidden = false;
   $("company-status").textContent = "Loading saved analysis…";
   // Hide the previous company while loading so a failed selection cannot mislabel it.
   $("company-view").hidden = true;
@@ -784,29 +826,39 @@ async function loadRun(id) {
     if (request !== runRequest) return;
     renderCompany(run);
     $("company-status").classList.remove("stale");
-    $("company-status").textContent = "Saved record loaded · " + text(run.analysis_date) + " · no live quote or analysis refresh";
+    $("company-status").textContent = "";
+    $("company-status").hidden = true;
+    await loadMarketPrice(run, request);
   } catch (error) {
     if (request !== runRequest) return;
     $("company-error").hidden = false;
     $("company-error").textContent = "Could not load this saved analysis. Check the configured saved-view file and refresh.";
     $("company-status").classList.add("stale");
+    $("company-status").hidden = false;
     $("company-status").textContent = "Saved analysis unavailable";
   }
 }
-function savedRunLabel(run) {
-  return run.company.name + (run.company.ticker ? " · " + run.company.ticker : "") + " · analysis " + text(run.analysis_date) + (run.analysis_kind === "structured" ? " · analysis completed " : " · saved financial review ") + text(run.reviewed_at).slice(0, 10);
+function savedRunLabel(run, runs = []) {
+  const label = run.company.name + " · " + (run.analysis_kind === "structured" ? "Structured" : "Financial review") + " · " + text(run.reviewed_at).slice(0, 10);
+  const matches = runs.filter(other => savedRunLabel(other) === label);
+  if (matches.length < 2) return label;
+  const asOf = " · As of " + text(run.analysis_date);
+  return label + asOf + (matches.some(other => other.id !== run.id && other.analysis_date === run.analysis_date) ? " · " + run.id : "");
 }
 async function loadRuns(force = false) {
   if (runsLoading || (runsLoaded && !force)) return;
   runsLoading = true;
   $("company-error").hidden = true;
+  $("company-status").hidden = false;
+  $("company-status").textContent = "Loading report versions…";
   try {
     const data = await getJSON("/api/runs");
     const selected = $("run-select").value;
     $("run-select").replaceChildren();
     for (const run of data.runs) {
-      const option = element("option", "", savedRunLabel(run));
+      const option = element("option", "", savedRunLabel(run, data.runs));
       option.value = run.id;
+      option.title = "Analysis date: " + text(run.analysis_date) + (run.analysis_kind === "structured" ? " · Analysis completed: " : " · Financial review: ") + text(run.reviewed_at).slice(0, 10);
       $("run-select").append(option);
     }
     runsLoaded = true;
@@ -825,6 +877,7 @@ async function loadRuns(force = false) {
     $("company-error").hidden = false;
     $("company-error").textContent = "Could not read the saved-analysis index. Check the local server and refresh.";
     $("company-status").classList.add("stale");
+    $("company-status").hidden = false;
     $("company-status").textContent = "Saved-analysis index unavailable";
   } finally { runsLoading = false; }
 }

@@ -1,6 +1,6 @@
 # Betaforge analysis policy
 
-Version 1, adopted for implementation on 3 November 2026. This is the current project policy. Each new analysis freezes this file and the [calculation catalogue](calculations.md) with their hashes. Historical packets retain their original instructions and results.
+Version 2, 4 November 2026. This updates the personal return rule and operating-assumption review discipline from version 1. Each new analysis freezes this file and the [calculation catalogue](calculations.md) with their hashes. Historical packets retain their original instructions and results.
 
 ## Purpose and sources
 
@@ -47,11 +47,17 @@ Use only diagnostics that explain the company, not a universal ratio scorecard:
 
 Group cash conversion is a diagnostic, not parent-owner free cash flow. CFO already includes working-capital movement and cash taxes; expose those components or reverse them before normalization, never subtract them twice. Missing lease principal or gross cash interest stays missing. Show known earlier bridge amounts and the gap rather than inventing a final ratio. SBC addbacks remain separately visible; cash generation does not make share compensation free.
 
-Operating ROIC uses a selected operating-tax assumption and two-point average invested capital. It is not relabeled Börsdata ROIC or issuer ROCE. Do not compare it mechanically with an equity required return or the market-index investment hurdle. A precise economic-value-creation claim needs a comparable cost-of-capital basis.
+Operating ROIC uses a selected operating-tax assumption and two-point average invested capital. It is not relabeled Börsdata ROIC or issuer ROCE. Do not compare it mechanically with an equity required return or a historical market-index return. A precise economic-value-creation claim needs a comparable cost-of-capital basis.
 
 ## Valuation methods
 
 **Primary: forward operating EV/EBIT scenarios.** Select one operating equation: normally revenue times EBIT margin, or a better company-specific equation such as tonnes times EBIT per tonne. Use bear/base/bull assumptions, a selected multiple and a full enterprise-to-common-equity bridge. Do not add two estimates of the same earnings upside.
+
+Review the material operating assumptions together before refining smaller valuation details. Compare the selected drivers with their latest compatible annual/R12 results and relevant historical range, keeping scope and adjustments explicit. If the central case combines record scale with strong or above-range profitability, explain what supports that combination and why it belongs in the central case. One exceptional quarter does not establish a sustainable annual run rate, and an issuer-adjusted figure is not automatically economically normalized. Historical peaks are evidence to examine, not mechanical forecast ceilings.
+
+Treat a challenge as a reason to reassess the evidence. Retain and defend a financial assumption when the evidence supports it; a challenge alone does not justify changing the number. Explain the conclusion and remaining uncertainty clearly.
+
+Test a coherent disappointment in the main drivers and its associated cash/reinvestment needs using the existing sensitivity tools. A small reduction from optimistic assumptions can still require unusually strong performance; state which critical dependency the check tests. Explain dependencies: higher output can improve unit economics, but demand, mix, capacity and funding must support the same scenario. Keep unsupported improvements visible as uncertainty; a base-case label is not evidence. Shared model changes follow the [generic analysis rule](planning/decisions.md#generic-analysis-before-company-tuning).
 
 Show forecast operating earnings, EV, future debt, additional claims, common equity, forecast shares, future target and present value. State lease, pension, minority and non-operating-asset conventions explicitly. Cash already netted in debt is not added again. Retained cash reduces debt; dividends are valued separately, without using the same future cash twice.
 
@@ -67,14 +73,22 @@ The analyst proposes company-specific probabilities, evidence and uncertainty; t
 
 Weight comparable values at the same date and ownership scope. Base-case value is not expected value, evidence confidence is not outcome probability, and a positive nominal return can still miss the investment hurdle.
 
-The agreed hurdle is the **SIX Return Index (SIXRX)** trailing ten-year annualized total return with reinvested dividends, measured as of the analysis date. It is a historical broad-market opportunity-cost reference, not a forecast of the index return or automatically the company's cost of equity. Verify the exact series, dates and source conventions before a hurdle verdict. Do not silently substitute another index when SIXRX data is missing.
+For the supported ordinary operating companies, start with a **10% required annual equity return** and show **9% sensitivity**, holding operating assumptions, cash flows and probabilities unchanged. This is the user's personal investment threshold and starting discount rate for shareholder cash flows, not an estimated WACC or an objectively established company cost of equity. Company-specific overrides are allowed only with an explicit rate and explanation; make the departure from the starting rule visible.
 
-The candidate annual-return statistic is **IRR of probability-weighted cash flows**: weight each scenario's dividend/terminal payment at each date, then solve for the annual rate that equates those cash flows with the starting share price. Do not average scenario IRRs or annualize only the expected exit price. Label the result conditional/indicative when the scenarios omit tails or use representative points. A missing benchmark measurement prevents a hurdle-pass claim, not useful scenario targets and present values. A discount rate used in an earlier worked example remains a historical assumption, not a universal rate. Select and explain the rate for each analysis.
+Keep **SIX Return Index (SIXRX)** trailing ten-year annualized total return with reinvested dividends as a separate historical broad-market comparison, measured as of the analysis date. It is not the investment threshold, a forecast of index returns or automatically the company's cost of equity. Verify the exact series, dates and source conventions before comparing returns. Do not silently substitute another index when SIXRX data is missing.
+
+The candidate annual-return statistic is **IRR of probability-weighted cash flows**: weight each scenario's dividend/terminal payment at each date, then solve for the annual rate that equates those cash flows with the starting share price. Compare it with the selected personal required return for a hurdle verdict. Do not average scenario IRRs or annualize only the expected exit price. Label the result conditional/indicative when the scenarios omit tails or use representative points. Missing SIXRX data leaves that historical comparison unavailable; it does not prevent comparison with the explicit personal hurdle. Changing the discount rate alone changes present value, not the modeled IRR. Earlier packets retain their original rates and benchmark conventions.
 
 ## Output and calculation discipline
 
+Write a concise company research note for a shareholder. State how the business earns money, what must improve and what the price implies for the investor's return. Use familiar financial terms precisely. A claim such as credible growth needs supporting business evidence; a risk needs a named operating or cash mechanism. For example, explain cash tied up in inventory or customer invoices rather than using cash absorption alone, and identify the sales, production or cost assumption behind execution risk. Distinguish observed facts from forecasts and qualified judgments.
+
+The opening summary should give the business case, its principal dependency, the price/return conclusion and the most important uncertainty in three to five short sentences. Refer to a dated market price or the price used in the report; reserve current/latest for separately dated quote context. Keep model execution, report extraction and revision bookkeeping in the audit details. Put the concise economic explanation beside the figures it supports.
+
+The [primary investor-writing examples](research/investor-writing-examples.md) inform this editorial approach: explain causes, capital needs and shareholder consequences. They do not replace the project's valuation method or import the investors' different trading rules. The instructions above are frozen into new analysis packets; no investor persona or custom model training is required.
+
 Lead with a concise case summary: thesis/horizon; three to five drivers; a small quality table and cash bridge; one scenario assumption table and valuation bridge; one or two modest disappointment checks; and two or three disconfirming observations with the next evidence to review.
 
-Show the supporting observation, interpretation and assumption for each material forecast. Pricing power, moat and management conclusions are interpretations. Put detailed formulas, input IDs/values, report pages and reconciliations in a readable appendix.
+Beside each material forecast, briefly explain the evidence anchor, the business mechanism and why they support the selected magnitude. Distinguish observed facts from interpretation and assumptions; make judgment and remaining uncertainty clear where the evidence is incomplete. Pricing power, moat and management conclusions are interpretations. Put detailed formulas, input IDs/values, report pages and reconciliations in a readable appendix.
 
 Use the named [calculation catalogue](calculations.md). Normalize source scale once, use Decimal and round only for display. Reuse common facts and results. Converting SEK to displayed millions is formatting, not another valuation assumption or economic calculation. Preserve historical audits and mark superseded outputs; do not rebuild unnecessary bridges merely to create more records.

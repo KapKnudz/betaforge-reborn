@@ -23,6 +23,16 @@ def response(status, body=b'{"reports":[]}', headers=None):
 
 
 class AcquisitionTests(unittest.TestCase):
+    def test_price_refresh_requests_only_prices_and_preserves_full_plan(self):
+        prices = fetch.request_plan(777, prices_only=True)
+        self.assertEqual(prices, [("prices", "/v1/instruments/777/stockprices", {"maxCount": 20})])
+        full = fetch.request_plan(777)
+        self.assertIn(prices[0], full)
+        self.assertTrue(any(name == "reports" for name, _, _ in full))
+        for instrument in (True, 0, -1):
+            with self.subTest(instrument=instrument), self.assertRaises(ValueError):
+                fetch.request_plan(instrument, prices_only=True)
+
     def test_shared_client_keeps_credentials_out_of_url_and_disables_redirects(self):
         with patch.object(borsdata.requests,'get') as get:
             borsdata.get_response('/v1/instruments/777/reports/year',{'original':1},'TEST_SECRET_VALUE')

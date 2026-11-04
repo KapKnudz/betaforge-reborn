@@ -226,6 +226,11 @@ days from an annual horizon. All cases share the endpoint and saved integer year
 references a saved complete valuation_case; do not supply present_value/future_target numbers:
 the client copies these outputs. weight_ref is a saved dimensionless assumption; weights sum
 exactly to one. Provide company-specific probability evidence and omitted-tail limitations.
+Write the summary as a short investment conclusion for a financial reader, following the
+supplied policy's writing rules. Explain the business mechanism, selected forecast magnitude
+and shareholder return implication. Name concrete cash uses and operating risks; support
+qualitative judgments with evidence. Price references need their date. Keep execution,
+extraction and revision bookkeeping out of the investment summary and in audit details.
 Select one operating equation. Explain 3-5 drivers and the company's own 5-10-year history
 where available; save one or two modest disappointment checks and two or three disconfirmers.
 Use saved named calculations. Required reading plus validated submission permits execution

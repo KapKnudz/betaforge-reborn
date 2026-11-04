@@ -47,6 +47,7 @@ Identity checks bind the packet, frozen database, original inputs and calculatio
 
 ## Read the company tab
 
+- **Report versions:** the compact selector uses the report completion/review date. The company header keeps the analysis date separate. The original conclusion remains available in a disclosure; the return overview copies existing results rather than rewriting the report.
 - **Analysis and scenarios:** the full structured report separates facts, interpretations and assumptions. Clearly dated present values and future targets link to case-specific rationale, assumptions and saved calculations. Separate endpoint charts share a scale and do not invent an annual price path. Legacy targets remain in their saved basis when no structured endpoint exists. Conditional weights retain their qualifications.
 - **Management comparisons:** direct targets, guidance and related operating drivers retain issuer definitions, publication dates, target periods and physical-page quotations. An absent margin target stays absent; issuer ROCE and utilization are not relabelled operating ROIC or EBIT margin.
 - **Calculations:** named formulas, inputs, units, scale, source IDs, physical-page evidence, outputs and missing inputs. The original run trace, including scalar operations and named formulas, is available separately.
@@ -55,8 +56,21 @@ Identity checks bind the packet, frozen database, original inputs and calculatio
 
 The historical index comparison is context, not a future return forecast. Missing cash-conversion inputs remain missing. Showing a result does not verify its accounting definitions or prove its investment thesis.
 
+## Separate market-price context
+
+Add `--market-db data/evidence/evidence.sqlite3` to the server command to show the latest available daily close for companies whose reports are explicitly configured. The header distinguishes that quote and its trading date from the selected report price. A new quote does not recalculate the report's return or valuation; an unavailable quote leaves the report usable. Price evidence contains the source and capture/check dates.
+
+Refresh prices separately through the existing credential-safe acquisition and ingestion pipeline:
+
+```sh
+.venv/bin/python scripts/fetch_borsdata_context.py --instrument INSTRUMENT_ID --prices-only
+.venv/bin/python scripts/ingest_evidence.py data/borsdata/context/INSTRUMENT_ID/CAPTURE --db data/evidence/evidence.sqlite3
+```
+
+Use the actual capture directory printed by acquisition. This fetches the price endpoint without refreshing the research datasets. The viewer only reads the configured store; it makes no provider calls and does not promise an intraday quote. Its price date remains visible.
+
 ## Privacy and boundaries
 
-Exports belong under ignored `data/` and in the private research archive. Keep exact evidence and saved analyses out of the public repository. The server binds to loopback, exposes only explicitly configured exports and public document routes, and accepts no write or analysis-launch requests. Do not expose it through a tunnel or a public host.
+Exports belong under ignored `data/` and in the private research archive. Keep exact evidence and saved analyses out of the public repository. The server binds to loopback, exposes only explicitly configured exports, their allowlisted companies' optional market quotes and public document routes, and accepts no write or analysis-launch requests. Do not expose it through a tunnel or a public host.
 
 The first viewer supports the existing completed-run and financial-review artifact formats. Broader decision records, material mapping validation and another-company walkthrough remain tracked in [the plan](../work/plan.json).

@@ -1,10 +1,14 @@
 import http.client
+import hashlib
+from contextlib import closing
 import json
 from pathlib import Path
 import sys
+import sqlite3
 import tempfile
 import threading
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import serve_progress as progress
@@ -138,14 +142,118 @@ class ProgressTests(unittest.TestCase):
                            "coverage": {}},
         }
 
-    def configure_view(self):
+    def configure_view(self, market_db=None):
         file = self.root / "data/saved-view.json"
         file.write_text(json.dumps(self.saved_view()))
         self.stop()
-        self.server = progress.make_server(0, root=self.root, analyses=[file])
+        self.server = progress.make_server(0, root=self.root, analyses=[file], market_db=market_db)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         return file
+
+    def ingest_market_data(self, database, rows=(), timestamp="2026-11-04T17:00:00Z"):
+        directory = Path(tempfile.mkdtemp(dir=self.root))
+        payloads = [({"instruments": [{"insId": 1, "stockPriceCurrency": "SEK"}]}, "/v1/instruments")]
+        if rows:
+            payloads.append(({"instrument": 1, "stockPricesList": rows}, "/v1/instruments/1/stockprices"))
+        requests = []
+        for index, (payload, endpoint) in enumerate(payloads):
+            body = json.dumps(payload).encode()
+            name = f"{index}.json"
+            (directory / name).write_bytes(body)
+            requests.append({"endpoint": endpoint, "parameters": {}, "http_status": 200,
+                             "file": name, "sha256": hashlib.sha256(body).hexdigest()})
+        (directory / "manifest.json").write_text(json.dumps({"retrieved_at": timestamp, "requests": requests}))
+        with progress.EvidenceStore(database) as store:
+            store.ingest_snapshot(directory)
+
+    def test_market_quotes_are_opt_in_and_company_allowlisted(self):
+        self.assertEqual(self.request("/api/market-price/1")[0], 404)
+        self.configure_view()
+        self.assertEqual(json.loads(self.request("/api/market-price/1")[2]), {"quote": None})
+        for identifier in ("2", "01", "1/anything", "../data/private.json", "%31"):
+            with self.subTest(identifier=identifier):
+                self.assertEqual(self.request("/api/market-price/" + identifier)[0], 404)
+        self.assertEqual(self.request("/api/market-price/1", "HEAD")[2], b"")
+
+    def test_latest_stored_close_updates_without_touching_saved_report(self):
+        database = self.root / "market/evidence.sqlite3"
+        self.ingest_market_data(database)
+        file = self.configure_view(market_db=database)
+        saved = file.read_bytes()
+        self.assertEqual(json.loads(self.request("/api/market-price/1")[2]), {"quote": None})
+        rows = [{"d": "2026-11-02", "c": 10.25}, {"d": "2026-11-03", "c": 12.5}]
+        self.ingest_market_data(database, rows)
+        before = database.read_bytes()
+        with mock.patch.object(progress, "EvidenceStore", wraps=progress.EvidenceStore) as store:
+            status, headers, body = self.request("/api/market-price/1")
+            self.assertEqual(status, 200)
+            store.assert_called_once_with(database, readonly=True)
+        quote = json.loads(body)["quote"]
+        self.assertEqual(quote, {"instrument_id": 1, "value": "12.5", "scale": "1",
+                                "unit": "currency/share", "currency": "SEK", "date": "2026-11-03",
+                                "source_id": quote["source_id"], "provider": "Börsdata", "kind": "daily_close",
+                                "retrieved_at": "2026-11-04T17:00:00+00:00", "checked_at": "2026-11-04T17:00:00+00:00"})
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertEqual(database.read_bytes(), before)
+        self.assertNotIn(str(database).encode(), body)
+        self.ingest_market_data(database, rows, timestamp="2026-11-05T17:00:00Z")
+        checked = json.loads(self.request("/api/market-price/1")[2])["quote"]
+        self.assertEqual(checked["retrieved_at"], quote["retrieved_at"])
+        self.assertEqual(checked["checked_at"], "2026-11-05T17:00:00+00:00")
+        self.ingest_market_data(database, [{"d": "2026-11-04", "c": 15.75}], "2026-11-05T18:00:00Z")
+        self.assertEqual(json.loads(self.request("/api/market-price/1")[2])["quote"]["value"], "15.75")
+        self.assertEqual(file.read_bytes(), saved)
+        self.assertEqual(json.loads(self.request("/api/runs/sample-20261101")[2]), self.saved_view())
+
+    def test_invalid_quotes_stay_unavailable(self):
+        database = self.root / "market/evidence.sqlite3"
+        self.ingest_market_data(database, [{"d": "2026-11-03", "c": 12.5}])
+        self.configure_view(market_db=database)
+        with closing(sqlite3.connect(database)) as connection, connection:
+            original = json.loads(connection.execute("SELECT record FROM observations WHERE metric='price_close'").fetchone()[0])
+        for changes in ({"value": "0"}, {"value": "-1"}, {"value": "NaN"}, {"value": True}, {"scale": "Infinity"},
+                        {"scale": "0"}, {"unit": "shares"}, {"currency": None}, {"currency": "private/path"},
+                        {"period_end": "2026-02-30"}, {"period_end": "2026-11-03T00:00:00"},
+                        {"provider": "other"}, {"currency_mode": "converted"}, {"source_id": "/private/secret"}):
+            with self.subTest(changes=changes):
+                with closing(sqlite3.connect(database)) as connection, connection:
+                    connection.execute("UPDATE observations SET record=? WHERE metric='price_close'", (json.dumps({**original, **changes}),))
+                self.assertEqual(json.loads(self.request("/api/market-price/1")[2]), {"quote": None})
+
+    def test_market_store_failures_are_safe_and_reports_remain_available(self):
+        database = self.root / "market/evidence.sqlite3"
+        self.ingest_market_data(database, [{"d": "2026-11-03", "c": 12.5}])
+        self.configure_view(market_db=database)
+        for content in (b"not sqlite", None):
+            if content is None:
+                database.unlink()
+            else:
+                database.write_bytes(content)
+            status, _, body = self.request("/api/market-price/1")
+            self.assertEqual(status, 503)
+            self.assertNotIn(str(database).encode(), body)
+            self.assertEqual(self.request("/api/runs/sample-20261101")[0], 200)
+        self.assertFalse(database.exists())
+
+    def test_market_database_is_validated_before_binding_without_creation(self):
+        database = self.root / "missing/evidence.sqlite3"
+        with mock.patch.object(progress, "ThreadingHTTPServer") as server:
+            with self.assertRaisesRegex(ValueError, "Market evidence store unavailable"):
+                progress.make_server(0, root=self.root, market_db=database)
+            server.assert_not_called()
+        self.assertFalse(database.parent.exists())
+        database.parent.mkdir()
+        with closing(sqlite3.connect(database)) as connection, connection:
+            connection.execute("CREATE TABLE private_data (secret TEXT)")
+            connection.execute("PRAGMA user_version=99")
+        before = database.read_bytes()
+        with mock.patch.object(progress, "ThreadingHTTPServer") as server:
+            with self.assertRaises(ValueError):
+                progress.make_server(0, root=self.root, market_db=database)
+            server.assert_not_called()
+        self.assertEqual(database.read_bytes(), before)
+        self.assertFalse((database.parent / "blobs").exists())
 
     def test_saved_runs_are_opt_in_and_only_expose_configured_exports(self):
         self.assertEqual(json.loads(self.request("/api/runs")[2]), {"runs": []})

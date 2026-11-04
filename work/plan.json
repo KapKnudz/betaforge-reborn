@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T13:57:02+01:00",
+  "updated_at": "2026-11-04T15:50:10.308823+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "multi-company-validation",
+  "next_task": "return-and-reader-review",
   "milestones": [
     {
       "id": "foundation",
@@ -26,8 +26,8 @@
     {
       "id": "saved-review",
       "title": "Inspect saved valuations",
-      "status": "done",
-      "summary": "Inspect a saved philosophy-based report, source-linked management expectations, dated scenarios and the independent challenge."
+      "status": "in_progress",
+      "summary": "Saved evidence review is implemented; assess return consistency and a shorter human-readable decision page."
     },
     {
       "id": "development-corpus",
@@ -281,7 +281,7 @@
         "docs/saved-analysis-view.md"
       ],
       "blocker": null,
-      "note": "Completed the one-company saved-review milestone: six report sections, explicit facts/interpretations/assumptions, source-linked management comparisons, dated endpoints and weights, named calculations and a separately bound independent review. The session workflow uses one lead analyst, independent challenge and at most one revision. Clean proposed checkout: 172 offline tests, OK with one private-evidence class skipped; eleven installed-evidence tests pass. Independent code-review findings were fixed and rechecked. The Greptile review-only evidence finding is fixed with snapshot/issuer isolation checks, regression coverage and an independent recheck; the implementation head received a fresh 5/5. The final merge-handoff commit still needs a current-head review. Browser checks cover real and earlier views, financial tables, management quotations, source drilldowns, benchmark display and narrow layouts, with no broken links, duplicate IDs or console errors. A fresh preserved-evidence analysis completed the bounded process; its qualifications and disagreements remain visible. Exact artifacts are privately archived; clean restore, exact export rebuild, database checks and downloaded-copy verification pass. Predecessor #9 merged as 88f1259 with the same tree as its reviewed head. The structured branch records that already included main ancestry so GitHub shows the focused 20-file change; no implementation change was needed: https://github.com/KapKnudz/betaforge-reborn/pull/10. The current-head Greptile receipt belongs in the PR conversation. User reviews and merges. Wider issuer and peer validation remain separate.",
+      "note": "Completed the one-company saved-review milestone: six report sections, explicit facts/interpretations/assumptions, source-linked management comparisons, dated endpoints and weights, named calculations and a separately bound independent review. The session workflow uses one lead analyst, independent challenge and at most one revision. Clean proposed checkout: 172 offline tests, OK with one private-evidence class skipped; eleven installed-evidence tests pass. Independent code-review findings were fixed and rechecked. The Greptile review-only evidence finding is fixed with snapshot/issuer isolation checks, regression coverage and an independent recheck; the implementation head received a fresh 5/5. Final-head Greptile completed at 5/5 with no unresolved threads; PR #10 is merged. Browser checks cover real and earlier views, financial tables, management quotations, source drilldowns, benchmark display and narrow layouts, with no broken links, duplicate IDs or console errors. A fresh preserved-evidence analysis completed the bounded process; its qualifications and disagreements remain visible. Exact artifacts are privately archived; clean restore, exact export rebuild, database checks and downloaded-copy verification pass. Predecessor #9 merged as 88f1259 with the same tree as its reviewed head. The structured branch records that already included main ancestry so GitHub shows the focused 20-file change; no implementation change was needed: https://github.com/KapKnudz/betaforge-reborn/pull/10. The current-head Greptile receipt belongs in the PR conversation. User review and merge are complete for PR #10. Wider issuer and peer validation remain separate.",
       "summary": "Show the full case, management expectations and dated scenarios with their evidence.",
       "purpose": "Understand how the analyst moves from evidence to assumptions and valuation."
     },
@@ -411,12 +411,65 @@
       ],
       "blocker": null,
       "note": "Implemented the traditional local workbench with plan bars, a next-action box, short what/why records, architecture and explicitly configured saved-company views. Clean proposed checkout: 134 tests, OK with one private-evidence class skipped; JavaScript syntax and whitespace checks pass. Browser checked desktop/narrow layouts, keyboard tabs, filtering, evidence drilldowns, empty state and stale-plan recovery. Independent read-only review findings were fixed and rechecked; mobile visual issues were fixed and rechecked. Greptile found two producer compatibility issues: mixed scalar/named run records and explicit null benchmarks. Both were fixed, covered using actual offline calculation records and independently rechecked. No provider/model calls or valuation recalculation. PR #8 merged into main on 4 November 2026: https://github.com/KapKnudz/betaforge-reborn/pull/8. The fresh final-head Greptile receipt belongs in the PR conversation."
+    },
+    {
+      "id": "return-and-reader-review",
+      "milestone": "saved-review",
+      "title": "Review operating assumptions, returns and a concise report",
+      "status": "in_progress",
+      "summary": "Prioritize joint earnings assumptions, then cash consistency and the reading order.",
+      "purpose": "Make the investment case easier to read and its return assumptions consistent.",
+      "acceptance": [
+        "Assess material operating assumptions jointly against comparable history and evidence; justify shared changes by their generic analytical value rather than one issuer outcome.",
+        "Verify the saved return and dividend conventions against preserved evidence.",
+        "Propose the smallest generic financial and presentation changes, with explicit policy decisions.",
+        "Retain the saved analysis and agree the scope before implementation."
+      ],
+      "evidence": [
+        "betaforge/financials.py",
+        "betaforge/analysis_report.py",
+        "docs/analysis-policy.md",
+        "docs/analysis-workflow.md",
+        "web/progress/app.js",
+        "docs/planning/return-and-reader-proposal.md",
+        "docs/calculations.md",
+        "AGENTS.md",
+        "docs/planning/decisions.md"
+      ],
+      "blocker": null,
+      "note": "The main operating assumptions now take priority over payment-timing refinements. Independent read-only evidence review found that the central case needs stronger joint driver and cash support; no replacement company assumptions are adopted. The standing generic-analysis boundary is recorded in AGENTS.md and adopted decisions: shared financial changes need a reusable analytical benefit, while issuer-specific forecast corrections stay in the company analysis. Policy/proposal updates require compatible history, an evidence bridge for material departures and a sensitivity addressing the main dependency, without a historical-peak ceiling. Independent documentation review passed. The 10% starting hurdle, 9% sensitivity and historical SIXRX distinction remain adopted. Existing formulas and saved analyses are unchanged; the remaining implementation is still proposed. User clarified that supported financial assumptions may be defended: a challenge triggers reassessment, while the report explains the evidence, business mechanism and selected magnitude beside each material forecast."
+    },
+    {
+      "id": "company-reader-language",
+      "milestone": "saved-review",
+      "title": "Simplify the Company page and strengthen financial writing",
+      "status": "done",
+      "summary": "Keep report versions compact, separate current quotes from report prices, and explain the business in clear financial language.",
+      "purpose": "Help a reader understand the investment case quickly without losing the underlying evidence.",
+      "acceptance": [
+        "Compact report selector at the top right; remove decorative slogans and read-only branding.",
+        "Show the latest available market quote separately from the dated report price without changing historical valuations or returns.",
+        "Research primary investor writing examples and put concise, evidence-backed writing instructions into the analyst contract.",
+        "Verify existing/legacy report selection, quote failures and desktop/narrow layouts; pass focused tests and independent review."
+      ],
+      "evidence": [
+        "web/progress/index.html",
+        "web/progress/app.js",
+        "web/progress/style.css",
+        "scripts/serve_progress.py",
+        "tests/test_progress.py",
+        "tests/test_progress_ui.py",
+        "docs/research/investor-writing-examples.md",
+        "docs/analysis-policy.md"
+      ],
+      "blocker": null,
+      "note": "Implemented the compact report-version selector, removed decorative/read-only branding and replaced the opaque lead with the existing estimated return plus expandable original conclusion. Latest daily market quotes are read separately from the configured evidence store; report price, return and valuation remain bound to their historical records. Price-only acquisition reuses the existing safe client and ingestion. Six primary investor-writing examples informed concise instructions in the frozen policy and structured report contract; no investor strategy or new valuation formula is imported. Independent code/editorial reviews passed after fixes to return-price binding, missing report-price handling and legacy date labels. Clean proposed checkout: 178 offline tests, OK with one private-evidence class skipped; eleven installed-evidence tests pass. Desktop/narrow browser checks cover quote/report dates, source details, legacy selection and reference targets, with no console errors or overflow. Original financial and review artifacts remain byte-identical to the existing private archive. Exact new quote evidence stays private. The current-head Greptile receipt belongs in the PR conversation; user reviews and merges. No fresh valuation run or dividend-schedule change is claimed. PR #12 is open. Greptile identified identical visible report labels when completion dates match; the fix adds an as-of date or version ID only for collisions, with regression checks. Regression checks, the repeated 178-test offline suite (one private-evidence class skipped), and a focused independent read-only recheck pass. Primary-source originals and the saved-view/quote supplement passed a clean private restore check. Final current-head review remains pending."
     }
   ],
   "session": {
-    "task": "saved-analysis-viewer",
-    "summary": "Structured analysis and local presentation are implemented and independently reviewed. Exact evidence/results have a verified private archive. Predecessor #9 merged; the remaining PR #10 diff is verified. User reviews and merges.",
-    "next_step": "Complete the final current-head PR review and user-merge handoff, then validate another issuer with original reports."
+    "task": "company-reader-language",
+    "summary": "PR #12 implements the Company-page cleanup, separate quote context and researched analyst writing guidance. The Greptile report-label issue is fixed and independently rechecked; all 178 offline tests pass with one private-evidence class skipped.",
+    "next_step": "Complete the fresh current-head Greptile review on PR #12 and retain its receipt in the conversation and local handoff. The primary-source library is preserved in private storage with a clean restore check. User reviews and merges, then resume the remaining generic operating/cash-schedule scope."
   },
   "references": [
     {

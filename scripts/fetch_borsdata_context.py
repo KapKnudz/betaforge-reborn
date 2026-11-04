@@ -26,10 +26,12 @@ def retry_delay(header):
             return 2
 
 
-def request_plan(instrument):
+def request_plan(instrument, prices_only=False):
     if not isinstance(instrument, int) or isinstance(instrument, bool) or instrument < 1:
         raise ValueError("Instrument must be a positive integer")
     prefix = f"/v1/instruments/{instrument}"
+    if prices_only:
+        return [("prices", prefix + "/stockprices", {"maxCount": 20})]
     selected = {"instList": str(instrument)}
     plan = [("instruments", "/v1/instruments", {}),
             ("description", "/v1/instruments/description", selected),
@@ -127,11 +129,12 @@ def acquire(directory, instrument, key, plan=None, pause=time.sleep):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--instrument", type=int, required=True)
+    parser.add_argument("--prices-only", action="store_true", help="Refresh daily prices without fetching the company research datasets")
     args = parser.parse_args()
-    request_plan(args.instrument)
+    plan = request_plan(args.instrument, prices_only=args.prices_only)
     key = read_key(ROOT / ".env.local")
     directory = ROOT / "data/borsdata/context" / str(args.instrument) / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    manifest = acquire(directory, args.instrument, key)
+    manifest = acquire(directory, args.instrument, key, plan=plan)
     print("Snapshot:", directory)
     return 0 if all(r.get("status") == "saved" for r in manifest["requests"]) else 1
 
