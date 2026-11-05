@@ -1,5 +1,6 @@
 import http.client
 import hashlib
+from copy import deepcopy
 from contextlib import closing
 import json
 from pathlib import Path
@@ -156,14 +157,116 @@ class ProgressTests(unittest.TestCase):
                            "coverage": {}},
         }
 
-    def configure_view(self, market_db=None):
+    def configure_view(self, market_db=None, corpus=None):
         file = self.root / "data/saved-view.json"
         file.write_text(json.dumps(self.saved_view()))
         self.stop()
-        self.server = progress.make_server(0, root=self.root, analyses=[file], market_db=market_db)
+        self.server = progress.make_server(0, root=self.root, analyses=[file], market_db=market_db, corpus=corpus)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         return file
+
+    def corpus_manifest(self):
+        return {
+            "version": 1, "status": "verified_api_capture", "instrument_ids": [1, 2],
+            "snapshot": "snapshot", "database_sha256": "a" * 64,
+            "companies": [
+                {"instrument_id": instrument,
+                 "identity": {"name": name, "ticker": ticker, "provider_private": "secret provider data"},
+                 "retrieved_at_utc": "2026-11-04T12:00:00+00:00", "datasets": [{"private": "raw values"}]}
+                for instrument, name, ticker in ((1, "Sample", "SAMP"), (2, "Captured issuer", ""))],
+        }
+
+    def save_corpus(self, manifest=None):
+        file = self.root / "data/corpus-manifest.json"
+        file.write_text(json.dumps(self.corpus_manifest() if manifest is None else manifest))
+        return file
+
+    def test_corpus_lists_only_company_metadata_without_saved_runs_or_evidence_reads(self):
+        file = self.save_corpus()
+        (self.root / "data/evidence.sqlite3").write_bytes(b"private database")
+        (self.root / "data/raw.json").write_text('{"private":"raw provider response"}')
+        self.stop()
+        with mock.patch.object(progress, "EvidenceStore") as store:
+            self.server = progress.make_server(0, root=self.root, corpus=file)
+            self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+            self.thread.start()
+            status, headers, body = self.request("/api/runs")
+            self.assertEqual(status, 200)
+            self.assertEqual(headers["Cache-Control"], "no-store")
+            expected = {"runs": [], "companies": [
+                {"instrument_id": instrument, "name": name, "ticker": ticker,
+                 "captured_at": "2026-11-04T12:00:00+00:00"}
+                for instrument, name, ticker in ((1, "Sample", "SAMP"), (2, "Captured issuer", ""))]}
+            self.assertEqual(json.loads(body), expected)
+            self.assertNotIn(str(file).encode(), body)
+            for path in ("/api/market-price/1", "/api/market-price/2", "/api/runs/2",
+                         "/data/corpus-manifest.json", "/data/evidence.sqlite3", "/data/raw.json",
+                         "/api/corpus", "/api/companies/2"):
+                with self.subTest(path=path):
+                    self.assertEqual(self.request(path)[0], 404)
+            store.assert_not_called()
+        file.unlink()
+        self.assertEqual(json.loads(self.request("/api/runs")[2]), expected)
+        self.assertEqual(self.request("/api/runs", "HEAD")[2], b"")
+
+    def test_corpus_and_saved_runs_keep_existing_analysis_and_quote_boundaries(self):
+        file = self.save_corpus()
+        self.configure_view(corpus=file)
+        payload = json.loads(self.request("/api/runs")[2])
+        self.assertEqual(len(payload["runs"]), 1)
+        self.assertEqual(len(payload["companies"]), 2)
+        self.assertEqual(json.loads(self.request("/api/runs/sample-20261101")[2]), self.saved_view())
+        self.assertEqual(json.loads(self.request("/api/market-price/1")[2]), {"quote": None})
+        self.assertEqual(self.request("/api/market-price/2")[0], 404)
+
+    def test_invalid_corpus_catalogue_fails_before_binding(self):
+        invalid = [{}, {**self.corpus_manifest(), "version": True},
+                   {**self.corpus_manifest(), "status": "incomplete"}]
+        for ids in (None, [1, 1], [1, 0], [1, -2], [1, True], [1, "2"], [1, 2, 3]):
+            invalid.append({**self.corpus_manifest(), "instrument_ids": ids})
+        for change in ({"instrument_id": 1}, {"instrument_id": True}, {"instrument_id": 0},
+                       {"identity": None}, {"identity": {"name": "Issuer"}},
+                       {"identity": {"name": "", "ticker": "A"}},
+                       {"identity": {"name": "Unsafe\nname", "ticker": "A"}},
+                       {"identity": {"name": "<script>", "ticker": "A"}},
+                       {"identity": {"name": "Issuer", "ticker": "   "}},
+                       {"identity": {"name": "Issuer", "ticker": "A\x00"}},
+                       {"retrieved_at_utc": None}, {"retrieved_at_utc": "2026-11-04"},
+                       {"retrieved_at_utc": "2026-11-04T12:00:00"},
+                       {"retrieved_at_utc": "2026-02-30T12:00:00Z"},
+                       {"retrieved_at_utc": "2026-11-04T12:00:00+00:99"}):
+            manifest = deepcopy(self.corpus_manifest())
+            manifest["companies"][1].update(change)
+            invalid.append(manifest)
+        manifest = self.corpus_manifest()
+        manifest["companies"].append(None)
+        invalid.append(manifest)
+        with mock.patch.object(progress, "ThreadingHTTPServer") as server:
+            for manifest in invalid:
+                with self.subTest(manifest=manifest):
+                    with self.assertRaises(ValueError):
+                        progress.make_server(0, root=self.root, corpus=self.save_corpus(manifest))
+            server.assert_not_called()
+
+    def test_corpus_requires_explicit_regular_manifest_path_and_valid_json(self):
+        file = self.save_corpus()
+        link = self.root / "data/linked.json"
+        link.symlink_to(file)
+        directory_link = self.root / "linked-data"
+        directory_link.symlink_to(file.parent, target_is_directory=True)
+        with mock.patch.object(progress, "ThreadingHTTPServer") as server:
+            for path in (self.root / "missing.json", link, directory_link / file.name,
+                         file.parent / ".." / "data" / file.name, file.parent):
+                with self.subTest(path=path):
+                    with self.assertRaises(ValueError):
+                        progress.make_server(0, root=self.root, corpus=path)
+            for body in ("{", "[]", '{"version":1,"version":1}', "null"):
+                file.write_text(body)
+                with self.subTest(body=body):
+                    with self.assertRaises(ValueError):
+                        progress.make_server(0, root=self.root, corpus=file)
+            server.assert_not_called()
 
     def ingest_market_data(self, database, rows=(), timestamp="2026-11-04T17:00:00Z"):
         directory = Path(tempfile.mkdtemp(dir=self.root))
@@ -270,7 +373,7 @@ class ProgressTests(unittest.TestCase):
         self.assertFalse((database.parent / "blobs").exists())
 
     def test_saved_runs_are_opt_in_and_only_expose_configured_exports(self):
-        self.assertEqual(json.loads(self.request("/api/runs")[2]), {"runs": []})
+        self.assertEqual(json.loads(self.request("/api/runs")[2]), {"runs": [], "companies": []})
         self.assertEqual(self.request("/api/runs/sample-20261101")[0], 404)
         self.configure_view()
         status, _, body = self.request("/api/runs")

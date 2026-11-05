@@ -33,7 +33,7 @@ python3 -m venv .venv
 .venv/bin/python scripts/serve_progress.py
 ```
 
-Open **http://127.0.0.1:8765** for progress, visual architecture and the analysis process. To browse company memos, [add private saved-run exports](docs/saved-analysis-view.md).
+Open **http://127.0.0.1:8765** for progress, visual architecture and the analysis process. To browse captured companies and available memos, [configure a corpus and saved exports](docs/saved-analysis-view.md).
 
 ## Research workflow
 

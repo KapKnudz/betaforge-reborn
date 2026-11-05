@@ -43,7 +43,7 @@
       <div class="company-controls"><label class="filter" for="company-select">Company<select id="company-select"><option value="">Loading…</option></select></label><label class="filter" for="run-select">Memo version<select id="run-select"><option value="">Loading…</option></select></label></div>
       <p id="company-status" class="connection" role="status" aria-live="polite">Loading report versions…</p>
       <div id="company-error" class="error" role="alert" hidden></div>
-      <div id="company-empty" class="empty-state" hidden><p class="eyebrow">NO SAVED ANALYSIS CONFIGURED</p><h3>Bring a saved case to the desk.</h3><p>Start the local server with an explicit saved-view file:</p><pre>python3 scripts/serve_progress.py --analysis saved-view.json</pre><p><a href="/docs/docs/saved-analysis-view.md" target="_blank" rel="noopener">Saved-review setup and format ↗</a></p></div>
+      <div id="company-empty" class="empty-state" hidden><h2>No companies configured</h2><p>Add a captured company catalogue or saved memo to the workbench.</p></div>
       <div id="company-view" hidden></div>
     </section>
     <footer><span>Preserved evidence. Explicit assumptions. Inspectable arithmetic.</span><span id="updated"></span></footer>

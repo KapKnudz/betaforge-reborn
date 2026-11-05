@@ -16,6 +16,7 @@ The reader should quickly understand the business case, what the price requires,
 ## Company layout
 
 1. **Quiet header:** company and ticker; separate labelled company and memo-version selectors. Keep the memo selector at the upper right and project navigation subordinate to the company research.
+   Captured companies remain selectable before their first memo. Show a concise empty state with the snapshot date; keep data availability distinct from completed analysis.
 2. **Overview:** a short investment conclusion alongside a compact facts panel. Distinguish the latest stored market quote from the dated report price. Label conditional annual return and the report's required return accurately.
 3. **Valuation graphic:** show the three scenarios with legible values, units, probabilities and dates. Use different chart forms for present values and future share targets. Selecting a scenario opens its assumptions.
 4. **Full-width expandable sections:** Investment case; Valuation assumptions; Financials and management; Evidence. Each has a short useful summary. Details are closed initially; links open the relevant section and focus their target.

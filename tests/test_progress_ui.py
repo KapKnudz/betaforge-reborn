@@ -224,6 +224,67 @@ const quote = {instrument_id: 1, value: "125", scale: "1", unit: "currency/share
 ''')
 
     @unittest.skipUnless(shutil.which("node"), "Node is required for the buildless UI check")
+    def test_captured_companies_without_memos_and_pending_requests(self):
+        self.run_ui(r'''
+const indexRun = (id, instrument) => ({id,company: {name: "Memo issuer " + instrument,instrument_id: instrument},analysis_kind: "structured",analysis_date: "2026-11-01",reviewed_at: "2026-11-04"});
+const versions = [indexRun("a-only", 1), indexRun("outside-corpus", 3)];
+const companies = [{instrument_id: 1,name: "Captured issuer A",ticker: "A",captured_at: "2026-11-03T17:00:00Z"}, {instrument_id: 2,name: "Captured issuer B (publ)",ticker: "B",captured_at: "2026-11-03T18:00:00Z"}];
+const detail = item => ({...run,...item,analysis: {...run.analysis},price: {...run.price}});
+const calls = [];
+const server = async url => {
+  calls.push(url);
+  if (url === "/api/runs") return {runs: versions,companies};
+  if (url.startsWith("/api/market-price/")) return {quote: null};
+  return detail(versions.find(item => item.id === url.split("/").pop()));
+};
+const selectCompany = async id => { $("company-select").value = id; await evaluate('showCompany("' + id + '")'); };
+(async () => {
+  sandbox.getJSON = server;
+  await evaluate("loadRuns()");
+  assert.equal($("company-select").children.length, 3, "catalogue and saved companies form one instrument-based list");
+  assert.equal($("company-select").value, "1", "default to available research");
+  assert.equal($("company-select").children[0].textContent.includes("Captured issuer A"), true);
+  assert($("company-select").children[1].textContent.includes("No memo"));
+  const requestsBefore = calls.length;
+  await selectCompany("2");
+  assert.equal(calls.length, requestsBefore, "selecting an unanalyzed company requests no memo or quote");
+  assert.equal(view.hidden, true);
+  assert.equal($("company-empty").hidden, false);
+  assert($("company-empty").textContent.includes("Captured issuer B"));
+  assert(!$("company-empty").textContent.includes("(publ)"));
+  assert($("company-empty").textContent.includes("No saved analysis yet."));
+  assert($("company-empty").textContent.includes("2026-11-03"));
+  assert.equal($("run-select").disabled, true);
+  assert.equal($("company-status").hidden, true);
+  assert.equal(evaluate("loadedRunId"), null);
+  await evaluate("loadRuns(true)");
+  assert.equal($("company-select").value, "2", "refresh preserves a company without a memo");
+  await selectCompany("1");
+  assert.equal(view.hidden, false);
+  assert.equal($("company-empty").hidden, true);
+  const pending = [];
+  sandbox.getJSON = url => url.startsWith("/api/runs/") ? new Promise(resolve => pending.push(resolve)) : server(url);
+  const oldMemo = evaluate('loadRun("a-only")');
+  await selectCompany("2");
+  pending[0](detail(versions[0])); await oldMemo;
+  assert.equal(view.hidden, true, "an in-flight memo cannot replace the empty company");
+  assert.equal(evaluate("loadedRunId"), null);
+  const quotes = [];
+  sandbox.getJSON = url => url.startsWith("/api/market-price/") ? new Promise(resolve => quotes.push(resolve)) : server(url);
+  const oldQuote = selectCompany("1"); await new Promise(setImmediate);
+  await selectCompany("2"); quotes[0]({quote: null}); await oldQuote;
+  assert.equal(view.hidden, true, "an in-flight quote cannot reveal old company research");
+  sandbox.getJSON = async () => ({runs: [],companies});
+  await evaluate("loadRuns(true)");
+  assert.equal($("company-select").disabled, false, "catalogue-only browsing works without any saved analysis");
+  assert.equal($("company-select").children.length, 2);
+  sandbox.getJSON = async () => ({runs: [],companies: []});
+  await evaluate("loadRuns(true)");
+  assert($("company-empty").textContent.includes("No companies configured"), "an empty index must clear the prior company identity");
+})().catch(error => { console.error(error); process.exitCode = 1; });
+''')
+
+    @unittest.skipUnless(shutil.which("node"), "Node is required for the buildless UI check")
     def test_company_versions_and_request_races(self):
         self.run_ui(r'''
 const indexRun = (id, instrument, cutoff, completed) => ({id,company: {name: "Synthetic Same Name (publ)",instrument_id: instrument},analysis_kind: "structured",analysis_date: cutoff,reviewed_at: completed});
