@@ -22,6 +22,8 @@ Financial queries and new packets show period dates, the provider's report date,
 
 Collect the selected company's original PDFs and record them in a private `source-manifest.json`. General report discovery/OCR remains future work; issuer archives and their linked publication feeds supply the originals. Preserve five latest annuals and the available interim archive, keeping coverage gaps explicit.
 
+Set the top-level `borsdata_instrument_id` to a JSON integer matching `$COMPANY_ID` in the packet command below: `prepare_codex_packet.py --instrument "$COMPANY_ID"`.
+
 Each manifest document needs a unique `report_id`, canonical `local_path` of `sources/<report_id>.pdf`, original `sha256` and positive `page_count`. Retain issuer identity, source URL, reporting period and publication date in the manifest. Known publication and period dates use `YYYY-MM-DD`; unknown publication days remain `null`.
 
 ```sh
