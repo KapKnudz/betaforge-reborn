@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-05T10:26:10.171403+00:00",
+  "updated_at": "2026-11-05T15:02:33.302037+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "nine-company-research",
@@ -239,7 +239,7 @@
       "id": "multi-company-validation",
       "milestone": "validation",
       "title": "Verify another issuer, then three to five different operating businesses",
-      "status": "pending",
+      "status": "done",
       "acceptance": [
         "Another real-company end-to-end walkthrough succeeds with source-linked material inputs.",
         "Selected businesses exercise different capital intensity, acquisitions, leases or share-count conventions.",
@@ -247,10 +247,14 @@
       ],
       "evidence": [
         "docs/research/system-readiness-review.md",
-        "docs/retrieval-design.md"
+        "docs/retrieval-design.md",
+        "docs/company-workflow.md",
+        "docs/analysis-workflow.md",
+        "tests/test_saved_view.py",
+        "tests/test_progress_ui.py"
       ],
       "blocker": null,
-      "note": "Next: choose another operating business and preserve its original reports, then test the generic structured analyst/review/viewer path and material definitions. Exercise different capital, acquisition or share conventions. Match peer evidence where useful; retain unsupported comparisons and claim values as explicit gaps.",
+      "note": "Nine real end-to-end cases passed source-linked material-input review and independent financial challenge across manufacturing, retail, distribution, consulting and software. Five annual reports per company were mandatory; older interim archive coverage is recorded separately. Connected desktop/mobile checks passed for all nine saved memos. This establishes workflow coverage across the selected cases, not every provider definition, forecast reliability or complete corporate-event coverage.",
       "summary": "Repeat the workflow on another issuer, then three to five businesses.",
       "purpose": "Test the generic process against different accounting conventions."
     },
@@ -617,16 +621,40 @@
         "scripts/export_saved_analysis.py",
         "scripts/prepare_reports.py",
         "tests/test_report_preparation.py",
-        "tests/test_packet.py"
+        "tests/test_packet.py",
+        "docs/analysis-policy.md",
+        "scripts/serve_progress.py",
+        "tests/test_progress.py",
+        "betaforge/storage.py",
+        "betaforge/saved_view.py",
+        "tests/test_storage.py",
+        "tests/test_saved_view.py",
+        "docs/saved-analysis-view.md"
       ],
       "blocker": null,
-      "note": "Confirmed scope: nine additional operating companies, frozen 3 November 2026 cutoff and full independently reviewed memos. Collected 250 original reports and prepared all nine frozen packets, each with five annuals plus current required interims and the older archive available for follow-up. Known post-cutoff publications are rejected; unproved historical publication days remain disclosed. The generic preparation and canonical-period compatibility changes passed independent read-only review and 212 offline tests (one private-evidence class skipped). The first three analysts are running on Sol/xhigh; no memo is yet marked reviewed or registered. Remaining work is material-source reconciliation, saved calculations, independent challenges, at most one revision per run, exports and verified private preservation. Exact research stays private; shared financial formulas are unchanged."
+      "note": "All nine frozen analyses are complete and independently accepted with explicit qualifications; five received one bounded cash-support revision. The 250-report source archive passed clean restore and private-download verification; all 236 completed run artifacts are staged with matching hashes. All nine memos, dated quotes, distinct scenario charts, adopted returns, legacy versions, source/review access and no-memo state passed desktop/mobile checks. Generic startup snapshots, an optional writable-store price index and explicit saved-return selection passed independent read-only review. A verified local quote-store copy avoids observed cloud-folder read stalls. Clean proposed checkout: 222 offline tests passed with one private-evidence class skipped. Private results preservation and current-head PR review remain; shared valuation formulas are unchanged."
+    },
+    {
+      "id": "material-event-coverage",
+      "milestone": "validation",
+      "title": "Check material events before security-wide valuation",
+      "status": "pending",
+      "summary": "Check whether recent disclosures change the business, claims or share base being valued.",
+      "purpose": "Keep a limited operating benchmark distinct from a valuation of the actual shares.",
+      "acceptance": [
+        "Check relevant issuer disclosures through the cutoff for material changes after the latest financial statements; preserve the selected evidence and gaps.",
+        "Make the business, claims and share-base scope clear beside the conclusion and return; identify material changes not covered by the model.",
+        "Reuse existing evidence and calculation tools; test ordinary and transaction-affected situations before adding financial machinery."
+      ],
+      "evidence": [],
+      "blocker": null,
+      "note": "Batch validation exposed a general scope-check gap. Existing research states its limits; a reusable evidence-selection and display check remains to be implemented."
     }
   ],
   "session": {
     "task": "nine-company-research",
-    "summary": "All report archives and frozen packets are ready; the first three analysts are running.",
-    "next_step": "Review completed drafts independently, resolve justified issues once, register reviewed memos and continue the remaining six companies."
+    "summary": "Nine reviewed memos are registered and browser-verified; final private results preservation and PR delivery remain.",
+    "next_step": "Freeze and clean-restore the completed results, verify the private download, then publish the focused generic PR and complete its review loop."
   },
   "references": [
     {

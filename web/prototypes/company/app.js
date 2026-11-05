@@ -41,10 +41,16 @@ const dateLabel = value => {
   return match[3] ? `${Number(match[3])} ${months[Number(match[2])-1] || match[2]} ${match[1]}` : match[2] ? `${months[Number(match[2])-1] || match[2]} ${match[1]}` : match[1];
 };
 function safeUrl(value) { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : null; } catch (_) { return null; } }
+function returnCalculation(run) {
+  const returns = (run.original_calculations || []).filter(c => c.operation === 'financial_formula' && c.formula === 'expected_cashflow_irr');
+  const selected = (run.benchmark || {}).return_calculation_id;
+  const candidates = selected === undefined ? returns : returns.filter(c => c.id === selected);
+  return candidates.length === 1 ? candidates[0] : null;
+}
 function returnUsesReportPrice(run) {
-  const price = run.price, returns = (run.original_calculations || []).filter(c => c.operation === 'financial_formula' && c.formula === 'expected_cashflow_irr');
-  if (!price || !price.id || !price.source_id || returns.length !== 1) return false;
-  const calc = returns[0], inputs = (calc.inputs || []).filter(i => i.field === 'price');
+  const price = run.price, calc = returnCalculation(run);
+  if (!price || !price.id || !price.source_id || !calc) return false;
+  const inputs = (calc.inputs || []).filter(i => i.field === 'price');
   return number(((calc.outputs || {}).irr_percent || {}).value) !== null && inputs.length === 1 && (calc.input_ids || {}).price === price.id && inputs[0].id === price.id && ['value','unit','scale','currency','source_id'].every(k => inputs[0][k] === price[k]) && (inputs[0].date || inputs[0].period_end) === price.date && (((calc.outputs || {}).irr_percent || {}).value === (run.benchmark || {}).candidate_annualized_return_percent);
 }
 function inputDisplay(input, key) {
@@ -142,7 +148,7 @@ function render(data) {
  const disclosures=el('div','disclosures'); const [investment,investmentBody]=chapter('investment-case','Investment case','Business, opportunity and principal risks'); const [valuation,valuationBody]=chapter('valuation-assumptions','Valuation assumptions','Scenario inputs, weights and reasoning'); const [financials,financialBody]=chapter('financials','Financials and management','Key ratios and management outlook'); const [evidence,evidenceBody]=chapter('evidence','Evidence','Original analysis, sources and calculation records'); append(disclosures,investment,valuation,financials,evidence);root.append(disclosures);
  const referenceIds=new Map(); function provenance(kind, refs) { const content=el('div'); content.append(el('p','muted','Classification: '+(kind || 'Not stated'))); const list=el('ul','source-list'); (refs || []).forEach(ref=>{if(!referenceIds.has(ref)) referenceIds.set(ref,'reference-'+referenceIds.size);const li=el('li');li.append(linkTarget(referenceIds.get(ref),ref));list.append(li);}); if(!list.children.length)content.append(el('p','muted','No references saved.')); else content.append(list);return detail('Sources & calculations',content); }
  if(returnBound) {
-  const calculation=(run.original_calculations || []).find(c=>c.formula==='expected_cashflow_irr'), content=el('div'), inputs=calculation.inputs || [], outputs=calculation.outputs || {};
+  const calculation=returnCalculation(run), content=el('div'), inputs=calculation.inputs || [], outputs=calculation.outputs || {};
   const savedInput=field=>inputs.find(input=>input.field===field) || {}, savedValue=(record,integer=false)=>number(record.calculation_value ?? record.value)===null ? 'Unavailable' : (integer ? String(number(record.calculation_value ?? record.value)) : fixed(record.calculation_value ?? record.value))+(record.unit && record.unit!=='dimensionless'?' '+record.unit:'')+(record.calculation_value===undefined && record.scale && record.scale!=='1'?' · scale '+record.scale:'');
   append(content,el('p','','The saved model weights each scenario’s dividend and terminal share target at each payment date, then solves the annual rate that equates those cash flows with the report price. It does not average scenario returns. The saved formula uses constant model-year-end dividends and a common integer horizon, rather than actual dividend dates.'),el('p','','Report-price basis: '+fixed(priceValue(price))+' '+(price.currency || '')+' · '+dateLabel(price.date)+'. The latest quote does not recalculate this result.'),table(['Saved cash-flow input / output','Value'],[['Initial report price',savedValue(savedInput('price'))],['Expected annual dividend / share',savedValue(savedInput('expected_annual_dividend_per_share'))],['Expected terminal share target',savedValue(savedInput('expected_future_target'))],['Years',savedValue(savedInput('years'),true)],['Final receipt · dividend plus share target',savedValue(outputs.terminal_cash_flow || {})],['Saved annual return',fixed(outputs.irr_percent.value)+'%']]),provenance('Saved expected cash-flow IRR',[calculation.id].filter(Boolean)),detail('Exact return calculation',raw(calculation)));
   valuationBody.append(detail('How the conditional annual return is calculated',content,'return-explanation'));

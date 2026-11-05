@@ -411,7 +411,9 @@ def validate_saved_view(view):
             if value is not None:
                 _date(value)
     benchmark = view["benchmark"]
-    _object(benchmark, BENCHMARK_FIELDS)
+    _object(benchmark, BENCHMARK_FIELDS, {"return_calculation_id"})
+    if "return_calculation_id" in benchmark and "analysis" not in view:
+        raise ValueError("Explicit return selection requires a structured analysis")
     if not isinstance(benchmark["limits"], list):
         raise ValueError("Invalid benchmark limits")
     _text(benchmark["interpretation"], nullable=True)
@@ -616,6 +618,23 @@ def _validate_structured_view(view):
     if view["calculations"] != expected_calculations:
         raise ValueError("Named calculations differ from original trace")
     returns = [calc for calc in originals.values() if calc.get("formula") == "expected_cashflow_irr"]
+    if "return_calculation_id" in view["benchmark"]:
+        selected_id = view["benchmark"]["return_calculation_id"]
+        _text(selected_id)
+        selected = originals.get(selected_id)
+        if selected is None or selected.get("operation") != "financial_formula" or selected.get("formula") != "expected_cashflow_irr":
+            raise ValueError("Selected return must identify a saved expected cash-flow IRR calculation")
+        price = view["price"]
+        inputs = [item for item in selected["inputs"] if item.get("field") == "price"]
+        if (not price or not price["id"] or not price["source_id"] or len(inputs) != 1 or
+                selected["input_ids"].get("price") != price["id"] or inputs[0].get("id") != price["id"] or
+                any(inputs[0].get(key) != price[key] for key in ("value", "unit", "scale", "currency", "source_id")) or
+                (inputs[0].get("date") or inputs[0].get("period_end")) != price["date"]):
+            raise ValueError("Selected return must use the exact saved report price")
+        output = selected["outputs"].get("irr_percent", {})
+        if output.get("value") is None or output.get("unit") != "percent":
+            raise ValueError("Selected return requires a saved annual IRR percent output")
+        returns = [selected]
     candidate = returns[0]["outputs"].get("irr_percent", {}).get("value") if len(returns) == 1 else None
     # Earlier structured exports left the comparator unselected despite retaining its context.
     if (view["benchmark"]["candidate_annualized_return_percent"] != candidate or
@@ -751,7 +770,7 @@ def _validate_structured_view(view):
         _validate_reader_memo(view["reader_memo"], view, references)
 
 
-def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_id, method):
+def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_id, method, return_calculation_id=None):
     """Export a submitted structured run after verifying all frozen evidence."""
     from betaforge.analysis_report import references as validate_references, render_markdown, validate_saved_report, validate_review
     from betaforge.tools import EvidenceTools
@@ -843,6 +862,11 @@ def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_
             benchmark = dict.fromkeys(BENCHMARK_FIELDS)
             benchmark["limits"] = ["Saved expected return and historical benchmark context are not a forecast comparison."]
             returns = [calc for calc in originals["calculations"] if calc.get("formula") == "expected_cashflow_irr"]
+            if return_calculation_id is not None:
+                benchmark["return_calculation_id"] = return_calculation_id
+                returns = [calc for calc in returns if calc["id"] == return_calculation_id]
+                if len(returns) != 1:
+                    raise ValueError("Selected return calculation is unavailable")
             if len(returns) == 1:
                 benchmark["candidate_annualized_return_percent"] = returns[0]["outputs"].get("irr_percent", {}).get("value")
             benchmark_entry = packet.get("market_benchmark_context", packet.get("benchmark_context"))
@@ -877,10 +901,12 @@ def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_
     return validate_saved_view(view)
 
 
-def build_saved_view(review_path, run_dir, packet_dir, company_name, ticker, view_id, method):
+def build_saved_view(review_path, run_dir, packet_dir, company_name, ticker, view_id, method, return_calculation_id=None):
     """Copy one reviewed, completed run after checking its preserved identities."""
     if review_path is None:
-        return build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_id, method)
+        return build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_id, method, return_calculation_id)
+    if return_calculation_id is not None:
+        raise ValueError("Explicit return selection requires a structured analysis")
     review_path, run_dir, packet_dir = map(checked_path, (review_path, run_dir, packet_dir))
     review_body = _body(review_path)
     run_body = _body(run_dir / "run.json")

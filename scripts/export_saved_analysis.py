@@ -11,6 +11,7 @@ from betaforge.saved_view import MAX_BYTES, build_saved_view, checked_path
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--review", help="Required for legacy runs; omit for structured analysis.json runs")
+    parser.add_argument("--return-calculation-id", help="Explicit saved expected_cashflow_irr calculation to display when a structured run retains revisions")
     for name in ("run", "packet", "company", "ticker", "id", "method", "output"):
         parser.add_argument("--" + name, required=True)
     args = parser.parse_args(argv)
@@ -20,7 +21,8 @@ def main(argv=None):
         if (not output.is_relative_to(private) or output.is_relative_to(private / "bf-borsdata-research")
                 or output.suffix != ".json"):
             raise ValueError("Output must be a new JSON file under the ignored data/ directory")
-        view = build_saved_view(args.review, args.run, args.packet, args.company, args.ticker, args.id, args.method)
+        view = build_saved_view(args.review, args.run, args.packet, args.company, args.ticker, args.id, args.method,
+                                return_calculation_id=args.return_calculation_id)
         body = json.dumps(view, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
         if len(body.encode("utf-8")) > MAX_BYTES:
             raise ValueError("Saved view exceeds 16 MiB")

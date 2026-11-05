@@ -68,6 +68,31 @@ class ProgressUITests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     @unittest.skipUnless(shutil.which("node"), "Node is required for the buildless UI check")
+    def test_explicit_return_selection_preserves_price_binding_and_explanation(self):
+        self.run_ui(r'''
+const original = run.original_calculations.find(calc => calc.id === "calc:irr");
+const selected = {...original,id: "calc:adopted",outputs: {irr_percent: {value: "8.4",unit: "percent"}}};
+run.original_calculations.push(selected);
+run.benchmark.candidate_annualized_return_percent = "8.4";
+evaluate("renderCompany(run)");
+assert(panel("overview").textContent.includes("Report-price binding unavailable"));
+run.benchmark.return_calculation_id = selected.id;
+evaluate("renderCompany(run)");
+assert(panel("overview").textContent.includes("Conditional annual return8.4%At report price"));
+assert($("return-explanation").textContent.includes("Saved annual return8.4%"));
+assert(all($("return-explanation")).some(node => node.href === "#calculation-calc:adopted"));
+for (const id of [null, "calc:missing", "calc:old", original.id]) {
+  run.benchmark.return_calculation_id = id;
+  assert.equal(evaluate("returnUsesReportPrice(run)"), false);
+}
+run.benchmark.return_calculation_id = selected.id;
+for (const [key,value] of [["id","obs:other"],["value","101"],["unit","currency"],["scale","10"],["currency","USD"],["source_id","src_other"],["date","2026-10-29"]]) {
+  sandbox.changed = {...run,price: {...run.price,[key]:value}};
+  assert.equal(evaluate("returnUsesReportPrice(changed)"), false, key);
+}
+''')
+
+    @unittest.skipUnless(shutil.which("node"), "Node is required for the buildless UI check")
     def test_structured_and_legacy_saved_rendering(self):
         self.run_ui(r'''
 
