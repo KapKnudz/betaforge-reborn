@@ -64,6 +64,7 @@ class PacketTests(unittest.TestCase):
         self.assertEqual(packet.digest(copied), self.index["reports"][0]["source_sha256"])
         self.assertIn("Test adopted policy", data["context"])
         self.assertIn("Test explicit formulas", data["context"])
+        self.assertEqual(data["required_reports"], ["issuer-test"])
         for item in data["analysis_contract"].values():
             self.assertFalse(Path(item["path"]).is_absolute())
             self.assertEqual(packet.digest(result.parent / item["path"]), item["sha256"])
@@ -77,6 +78,71 @@ class PacketTests(unittest.TestCase):
         (self.reports / "sources/issuer-test.pdf").write_bytes(b"not the frozen report")
         with self.assertRaises(ValueError):
             self.build()
+        self.assertFalse((self.root / "published").exists())
+        self.assertFalse(list(self.root.glob('.prepare-*')))
+
+    def archive_fixture(self):
+        annuals = [f"issuer-annual-{year}" for year in range(2021, 2026)]
+        current = ["issuer-q1-2026", "issuer-q2-2026", "issuer-q3-2026"]
+        for rid in annuals + current:
+            for folder, suffix in (("sources", ".pdf"), ("prepared", ".json")):
+                original = self.reports / folder / ("issuer-test" + suffix)
+                (original.parent / (rid + suffix)).write_bytes(original.read_bytes())
+            self.index["reports"].append({**self.index["reports"][0], "report_id": rid})
+        (self.reports / "prepared/index.json").write_text(json.dumps(self.index))
+        return annuals + current
+
+    def test_required_subset_keeps_older_archive_reports_frozen_and_readable(self):
+        required = self.archive_fixture()
+        result = self.build(required_reports=required)
+        data = json.loads(result.read_text())
+        self.assertEqual(data["required_reports"], required)
+        self.assertTrue((result.parent / "reports/sources/issuer-test.pdf").exists())
+        tools = EvidenceTools(result, self.root / "subset-run")
+        try:
+            self.assertEqual(tools.required, required)
+            self.assertEqual(len(tools.catalogue()["reports"]), 9)
+            self.assertEqual(tools.read_report("issuer-test", 1)["delivered_pages"], [1])
+        finally:
+            tools.store.close()
+
+    def test_invalid_required_selection_is_rejected_without_publication(self):
+        for required in ([], ["unknown"], ["issuer-test", "issuer-test"], "issuer-test", [None]):
+            with self.subTest(required=required), self.assertRaisesRegex(ValueError, "Required reports"):
+                self.build(required_reports=required)
+            self.assertFalse((self.root / "published").exists())
+            self.assertFalse((self.root / "store").exists())
+            self.assertFalse(list(self.root.glob('.prepare-*')))
+
+    def test_invalid_or_post_cutoff_report_publication_is_rejected(self):
+        for publication in ("2026-09-31", "20261101", "2026-11-02"):
+            (self.reports / "source-manifest.json").write_text(json.dumps({"documents": [
+                {"report_id": "issuer-test", "publication_date": publication}]}))
+            with self.subTest(publication=publication), self.assertRaises(ValueError):
+                self.build()
+            self.assertFalse((self.root / "published").exists())
+            self.assertFalse((self.root / "store").exists())
+            self.assertFalse(list(self.root.glob('.prepare-*')))
+
+    def test_known_cutoff_and_unknown_publication_dates_are_preserved_with_limit(self):
+        required = self.archive_fixture()
+        documents = [{"report_id": "issuer-test", "publication_date": None}]
+        documents.extend({"report_id": rid, "publication_date": "2026-11-01"} for rid in required)
+        documents[-1].pop("publication_date")
+        manifest = json.dumps({"documents": documents}).encode()
+        (self.reports / "source-manifest.json").write_bytes(manifest)
+        result = self.build(required_reports=required)
+        self.assertEqual((result.parent / "reports/source-manifest.json").read_bytes(), manifest)
+        data = json.loads(result.read_text())
+        self.assertEqual(data["required_reports"], required)
+        self.assertIn("Missing or null report publication dates remain unknown", data["context"])
+        self.assertIn("not an automatic backtest", data["context"])
+
+    def test_nonrequired_archive_report_still_requires_matching_hashes(self):
+        required = self.archive_fixture()
+        (self.reports / "sources/issuer-test.pdf").write_bytes(b"changed archive")
+        with self.assertRaisesRegex(ValueError, "fixed source hashes"):
+            self.build(required_reports=required)
         self.assertFalse((self.root / "published").exists())
         self.assertFalse(list(self.root.glob('.prepare-*')))
 

@@ -159,7 +159,7 @@ def copy_market_benchmark(context_path, destination, analysis_date=None):
 
 def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analysis_date,
             instrument_id, prompt_path, extra_facts=(), resolution_path=None, benchmark_context=None,
-            market_benchmark_context=None):
+            market_benchmark_context=None, required_reports=None):
     if type(instrument_id) is not int or instrument_id <= 0:
         raise ValueError("Instrument ID must be a positive integer")
     if not isinstance(analysis_date, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", analysis_date):
@@ -188,6 +188,26 @@ def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analys
     try:
         index_path = reports_base / "prepared/index.json"
         index = json.loads(index_path.read_text())
+        manifest_body = (reports_base / "source-manifest.json").read_bytes()
+        source_manifest = json.loads(manifest_body)
+        for document in source_manifest.get("documents", []):
+            publication = document.get("publication_date")
+            if publication is not None:
+                if not isinstance(publication, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", publication):
+                    raise ValueError("Report publication date must be YYYY-MM-DD")
+                date.fromisoformat(publication)
+                if publication > analysis_date:
+                    raise ValueError("Report publication date follows the analysis date")
+        report_ids = [report["report_id"] for report in index["reports"]]
+        if required_reports is None:
+            required = report_ids
+        else:
+            if (not isinstance(required_reports, (list, tuple)) or not required_reports or
+                    any(not isinstance(rid, str) for rid in required_reports) or
+                    len(set(required_reports)) != len(required_reports) or
+                    not set(required_reports) <= set(report_ids)):
+                raise ValueError("Required reports must be a nonempty list of unique existing report IDs")
+            required = list(required_reports)
         copied = temporary / "reports"
         (copied / "prepared").mkdir(parents=True)
         (copied / "sources").mkdir()
@@ -203,7 +223,7 @@ def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analys
                 if digest(target) != report[hash_key]:
                     raise ValueError("Report corpus differs from the fixed source hashes")
         shutil.copyfile(index_path, copied / "prepared/index.json")
-        shutil.copyfile(reports_base / "source-manifest.json", copied / "source-manifest.json")
+        (copied / "source-manifest.json").write_bytes(manifest_body)
         (temporary / "mapping-resolution.md").write_text(resolution)
         if primary_facts:
             shutil.copyfile(primary_facts, temporary / "reconciled-facts.json")
@@ -223,11 +243,14 @@ def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analys
             for path in fact_paths:
                 print(json.dumps(store.add_report_facts(path)), flush=True)
             store.validate_report_links({r["report_id"]: r for r in index["reports"]}, instrument_id=instrument_id)
-            context = initial_context(store, resolution, instrument_id, analysis_date) + contract_text + benchmark_text + market_text
+            context = (initial_context(store, resolution, instrument_id, analysis_date) +
+                       "\nREPORT AVAILABILITY LIMITATION\nMissing or null report publication dates remain unknown. "
+                       "Retrieval dates do not establish historical availability; this packet is not an automatic backtest.\n" +
+                       contract_text + benchmark_text + market_text)
             store.freeze(temporary / "snapshot")
         packet = {"instrument_id": instrument_id, "analysis_date": analysis_date,
                   "snapshot_dir": "snapshot", "reports_dir": "reports",
-                  "required_reports": [r["report_id"] for r in index["reports"]],
+                  "required_reports": required,
                   "analysis_contract": contract, "extra_report_facts": extra_metadata,
                   "context": context,
                   "prompt_sha256": digest(temporary / "prompt.md"),
@@ -251,6 +274,8 @@ def main():
     parser.add_argument("--db", type=Path, default=ROOT / "data/evidence/evidence.sqlite3")
     parser.add_argument("--facts", type=Path, help="Optional curated report facts for the selected company")
     parser.add_argument("--reports", type=Path, required=True)
+    parser.add_argument("--required-report", action="append", dest="required_reports",
+                        help="Report ID requiring a full analyst read; repeat to select a subset (default: all reports)")
     parser.add_argument("--instrument", "--instrument-id", dest="instrument_id", type=int, required=True)
     parser.add_argument("--analysis-date", required=True, help="Explicit analysis date, YYYY-MM-DD; source capture dates remain separate")
     parser.add_argument("--extra-facts", action="append", type=Path, default=[])
@@ -263,7 +288,8 @@ def main():
                              instrument_id=args.instrument_id, analysis_date=args.analysis_date,
                              extra_facts=args.extra_facts, prompt_path=args.prompt,
                              resolution_path=args.mapping_resolution, benchmark_context=args.benchmark_context,
-                             market_benchmark_context=args.market_benchmark_context))
+                             market_benchmark_context=args.market_benchmark_context,
+                             required_reports=args.required_reports))
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-05T09:11:17.219072+00:00",
+  "updated_at": "2026-11-05T10:26:10.171403+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "return-and-reader-review",
+  "next_task": "nine-company-research",
   "milestones": [
     {
       "id": "foundation",
@@ -594,12 +594,39 @@
       ],
       "blocker": null,
       "note": "Implemented optional startup corpus catalogue and instrument-based union with configured saved memos. Empty companies show capture date and no-analysis status, with version selection disabled. Source-preserving memos, refresh memory and stale-request guards remain intact. Independent read-only review found no actionable defects. Clean proposed checkout: 198 offline tests passed, with one private-evidence class skipped; optional Node checks ran with the installed binary on PATH. Real thirty-company browser checks at 1280 × 720 and 390 × 844 verified catalogue options, existing memo versions, transitions, refresh, selection memory and no horizontal overflow or console errors. Exact catalogue and screenshots stay private. The user reviews and merges; publication/current-head Greptile receipts belong in the PR conversation. No provider acquisition or new company analysis run. Greptile identified missing optional tickers as a startup compatibility issue; missing/null tickers now display as empty, with HTTP startup and actual corpus-builder output regression coverage. Independent focused recheck passed."
+    },
+    {
+      "id": "nine-company-research",
+      "milestone": "validation",
+      "title": "Add reports and source-linked calculations for nine more companies",
+      "status": "in_progress",
+      "summary": "Prepare the first nine additional companies from the frozen API corpus.",
+      "purpose": "Test reusable financial definitions and analysis across different operating businesses.",
+      "acceptance": [
+        "Confirm the nine-company selection and evidence cutoff.",
+        "Preserve five annual reports and five years of available interim reports per selected company, with source URLs, publication dates, hashes and explicit gaps.",
+        "Prepare readable page-linked evidence and verify material Börsdata/report mappings before selecting valuation inputs.",
+        "Save deterministic calculations with their input definitions and source references; keep unavailable inputs explicit.",
+        "Register completed saved analyses on the existing website and privately preserve the exact evidence and results."
+      ],
+      "evidence": [
+        "docs/company-workflow.md",
+        "docs/analysis-workflow.md",
+        "scripts/prepare_codex_packet.py",
+        "scripts/run_codex_analysis.py",
+        "scripts/export_saved_analysis.py",
+        "scripts/prepare_reports.py",
+        "tests/test_report_preparation.py",
+        "tests/test_packet.py"
+      ],
+      "blocker": null,
+      "note": "Confirmed scope: nine additional operating companies, frozen 3 November 2026 cutoff and full independently reviewed memos. Collected 250 original reports and prepared all nine frozen packets, each with five annuals plus current required interims and the older archive available for follow-up. Known post-cutoff publications are rejected; unproved historical publication days remain disclosed. The generic preparation and canonical-period compatibility changes passed independent read-only review and 212 offline tests (one private-evidence class skipped). The first three analysts are running on Sol/xhigh; no memo is yet marked reviewed or registered. Remaining work is material-source reconciliation, saved calculations, independent challenges, at most one revision per run, exports and verified private preservation. Exact research stays private; shared financial formulas are unchanged."
     }
   ],
   "session": {
-    "task": "company-catalog-navigation",
-    "summary": "Captured company navigation and optional ticker compatibility are validated.",
-    "next_step": "Review and merge PR #16 after the fresh Greptile review; then resume operating-to-capital-and-cash evidence review and validate another issuer."
+    "task": "nine-company-research",
+    "summary": "All report archives and frozen packets are ready; the first three analysts are running.",
+    "next_step": "Review completed drafts independently, resolve justified issues once, register reviewed memos and continue the remaining six companies."
   },
   "references": [
     {
