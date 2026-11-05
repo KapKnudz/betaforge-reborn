@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-05T20:41:56.347760+00:00",
+  "updated_at": "2026-11-05T21:54:26.049435+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "return-and-reader-review",
@@ -675,12 +675,35 @@
       ],
       "blocker": null,
       "note": "Two role drafts and two focused references are complete, derived from current policy, the named registry and preserved memo/reference reviews. The initial diagnostics, primary EV/EBIT equity bridge, conditional checks and per-case/weighted cash-flow returns are explicit. Both skills pass the bundled validator; all 21 local links and local anchors resolve. Independent read-only financial/source review found no material findings. A fresh analyst and reviewer handled one hypothetical preliminary note using the drafts, with no material error found within that scope. This does not establish improved actual-company valuation quality. Drafts remain outside active discovery; runtime delivery, packet identity changes and full company trials are separate adoption work. Source derivation and exercise receipts stay private. PR/current-head review receipt belongs in the PR conversation; the user reviews and merges."
+    },
+    {
+      "id": "market-peer-skill-draft",
+      "milestone": "validation",
+      "title": "Define business evidence and draft combined market and peer research",
+      "status": "done",
+      "summary": "Add practical investment definitions and one upstream research role.",
+      "purpose": "Ground business-driver scenarios in comparable evidence without adding model complexity.",
+      "acceptance": [
+        "Explain material investment judgments with observable evidence, counterevidence and simple examples, derived from the adopted philosophy.",
+        "Draft one combined market-and-peer role with economic matching, dated sources, a compact handoff and bounded follow-up.",
+        "Keep scenario formation tied to operating conditions, financials and capital needs before comparison with the market price.",
+        "Check financial consistency, source claims, skill structure and links through independent read-only review; keep runtime adoption separate."
+      ],
+      "evidence": [
+        "docs/skill-drafts/betaforge-company-analysis/SKILL.md",
+        "docs/skill-drafts/betaforge-company-analysis/references/business-evidence.md",
+        "docs/skill-drafts/betaforge-market-peer-research/SKILL.md",
+        "docs/skill-drafts/betaforge-market-peer-research/references/evidence-handoff.md",
+        "docs/skill-drafts/betaforge-valuation-review/SKILL.md"
+      ],
+      "blocker": null,
+      "note": "Practical definitions, evidence/counterevidence tests and a fictional driver-based scenario example are complete. One combined upstream market/peer role returns a compact sourced comparison and driver brief; the lead retains forecasts, multiples and probabilities. All three draft skills pass the bundled validator; all 42 local links/anchors resolve, seven Markdown files pass whitespace checks and the three invented EBIT rows recompute exactly. Independent read-only review accepted the drafts after a cutoff-admission ambiguity was corrected and rechecked. This establishes draft consistency, not real-peer comparability, runtime delivery or forecasting improvement. Canonical policy, formulas, historical packets and saved valuations remain unchanged. The follow-up is local on feat/business-evidence-and-peers; PR #18 remains open and unchanged."
     }
   ],
   "session": {
-    "task": "valuation-skill-drafts",
-    "summary": "Two philosophy-based skill drafts, a clear calculation guide and reusable memo structure are complete and independently checked.",
-    "next_step": "Review the draft content for adoption, then integrate explicit frozen skill delivery and test varied preserved companies. Keep scenario returns first, preserve historical runs and continue the reader improvements."
+    "task": "market-peer-skill-draft",
+    "summary": "Drafted practical philosophy definitions and a combined market/peer role; independent review and document checks pass.",
+    "next_step": "Review these drafts alongside PR #18, then verify a small peer/market brief and explicit frozen skill/context delivery on one preserved company before wider adoption. Continue scenario-return and reader work; retain original analyses."
   },
   "references": [
     {

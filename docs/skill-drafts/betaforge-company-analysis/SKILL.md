@@ -27,7 +27,7 @@ Completion: material inputs have a stated meaning and saved source, or an explic
 
 ## 2. Explain the business and select initial calculations
 
-Identify three to five drivers of earnings and cash. Assess pricing power, competitive advantages, management promises versus outcomes, capital allocation and prospective dilution through business evidence. Compare own history first, economically matched global peers second, and qualified industry data third.
+Use the [business-evidence guide](references/business-evidence.md) to identify three to five drivers of earnings and cash and test pricing power, competitive advantages, management delivery, capital allocation and prospective dilution. The guide supplies working definitions, counterevidence and simple examples, without a scorecard. Compare own history first, economically matched global peers second, and qualified industry data third. Use a frozen [market-and-peer brief](../betaforge-market-peer-research/SKILL.md) when supplied; the coordinator owns external research, and you own its forecast implications.
 
 Select calculations by the question they answer:
 

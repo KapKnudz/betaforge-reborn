@@ -19,7 +19,7 @@ Remain read-only. Inspect existing artifacts and referenced evidence; start no c
 
 ## Challenge the economic case
 
-Treat the proposed conclusion as a hypothesis. Identify which assumptions do the most work and whether evidence supports their magnitude.
+Treat the proposed conclusion as a hypothesis. Identify which assumptions do the most work and whether evidence supports their magnitude. Use the [business-evidence tests](../betaforge-company-analysis/references/business-evidence.md) when challenging quality claims. If peer or market context supports a material assumption, inspect economic fit, financial definitions, source/cutoff dates and the link to the target's drivers; a peer average or broad market forecast does not establish the company's outcome.
 
 | Review question | Evidence to inspect |
 |---|---|
