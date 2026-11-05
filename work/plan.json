@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-05T09:01:25.929479+00:00",
+  "updated_at": "2026-11-05T09:11:17.219072+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "return-and-reader-review",
@@ -589,16 +589,17 @@
         "web/progress/app.js",
         "tests/test_progress.py",
         "tests/test_progress_ui.py",
-        "docs/saved-analysis-view.md"
+        "docs/saved-analysis-view.md",
+        "tests/test_development_corpus.py"
       ],
       "blocker": null,
-      "note": "Implemented optional startup corpus catalogue and instrument-based union with configured saved memos. Empty companies show capture date and no-analysis status, with version selection disabled. Source-preserving memos, refresh memory and stale-request guards remain intact. Independent read-only review found no actionable defects. Clean proposed checkout: 197 offline tests passed, with one private-evidence class skipped; optional Node checks ran with the installed binary on PATH. Real thirty-company browser checks at 1280 × 720 and 390 × 844 verified catalogue options, existing memo versions, transitions, refresh, selection memory and no horizontal overflow or console errors. Exact catalogue and screenshots stay private. The user reviews and merges; publication/current-head Greptile receipts belong in the PR conversation. No provider, model or financial calculation run."
+      "note": "Implemented optional startup corpus catalogue and instrument-based union with configured saved memos. Empty companies show capture date and no-analysis status, with version selection disabled. Source-preserving memos, refresh memory and stale-request guards remain intact. Independent read-only review found no actionable defects. Clean proposed checkout: 198 offline tests passed, with one private-evidence class skipped; optional Node checks ran with the installed binary on PATH. Real thirty-company browser checks at 1280 × 720 and 390 × 844 verified catalogue options, existing memo versions, transitions, refresh, selection memory and no horizontal overflow or console errors. Exact catalogue and screenshots stay private. The user reviews and merges; publication/current-head Greptile receipts belong in the PR conversation. No provider acquisition or new company analysis run. Greptile identified missing optional tickers as a startup compatibility issue; missing/null tickers now display as empty, with HTTP startup and actual corpus-builder output regression coverage. Independent focused recheck passed."
     }
   ],
   "session": {
     "task": "company-catalog-navigation",
-    "summary": "Captured companies and their available saved memos are selectable in the workbench.",
-    "next_step": "Review and merge the focused catalogue PR, then resume operating-to-capital-and-cash evidence review and validate another issuer."
+    "summary": "Captured company navigation and optional ticker compatibility are validated.",
+    "next_step": "Review and merge PR #16 after the fresh Greptile review; then resume operating-to-capital-and-cash evidence review and validate another issuer."
   },
   "references": [
     {

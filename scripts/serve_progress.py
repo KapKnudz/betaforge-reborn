@@ -166,8 +166,10 @@ def load_corpus_catalogue(path):
             raise ValueError("Invalid or duplicate corpus company ID")
         if not isinstance(identity, dict):
             raise ValueError("Missing corpus company identity")
-        for field, maximum in (("name", 250), ("ticker", 100)):
-            value = identity.get(field)
+        name, ticker = identity.get("name"), identity.get("ticker")
+        if ticker is None:
+            ticker = ""
+        for field, value, maximum in (("name", name, 250), ("ticker", ticker, 100)):
             if (not isinstance(value, str) or len(value) > maximum or
                     (not value.strip() and (field == "name" or value != "")) or
                     any(not char.isprintable() or char in "<>" for char in value)):
@@ -183,8 +185,8 @@ def load_corpus_catalogue(path):
         except ValueError:
             raise ValueError("Invalid corpus capture timestamp") from None
         seen.add(instrument)
-        catalogue.append({"instrument_id": instrument, "name": identity["name"],
-                          "ticker": identity["ticker"], "captured_at": captured})
+        catalogue.append({"instrument_id": instrument, "name": name,
+                          "ticker": ticker, "captured_at": captured})
     if seen != set(ids):
         raise ValueError("Corpus company IDs differ from instrument IDs")
     return catalogue

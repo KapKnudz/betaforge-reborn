@@ -226,7 +226,7 @@ class ProgressTests(unittest.TestCase):
         for ids in (None, [1, 1], [1, 0], [1, -2], [1, True], [1, "2"], [1, 2, 3]):
             invalid.append({**self.corpus_manifest(), "instrument_ids": ids})
         for change in ({"instrument_id": 1}, {"instrument_id": True}, {"instrument_id": 0},
-                       {"identity": None}, {"identity": {"name": "Issuer"}},
+                       {"identity": None}, {"identity": {"name": "Issuer", "ticker": False}},
                        {"identity": {"name": "", "ticker": "A"}},
                        {"identity": {"name": "Unsafe\nname", "ticker": "A"}},
                        {"identity": {"name": "<script>", "ticker": "A"}},
@@ -248,6 +248,16 @@ class ProgressTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         progress.make_server(0, root=self.root, corpus=self.save_corpus(manifest))
             server.assert_not_called()
+
+    def test_corpus_missing_and_null_tickers_do_not_block_startup(self):
+        for identity in ({"name": "Named issuer"}, {"name": "Named issuer", "ticker": None}):
+            with self.subTest(identity=identity):
+                manifest = self.corpus_manifest()
+                manifest["companies"][1]["identity"] = identity
+                self.configure_view(corpus=self.save_corpus(manifest))
+                company = json.loads(self.request("/api/runs")[2])["companies"][1]
+                self.assertEqual(company, {"instrument_id": 2, "name": "Named issuer", "ticker": "",
+                                           "captured_at": "2026-11-04T12:00:00+00:00"})
 
     def test_corpus_requires_explicit_regular_manifest_path_and_valid_json(self):
         file = self.save_corpus()
