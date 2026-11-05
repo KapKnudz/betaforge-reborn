@@ -1,6 +1,6 @@
 # Betaforge analysis policy
 
-Version 2, 4 November 2026. This updates the personal return rule and operating-assumption review discipline from version 1. Each new analysis freezes this file and the [calculation catalogue](calculations.md) with their hashes. Historical packets retain their original instructions and results.
+Version 3, 5 November 2026. This clarifies forecast cash support; version 2 introduced the personal return rule and operating-assumption review discipline. Each new analysis freezes this file and the [calculation catalogue](calculations.md) with their hashes. Historical packets retain their original instructions and results.
 
 ## Purpose and sources
 
@@ -60,6 +60,8 @@ Treat a challenge as a reason to reassess the evidence. Retain and defend a fina
 Test a coherent disappointment in the main drivers and its associated cash/reinvestment needs using the existing sensitivity tools. A small reduction from optimistic assumptions can still require unusually strong performance; state which critical dependency the check tests. Explain dependencies: higher output can improve unit economics, but demand, mix, capacity and funding must support the same scenario. Keep unsupported improvements visible as uncertainty; a base-case label is not evidence. Shared model changes follow the [generic analysis rule](planning/decisions.md#generic-analysis-before-company-tuning).
 
 Show forecast operating earnings, EV, future debt, additional claims, common equity, forecast shares, future target and present value. State lease, pension, minority and non-operating-asset conventions explicitly. Cash already netted in debt is not added again. Retained cash reduces debt; dividends are valued separately, without using the same future cash twice.
+
+Where forecast cash materially affects debt or dividends, support it with a compact bridge from an earnings path or horizon average. Identify the cash measure and material noncash items, cash taxes, interest, working capital, recurring investment and lease payments; avoid deducting the same outflow twice. Separate generation from spending, and show missing inputs or residual assumptions. Terminal earnings alone do not establish average cash over the horizon. Reuse existing named calculations.
 
 **Sanity checks:** EV/EBIT and P/E are standard. FCF yield is used only with an explicitly scoped cash numerator and matching equity value or EV. EV/EBITDA valuation is optional and must answer a specific question; EBITDA can still describe an issuer/lender leverage convention. A related multiple check sharing the forecasts is not independent confirmation.
 

@@ -236,24 +236,13 @@ class ProgressHandler(BaseHTTPRequestHandler):
             if selected_id is not None and selected_id not in self.analyses:
                 self.respond(404, b'{"error":"Unknown saved analysis."}', "application/json; charset=utf-8", head=head)
                 return
-            try:
-                if selected_id is None:
-                    views = []
-                    for view_id, file in self.analyses.items():
-                        view = load_saved_view(file)
-                        if view["id"] != view_id:
-                            raise ValueError("Saved analysis identity changed")
-                        views.append(view)
-                    payload = {"runs": [{**{key: view[key] for key in ("id", "company", "analysis_date", "reviewed_at", "method")},
-                                         "analysis_kind": "structured" if "analysis" in view else "legacy"} for view in views],
-                               "companies": self.companies}
-                else:
-                    payload = load_saved_view(self.analyses[selected_id])
-                    if payload["id"] != selected_id:
-                        raise ValueError("Saved analysis identity changed")
-            except (OSError, ValueError, TypeError, KeyError):
-                self.respond(503, b'{"error":"Saved analysis unavailable. Check the configured export."}', "application/json; charset=utf-8", head=head)
-                return
+            if selected_id is None:
+                payload = {"runs": [{**{key: view[key] for key in ("id", "company", "analysis_date", "reviewed_at", "method")},
+                                     "analysis_kind": "structured" if "analysis" in view else "legacy"}
+                                    for view in self.analyses.values()],
+                           "companies": self.companies}
+            else:
+                payload = self.analyses[selected_id]
             self.respond(200, json.dumps(payload, ensure_ascii=False).encode(), "application/json; charset=utf-8", head=head)
             return
         if path == "/api/plan":
@@ -298,7 +287,8 @@ def make_server(port=8765, root=ROOT, analyses=(), market_db=None, corpus=None):
         view = load_saved_view(file)
         if view["id"] in configured:
             raise ValueError("Duplicate saved analysis ID")
-        configured[view["id"]] = Path(file).absolute()
+        # Keep the validated export in memory; adopting a revised artifact requires a restart.
+        configured[view["id"]] = view
         instruments.add(str(view["company"]["instrument_id"]))
     if market_db is not None:
         market_db = Path(market_db).absolute()
@@ -316,7 +306,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--analysis", action="append", default=[], type=Path,
-                        help="Explicit saved-view JSON export; repeat to show multiple runs")
+                        help="Explicit saved-view JSON export; repeat for multiple runs, restart to adopt changes")
     parser.add_argument("--market-db", type=Path,
                         help="Existing evidence SQLite store for latest stored daily closes")
     parser.add_argument("--corpus", type=Path,

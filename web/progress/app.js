@@ -763,11 +763,15 @@ function renderAnalysisReview(run) {
   if ((review.disagreements || []).length) section.append(detail("Disagreements retained", [recordList(review.disagreements)]));
   return section;
 }
-function returnUsesReportPrice(run) {
-  const price = run.price;
+function returnCalculation(run) {
   const returns = (run.original_calculations || []).filter((calc) => calc.operation === "financial_formula" && calc.formula === "expected_cashflow_irr");
-  if (!price || !price.id || !price.source_id || returns.length !== 1) return false;
-  const calculation = returns[0];
+  const selected = (run.benchmark || {}).return_calculation_id;
+  const candidates = selected === undefined ? returns : returns.filter((calc) => calc.id === selected);
+  return candidates.length === 1 ? candidates[0] : null;
+}
+function returnUsesReportPrice(run) {
+  const price = run.price, calculation = returnCalculation(run);
+  if (!price || !price.id || !price.source_id || !calculation) return false;
   const inputs = (calculation.inputs || []).filter((input) => input.field === "price");
   if (inputs.length !== 1 || (calculation.input_ids || {}).price !== price.id || inputs[0].id !== price.id) return false;
   return number(((calculation.outputs || {}).irr_percent || {}).value) !== null && ["value", "unit", "scale", "currency", "source_id"].every((key) => inputs[0][key] === price[key]) &&
@@ -775,7 +779,7 @@ function returnUsesReportPrice(run) {
     (((calculation.outputs || {}).irr_percent || {}).value === (run.benchmark || {}).candidate_annualized_return_percent);
 }
 function returnExplanation(run) {
-  const calc = (run.original_calculations || []).find(item => item.formula === "expected_cashflow_irr" && item.operation === "financial_formula");
+  const calc = returnCalculation(run);
   const rows = [["Report purchase price", rounded(normalizedPrice(run.price)) + " " + (run.price.currency || "") + " · " + run.price.date]];
   for (const [field, label] of [["expected_annual_dividend_per_share", "Expected annual dividend / share"], ["expected_future_target", "Expected terminal share target"], ["years", "Years"]]) {
     const input = (calc.inputs || []).find(item => item.field === field) || {};

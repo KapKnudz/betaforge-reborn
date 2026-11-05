@@ -178,6 +178,7 @@ class SavedViewTests(unittest.TestCase):
     def test_old_exports_and_missing_material_selections_stay_valid(self):
         view = self.build()
         self.assertNotIn("material_inputs", view)
+
         self.assertNotIn("current_data_limits", view)
         self.assertNotIn("current_facts_sha256", view["provenance"])
         row = material_input()
@@ -186,6 +187,11 @@ class SavedViewTests(unittest.TestCase):
         output = self.root / "view.json"
         self.write(output, view)
         self.assertIsNone(load_saved_view(output)["material_inputs"][0]["selected"])
+
+    def test_legacy_run_rejects_structured_return_selection(self):
+        with self.assertRaisesRegex(ValueError, "structured analysis"):
+            build_saved_view(self.review_path, self.run, self.packet, "Sample", "SAMP", "sample-20261101", "Saved",
+                             return_calculation_id="calc:one")
 
     def test_rejects_malformed_material_decisions_and_sources(self):
         base = minimal_view()
@@ -461,6 +467,23 @@ class StructuredSavedViewTests(unittest.TestCase):
         self.root = self.root.resolve()
         self.packet = self.packet.resolve()
         packet = json.loads(self.packet.read_text())
+        from betaforge.storage import EvidenceStore
+        capture = self.root / "price-capture"
+        capture.mkdir()
+        requests = []
+        for name, endpoint, payload in (
+                ("instruments", "/v1/instruments", {"instruments": [{"insId": 426, "stockPriceCurrency": "SEK"}]}),
+                ("prices", "/v1/instruments/426/stockprices", {"instrument": 426, "stockPricesList": [{"d": "2026-11-03", "c": 100}]})):
+            body = json.dumps(payload).encode()
+            (capture / (name + ".json")).write_bytes(body)
+            requests.append({"endpoint": endpoint, "parameters": {}, "http_status": 200,
+                             "file": name + ".json", "sha256": hashlib.sha256(body).hexdigest()})
+        write_json(capture / "manifest.json", {"retrieved_at": "2026-11-04T00:00:00Z", "requests": requests})
+        with EvidenceStore(self.root / "live/evidence.sqlite3") as store:
+            store.ingest_snapshot(capture)
+            store.freeze(self.root / "price-snapshot")
+            packet["context"] = {"latest_close": store.query_financials(426, "price", ["price_close"], limit=1)}
+        packet["snapshot_dir"] = "price-snapshot"
         packet["analysis_date"] = "2026-11-04"
         self.benchmark_context = {
             "benchmark": {"symbol": "SIXRX", "currency": "SEK", "return_type": "gross_total_return"},
@@ -492,8 +515,77 @@ class StructuredSavedViewTests(unittest.TestCase):
                          **{name + "_sha256": SavedViewTests.digest(self.run / (name + ".json")) for name in ("inputs", "calculations", "analysis")}}
         write_json(self.run / "run.json", self.run_data)
 
-    def build(self):
-        return build_saved_view(None, self.run, self.root, "Sample", "SAMP", "sample-20261104", "Saved structured analysis")
+    def build(self, **kwargs):
+        return build_saved_view(None, self.run, self.root, "Sample", "SAMP", "sample-20261104", "Saved structured analysis", **kwargs)
+
+    def save_return_calculations(self, count=2):
+        from betaforge.tools import write_json
+        price = self.tools.get_financials(report_type="price", fields=["price_close"])["observations"][0]
+        inputs = {"price": price["id"], **{field: self.tools.record_input(value, field, unit, "assumption")["id"]
+                  for field, value, unit in (("expected_annual_dividend_per_share", "2", "SEK/shares"),
+                                             ("years", "3", "dimensionless"))}}
+        calculations = []
+        for target in ("120", "130")[:count]:
+            inputs["expected_future_target"] = self.tools.record_input(target, "Terminal target", "SEK/shares", "assumption")["id"]
+            calculations.append(self.tools.calculate_financial("expected_cashflow_irr", inputs, "Saved return", "Report-price cash flows"))
+        self.tools.save()
+        for name in ("inputs", "calculations"):
+            write_json(self.run / (name + ".json"), list(self.tools.state[name].values()))
+            self.run_data[name + "_sha256"] = SavedViewTests.digest(self.run / (name + ".json"))
+        write_json(self.run / "run.json", self.run_data)
+        return calculations
+
+    def test_explicit_return_selection_copies_saved_output_and_keeps_history(self):
+        calculations = self.save_return_calculations()
+        original = self.build()
+        self.assertIsNone(original["benchmark"]["candidate_annualized_return_percent"])
+        selected = calculations[1]
+        view = self.build(return_calculation_id=selected["id"])
+        self.assertEqual(view["benchmark"]["return_calculation_id"], selected["id"])
+        self.assertEqual(view["benchmark"]["candidate_annualized_return_percent"], selected["outputs"]["irr_percent"]["value"])
+        original["benchmark"] = view["benchmark"]
+        self.assertEqual(original, view)
+        self.assertEqual(validate_saved_view(view), view)
+        output = self.root / "view.json"
+        SavedViewTests.write(output, view)
+        self.assertEqual(load_saved_view(output), view)
+        from scripts.export_saved_analysis import main
+        cli_output = self.root / "data/selected.json"
+        with patch("scripts.export_saved_analysis.__file__", str(self.root / "scripts/export_saved_analysis.py")):
+            self.assertEqual(main(["--run", str(self.run), "--packet", str(self.root), "--company", "Sample",
+                                   "--ticker", "SAMP", "--id", "sample-20261104", "--method", "Saved structured analysis",
+                                   "--return-calculation-id", selected["id"], "--output", str(cli_output)]), 0)
+        self.assertEqual(load_saved_view(cli_output), view)
+
+    def test_return_selection_rejects_unknown_stale_wrong_formula_and_price_tampering(self):
+        calculations = self.save_return_calculations()
+        for identifier in ("calc:missing", next(iter(self.tools.state["calculations"])), "", None, []):
+            view = self.build()
+            view["benchmark"].update(return_calculation_id=identifier,
+                                     candidate_annualized_return_percent=calculations[1]["outputs"]["irr_percent"]["value"])
+            with self.subTest(identifier=identifier), self.assertRaises(ValueError):
+                validate_saved_view(view)
+        original = self.build(return_calculation_id=calculations[1]["id"])
+        mutations = [lambda view: view["benchmark"].update(return_calculation_id=calculations[0]["id"]),
+                     lambda view: view["benchmark"].update(candidate_annualized_return_percent="99"),
+                     lambda view: view.update(price=None)]
+        mutations.extend(lambda view, key=key, value=value: view["price"].update({key: value})
+                         for key, value in (("id", "obs:other"), ("value", "101"), ("unit", "currency"),
+                                            ("scale", "10"), ("currency", "USD"), ("source_id", "src:other"),
+                                            ("date", "2026-11-02")))
+        for index, mutate in enumerate(mutations):
+            view = copy.deepcopy(original)
+            mutate(view)
+            with self.subTest(mutation=index), self.assertRaises(ValueError):
+                validate_saved_view(view)
+        with self.assertRaises(ValueError):
+            self.build(return_calculation_id="calc:missing")
+
+    def test_unique_return_exports_keep_the_existing_implicit_selection(self):
+        selected = self.save_return_calculations(count=1)[0]
+        view = self.build()
+        self.assertNotIn("return_calculation_id", view["benchmark"])
+        self.assertEqual(view["benchmark"]["candidate_annualized_return_percent"], selected["outputs"]["irr_percent"]["value"])
 
     @staticmethod
     def reader_memo(view):

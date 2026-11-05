@@ -400,18 +400,49 @@ class ProgressTests(unittest.TestCase):
         self.assertEqual(self.request("/api/runs/sample-20261101", "HEAD")[2], b"")
         self.assertEqual(self.request("/api/runs", headers={"Host": "remote.example"})[0], 403)
 
-    def test_saved_view_refresh_failures_do_not_leak_paths_or_change_identity(self):
+    def test_saved_views_are_validated_once_and_requests_do_not_reread_exports(self):
+        with mock.patch.object(progress, "load_saved_view", wraps=progress.load_saved_view) as load:
+            file = self.configure_view()
+            load.assert_called_once_with(file)
+            saved = file.read_bytes()
+            for endpoint in ("/api/runs", "/api/runs/sample-20261101"):
+                for method in ("GET", "HEAD"):
+                    self.assertEqual(self.request(endpoint, method)[0], 200)
+            load.assert_called_once_with(file)
+            self.assertEqual(file.read_bytes(), saved)
+
+    def test_saved_view_snapshot_survives_edited_or_unavailable_exports(self):
         file = self.configure_view()
-        for content in ("{", json.dumps(dict(self.saved_view(), id="changed-id"))):
-            file.write_text(content)
+        index = json.loads(self.request("/api/runs")[2])
+        for content in ("{", json.dumps(dict(self.saved_view(), id="changed-id")),
+                        json.dumps(dict(self.saved_view(), narrative="Changed report")), None, "symlink"):
+            if content is None:
+                file.unlink()
+            elif content == "symlink":
+                file.symlink_to(self.root / ".env")
+            else:
+                file.write_text(content)
             for endpoint in ("/api/runs", "/api/runs/sample-20261101"):
                 status, _, body = self.request(endpoint)
-                self.assertEqual(status, 503)
+                self.assertEqual(status, 200)
+                self.assertEqual(json.loads(body), index if endpoint == "/api/runs" else self.saved_view())
                 self.assertNotIn(str(file).encode(), body)
-        file.unlink()
-        self.assertEqual(self.request("/api/runs")[0], 503)
-        file.symlink_to(self.root / ".env")
-        self.assertEqual(self.request("/api/runs/sample-20261101")[0], 503)
+            self.assertEqual(self.request("/api/runs/changed-id")[0], 404)
+        self.assertEqual((self.root / ".env").read_text(), "secret must never be served")
+
+    def test_restart_validates_and_adopts_revised_saved_export(self):
+        file = self.configure_view()
+        revised = dict(self.saved_view(), id="sample-revised", narrative="Revised report")
+        file.write_text(json.dumps(revised))
+        saved = file.read_bytes()
+        self.stop()
+        self.server = progress.make_server(0, root=self.root, analyses=[file])
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.assertEqual(self.request("/api/runs/sample-20261101")[0], 404)
+        self.assertEqual(json.loads(self.request("/api/runs/sample-revised")[2]), revised)
+        self.assertEqual(json.loads(self.request("/api/runs")[2])["runs"][0]["id"], "sample-revised")
+        self.assertEqual(file.read_bytes(), saved)
 
     def test_duplicate_or_invalid_saved_views_fail_before_binding(self):
         file = self.root / "data/saved-view.json"
@@ -421,6 +452,21 @@ class ProgressTests(unittest.TestCase):
         file.write_text('{"secret":"not a saved view"}')
         with self.assertRaises(ValueError):
             progress.make_server(0, root=self.root, analyses=[file])
+
+    def test_invalid_saved_source_is_rejected_before_binding_without_edits(self):
+        view = self.saved_view()
+        view["sources"] = [{"id": "annual-report", "title": "Annual report",
+                            "period": {"start": None, "end": "2025-12-31"},
+                            "published_at": "2026-02-01", "url": "https://example.com/report.pdf",
+                            "sha256": "invalid", "prepared_sha256": "a" * 64, "pages": 1}]
+        file = self.root / "data/saved-view.json"
+        file.write_text(json.dumps(view))
+        before = file.read_bytes()
+        with mock.patch.object(progress, "ThreadingHTTPServer") as server:
+            with self.assertRaisesRegex(ValueError, "Invalid source hash"):
+                progress.make_server(0, root=self.root, analyses=[file])
+            server.assert_not_called()
+        self.assertEqual(file.read_bytes(), before)
 
     def test_missing_malformed_and_inconsistent_plan_return_safe_errors(self):
         for content in ("{", "[]", '{"version":1}', "null"):

@@ -157,6 +157,21 @@ p.render({run:mismatch,quote:{value:'123',scale:'0.01',currency:'USD'}});
 assert.equal(all(roots.content).filter(n=>(n.className || '').startsWith('market-reference ')).length,1);
 const unbound=JSON.parse(JSON.stringify(rich));unbound.price.value='124';p.render({run:unbound});
 assert.ok(!document.getElementById('return-explanation'));assert.ok(!all(roots.content).some(n=>n.textContent==='6.73%'));
+const revised=JSON.parse(JSON.stringify(rich)), selected=JSON.parse(JSON.stringify(revised.original_calculations[0]));
+selected.id='calc:adopted';selected.outputs.irr_percent.value='8.4';
+selected.inputs.find(input=>input.field==='expected_future_target').calculation_value='2.4';
+revised.original_calculations.push(selected);revised.benchmark.candidate_annualized_return_percent='8.4';
+p.render({run:revised});assert.ok(!document.getElementById('return-explanation'));
+revised.benchmark.return_calculation_id=selected.id;p.render({run:revised});
+assert.ok(all(roots.content).some(node=>node.textContent==='8.40%'));
+const selectedExplanation=all(document.getElementById('return-explanation'));
+assert.ok(selectedExplanation.some(node=>node.tagName==='PRE' && node.textContent.includes('calc:adopted')));
+const selectedTable=selectedExplanation.find(node=>node.tagName==='TABLE');
+assert.ok(all(selectedTable).some(node=>node.textContent==='2.40 USD/shares'));
+for(const id of [null,'calc:missing','calc:return']) {
+ revised.benchmark.return_calculation_id=id;p.render({run:revised});
+ assert.ok(!document.getElementById('return-explanation'));
+}
 const invalidHistory=JSON.parse(JSON.stringify(rich));invalidHistory.reader_memo.sections=[{id:'drivers',paragraphs:[{text:'| Period | Composite |\n| --- | --- |\n| 2021 | 1 / 2 |\n| 2022 | 2 / 3 |'}]}];
 p.render({run:invalidHistory});assert.ok(!all(roots.content).some(n=>n.tagName==='SELECT'));assert.ok(all(roots.content).some(n=>n.tagName==='TD' && n.textContent==='1 / 2'));
 const forecast=JSON.parse(JSON.stringify(rich));

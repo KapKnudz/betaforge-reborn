@@ -132,6 +132,7 @@ class EvidenceStore:
                     year INTEGER, period INTEGER, period_start TEXT, period_end TEXT,
                     observed_at TEXT NOT NULL, record TEXT NOT NULL);
                 CREATE INDEX IF NOT EXISTS observations_lookup ON observations(instrument_id,report_type,metric);
+                CREATE INDEX IF NOT EXISTS observations_ordered_lookup ON observations(instrument_id,report_type,metric,year DESC,period DESC,period_end DESC,id);
                 CREATE TABLE IF NOT EXISTS current_observations (
                     logical_key TEXT PRIMARY KEY, observation_id TEXT NOT NULL REFERENCES observations(id),
                     observed_at TEXT NOT NULL);

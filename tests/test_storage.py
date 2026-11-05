@@ -309,6 +309,60 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(price["value"], "12.345")
         self.assertEqual(price["period_end"], "2026-10-30")
 
+    def test_optional_ordered_index_maintenance_preserves_price_history(self):
+        self.store.ingest_snapshot(self.snapshot(
+            {"instruments": [{"insId": 426, "stockPriceCurrency": "EUR"}]}, "/v1/instruments", {}))
+        prices = {"instrument": 426, "stockPricesList": [
+            {"d": "2026-11-01", "c": 11}, {"d": "2025-12-31", "c": 9}, {"d": "2026-11-02", "c": 12}]}
+        endpoint = "/v1/instruments/426/stockprices"
+        self.store.ingest_snapshot(self.snapshot(prices, endpoint, {}, "2026-11-03T00:00:00Z"))
+        original = self.store.query_financials(426, "price", ["price_close"], limit=1)[0]
+        revised = {"instrument": 426, "stockPricesList": [{"d": "2026-11-02", "c": 13}]}
+        for timestamp in ("2026-11-04T00:00:00Z", "2026-11-05T00:00:00Z"):
+            self.store.ingest_snapshot(self.snapshot(revised, endpoint, {}, timestamp))
+        self.store.ingest_snapshot(self.snapshot(prices, endpoint, {}, "2026-11-01T00:00:00Z"))
+        self.store.connection.execute("DROP INDEX IF EXISTS observations_ordered_lookup")
+        self.store.connection.commit()
+        expected = self.store.query_financials(426, "price", ["price_close"])
+        old = self.store.get_observation(original["id"])
+        self.assertEqual([row["value"] for row in expected], ["13", "11", "9"])
+        self.assertEqual(expected[0]["currency"], "EUR")
+        self.assertEqual(expected[0]["source_first_captured_at"], "2026-11-04T00:00:00+00:00")
+        self.assertEqual(expected[0]["source_last_successful_check_at"], "2026-11-05T00:00:00+00:00")
+        database = self.store.db_path
+        frozen = self.store.freeze(self.root / "legacy-frozen") / "evidence.sqlite3"
+        self.store.close()
+        for path in (database, frozen):
+            before = path.read_bytes()
+            with EvidenceStore(path, readonly=True) as readonly:
+                self.assertEqual(readonly.query_financials(426, "price", ["price_close"]), expected)
+                self.assertEqual(readonly.get_observation(original["id"]), old)
+                self.assertIsNone(readonly.connection.execute(
+                    "SELECT 1 FROM sqlite_master WHERE name='observations_ordered_lookup'").fetchone())
+            self.assertEqual(path.read_bytes(), before)
+        self.store = EvidenceStore(database)
+        self.assertEqual(self.store.connection.execute("PRAGMA user_version").fetchone()[0], 1)
+        self.assertIsNotNone(self.store.connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE name='observations_ordered_lookup'").fetchone())
+        self.assertEqual(self.store.query_financials(426, "price", ["price_close"]), expected)
+        self.assertEqual(self.store.get_observation(original["id"]), old)
+
+    def test_latest_close_query_uses_ordered_index_without_temporary_sort(self):
+        self.store.ingest_snapshot(self.snapshot({"instrument": 426, "stockPricesList": [
+            {"d": "2026-11-01", "c": 11}, {"d": "2026-11-02", "c": 12}]},
+            "/v1/instruments/426/stockprices", {}))
+        statements = []
+        self.store.connection.set_trace_callback(statements.append)
+        try:
+            latest = self.store.query_financials(426, "price", ["price_close"], limit=1)[0]
+        finally:
+            self.store.connection.set_trace_callback(None)
+        self.assertEqual(latest["period_end"], "2026-11-02")
+        query = next(sql for sql in statements if sql.startswith("SELECT o.record"))
+        plan = [row[3] for row in self.store.connection.execute("EXPLAIN QUERY PLAN " + query)]
+        self.assertTrue(any("observations_ordered_lookup" in step for step in plan), plan)
+        self.assertFalse(any("TEMP B-TREE" in step for step in plan), plan)
+
     def test_annual_summary_latest_r12_and_pagination(self):
         payload = {"instrument": 426, "reportType": "year", "kpis": [{"KpiId": 2, "values": [{"y": 2026, "p": 3, "v": 12.1}, {"y": 2025, "p": 5, "v": 10}]}]}
         self.store.ingest_snapshot(self.snapshot(payload, "/v1/instruments/426/kpis/year/summary", {}))

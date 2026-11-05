@@ -45,6 +45,8 @@ Dispatch a fresh Sol/xhigh reviewer with the same frozen evidence, policy, draft
 
 Challenge the thesis rather than confirm it. Cover business mechanics, management comparisons, financial definitions, earnings versus cash, capital allocation and dilution, operating forecasts, the multiple and equity bridge, probability coverage, return timing and disconfirming evidence. Cite file sections and saved references. For each finding, give a bounded verdict, reasoning and missing evidence; distinguish a supported local claim from a broader unverified claim. Name any unresolved disagreement.
 
+Challenge the source of forecast cash as well as its uses. Connect assumed cash generation to the earnings path, noncash items, cash taxes, interest, working-capital movements and recurring investment. A compact reconciliation is enough; terminal earnings alone do not explain average cash over the horizon. Keep unsupported components explicit rather than inventing them.
+
 Bind the review to the packet and exact `analysis.json` hash using the feedback schema in `betaforge/analysis_report.py`. The viewer accepts `analysis-review.json` only when it covers the current report. Keep draft feedback with the private artifacts; a review of an earlier draft does not approve a later revision.
 
 Keep independent findings separate from any coordinator instructions added to revision feedback. Label their authorship and preserve the independent review alongside the combined feedback.

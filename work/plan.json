@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-05T09:11:17.219072+00:00",
+  "updated_at": "2026-11-05T16:50:59.485561+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "return-and-reader-review",
+  "next_task": "material-event-coverage",
   "milestones": [
     {
       "id": "foundation",
@@ -239,7 +239,7 @@
       "id": "multi-company-validation",
       "milestone": "validation",
       "title": "Verify another issuer, then three to five different operating businesses",
-      "status": "pending",
+      "status": "done",
       "acceptance": [
         "Another real-company end-to-end walkthrough succeeds with source-linked material inputs.",
         "Selected businesses exercise different capital intensity, acquisitions, leases or share-count conventions.",
@@ -247,10 +247,14 @@
       ],
       "evidence": [
         "docs/research/system-readiness-review.md",
-        "docs/retrieval-design.md"
+        "docs/retrieval-design.md",
+        "docs/company-workflow.md",
+        "docs/analysis-workflow.md",
+        "tests/test_saved_view.py",
+        "tests/test_progress_ui.py"
       ],
       "blocker": null,
-      "note": "Next: choose another operating business and preserve its original reports, then test the generic structured analyst/review/viewer path and material definitions. Exercise different capital, acquisition or share conventions. Match peer evidence where useful; retain unsupported comparisons and claim values as explicit gaps.",
+      "note": "Nine real end-to-end cases passed source-linked material-input review and independent financial challenge across manufacturing, retail, distribution, consulting and software. Five annual reports per company were mandatory; older interim archive coverage is recorded separately. Connected desktop/mobile checks passed for all nine saved memos. This establishes workflow coverage across the selected cases, not every provider definition, forecast reliability or complete corporate-event coverage.",
       "summary": "Repeat the workflow on another issuer, then three to five businesses.",
       "purpose": "Test the generic process against different accounting conventions."
     },
@@ -594,12 +598,63 @@
       ],
       "blocker": null,
       "note": "Implemented optional startup corpus catalogue and instrument-based union with configured saved memos. Empty companies show capture date and no-analysis status, with version selection disabled. Source-preserving memos, refresh memory and stale-request guards remain intact. Independent read-only review found no actionable defects. Clean proposed checkout: 198 offline tests passed, with one private-evidence class skipped; optional Node checks ran with the installed binary on PATH. Real thirty-company browser checks at 1280 × 720 and 390 × 844 verified catalogue options, existing memo versions, transitions, refresh, selection memory and no horizontal overflow or console errors. Exact catalogue and screenshots stay private. The user reviews and merges; publication/current-head Greptile receipts belong in the PR conversation. No provider acquisition or new company analysis run. Greptile identified missing optional tickers as a startup compatibility issue; missing/null tickers now display as empty, with HTTP startup and actual corpus-builder output regression coverage. Independent focused recheck passed."
+    },
+    {
+      "id": "nine-company-research",
+      "milestone": "validation",
+      "title": "Add reports and source-linked calculations for nine more companies",
+      "status": "done",
+      "summary": "Prepare the first nine additional companies from the frozen API corpus.",
+      "purpose": "Test reusable financial definitions and analysis across different operating businesses.",
+      "acceptance": [
+        "Confirm the nine-company selection and evidence cutoff.",
+        "Preserve five annual reports and five years of available interim reports per selected company, with source URLs, publication dates, hashes and explicit gaps.",
+        "Prepare readable page-linked evidence and verify material Börsdata/report mappings before selecting valuation inputs.",
+        "Save deterministic calculations with their input definitions and source references; keep unavailable inputs explicit.",
+        "Register completed saved analyses on the existing website and privately preserve the exact evidence and results."
+      ],
+      "evidence": [
+        "docs/company-workflow.md",
+        "docs/analysis-workflow.md",
+        "scripts/prepare_codex_packet.py",
+        "scripts/run_codex_analysis.py",
+        "scripts/export_saved_analysis.py",
+        "scripts/prepare_reports.py",
+        "tests/test_report_preparation.py",
+        "tests/test_packet.py",
+        "docs/analysis-policy.md",
+        "scripts/serve_progress.py",
+        "tests/test_progress.py",
+        "betaforge/storage.py",
+        "betaforge/saved_view.py",
+        "tests/test_storage.py",
+        "tests/test_saved_view.py",
+        "docs/saved-analysis-view.md"
+      ],
+      "blocker": null,
+      "note": "Nine frozen analyses are complete and independently accepted with explicit qualifications; five received one bounded cash-support revision. All 250 original reports and exact research inputs passed private source-archive restore/download verification. The completed-results supplement passed a combined clean restore and six downloaded private assets matched local SHA256/size; all 236 run artifacts, 35 supplemental artifacts, nine packet identities, 12 memo versions and the thirty-company catalogue were verified. Required reading delivered 6,449 pages separately from the wider archive. All nine company pages, adopted returns, quote references, scenario/source/review access, legacy versions and empty-company states passed desktop/mobile checks. Generic preparation, startup snapshots, optional writable-store index and explicit saved-return selection passed independent read-only reviews. Clean proposed checkout: 222 offline tests passed with one private-evidence class skipped. Forty-six requests across both viewer ports passed the existing deadline using a verified local quote store. Shared valuation formulas are unchanged. This establishes the selected development cases and preserved results, not forecast accuracy or complete corporate-event coverage. PR/current-head review receipts belong in the PR conversation; user reviews and merges. PR #17 Greptile review identified the required top-level manifest instrument ID missing from the workflow instructions. The correction matches the existing integer CLI and export identity checks; all fourteen documentation links, plan JSON and scoped whitespace checks pass, and independent read-only review found no issues. The existing 222-test code result remains applicable; this follow-up changes documentation and delivery state only."
+    },
+    {
+      "id": "material-event-coverage",
+      "milestone": "validation",
+      "title": "Check material events before security-wide valuation",
+      "status": "pending",
+      "summary": "Check whether recent disclosures change the business, claims or share base being valued.",
+      "purpose": "Keep a limited operating benchmark distinct from a valuation of the actual shares.",
+      "acceptance": [
+        "Check relevant issuer disclosures through the cutoff for material changes after the latest financial statements; preserve the selected evidence and gaps.",
+        "Make the business, claims and share-base scope clear beside the conclusion and return; identify material changes not covered by the model.",
+        "Reuse existing evidence and calculation tools; test ordinary and transaction-affected situations before adding financial machinery."
+      ],
+      "evidence": [],
+      "blocker": null,
+      "note": "Batch validation exposed a general scope-check gap. Existing research states its limits; a reusable evidence-selection and display check remains to be implemented."
     }
   ],
   "session": {
-    "task": "company-catalog-navigation",
-    "summary": "Captured company navigation and optional ticker compatibility are validated.",
-    "next_step": "Review and merge PR #16 after the fresh Greptile review; then resume operating-to-capital-and-cash evidence review and validate another issuer."
+    "task": "nine-company-research",
+    "summary": "Research and private backups are complete. PR #17 manifest instructions now state the required company ID and have passed independent read-only review.",
+    "next_step": "Use PR #17 for the current-head Greptile receipt; the user reviews and merges. Next implementation task: material-event-coverage, using existing evidence tools and generic financial logic."
   },
   "references": [
     {

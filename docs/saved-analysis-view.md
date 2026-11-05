@@ -26,6 +26,8 @@ Structured review provenance hashes the validated JSON content using the tool's 
 
 Earlier structured exports may retain an unselected historical comparator as `null`, even when context is preserved. New exports copy the matching saved SIXRX value; every displayed comparator must match that source.
 
+If a structured run retains several saved `expected_cashflow_irr` calculations, explicitly select the adopted one with `--return-calculation-id 'calc:ID'`. The export records that choice as `benchmark.return_calculation_id` and copies its exact saved annual-return output. Validation requires the selected calculation to use the same report-price ID, value, unit, scale, currency, source and date. Both the headline and its explanation use that record; superseded calculations remain in the audit history. Without an explicit selection, a single saved return is used as before; several saved returns leave the headline unavailable. Selection does not recalculate a return or infer one from prose.
+
 For an older unstructured run, also provide its deterministic financial review:
 
 ```sh
@@ -55,7 +57,9 @@ For multiple companies, configure their saved memos in the same command:
 
 The Company selector combines the configured corpus and saved memos by Börsdata instrument ID. Captured companies without research show **No memo**; selecting one displays its snapshot date and **No saved analysis yet**. Memo version selects a saved report when available. Capturing data does not produce an analysis automatically.
 
-`--corpus` is optional and reads only the existing version-1 `verified_api_capture` manifest at startup. It exposes company ID, name, optional ticker and capture timestamp, without opening the frozen database or serving raw data. Omit `--analysis` to browse a catalogue before any memos exist. Restart when changing the corpus or registering another `--analysis` path; the Refresh button reloads the configured memo files and retains the startup catalogue. Unavailable or malformed corpus manifests fail startup rather than silently hiding companies.
+`--corpus` is optional and reads only the existing version-1 `verified_api_capture` manifest at startup. It exposes company ID, name, optional ticker and capture timestamp, without opening the frozen database or serving raw data. Omit `--analysis` to browse a catalogue before any memos exist. Unavailable or malformed corpus manifests fail startup rather than silently hiding companies.
+
+Each configured saved-view export is fully validated and retained in memory at startup. Memo requests use that validated snapshot, avoiding repeated file reads and keeping the index and selected memo consistent if an export is later edited or unavailable. Restart to adopt changed exports, another `--analysis` path or a changed corpus. The Refresh button reloads the registered snapshots; project-plan updates and the separately queried latest stored quotes remain live. Invalid exports fail startup before the server accepts requests.
 
 A newly selected company defaults to its newest analysis cutoff, then completion date. Your memo choice is retained when switching back or refreshing while it remains available. Identical visible version labels are distinguished by cutoff and, when necessary, analysis ID; company-name changes do not create a new company identity.
 
@@ -96,6 +100,20 @@ The historical index comparison is context, not a future return forecast. Missin
 ## Separate market-price context
 
 Add `--market-db data/evidence/evidence.sqlite3` to the server command to show the latest available daily close for companies whose reports are explicitly configured. The header distinguishes that quote and its trading date from the selected report price. A new quote does not recalculate the report's return or valuation; an unavailable quote leaves the report usable. Price evidence contains the source and capture/check dates.
+
+Keep the active SQLite store on fully local disk. Cloud sync can stall reads even with an ordered index; the index does not guarantee filesystem latency. `--market-db` accepts an explicit local working-copy path. Point subsequent price ingestion at that same store so the displayed quotes continue to update.
+
+Writable evidence stores install an optional ordered lookup index for fast latest-price reads. Existing version-1 stores remain compatible without it; the viewer and other read-only access leave those stores unchanged. To install the index on an existing working store without fetching or ingesting data, explicitly open it once for writable maintenance:
+
+```sh
+.venv/bin/python - <<'PY'
+from betaforge.storage import EvidenceStore
+with EvidenceStore('data/evidence/evidence.sqlite3'):
+    pass
+PY
+```
+
+Use the intended existing working-store path; do not run maintenance on frozen packets or archived databases. This adds lookup indexes without changing financial observations, source timestamps or schema version 1.
 
 Refresh prices separately through the existing credential-safe acquisition and ingestion pipeline:
 
