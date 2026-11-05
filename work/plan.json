@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-05T16:50:59.485561+00:00",
+  "updated_at": "2026-11-05T20:41:56.347760+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "material-event-coverage",
+  "next_task": "return-and-reader-review",
   "milestones": [
     {
       "id": "foundation",
@@ -442,7 +442,7 @@
         "docs/research/investment-memo-gap-review.md"
       ],
       "blocker": null,
-      "note": "The main operating assumptions now take priority over payment-timing refinements. Independent read-only evidence review found that the central case needs stronger joint driver and cash support; no replacement company assumptions are adopted. The standing generic-analysis boundary is recorded in AGENTS.md and adopted decisions: shared financial changes need a reusable analytical benefit, while issuer-specific forecast corrections stay in the company analysis. Policy/proposal updates require compatible history, an evidence bridge for material departures and a sensitivity addressing the main dependency, without a historical-peak ceiling. Independent documentation review passed. The 10% starting hurdle, 9% sensitivity and historical SIXRX distinction remain adopted. Existing formulas and saved analyses are unchanged; the remaining implementation is still proposed. User clarified that supported financial assumptions may be defended: a challenge triggers reassessment, while the report explains the evidence, business mechanism and selected magnitude beside each material forecast. The compact reader edition is implemented separately. The next evidence priority is a supportable operating-to-capital-and-cash bridge: joint forecast drivers, incremental capital needs and cash retained after all distributions. Matched peers and ownership/claim evidence remain explicit limits. Reuse the simple existing formulas; do not tune shared logic to the worked example."
+      "note": "The main operating assumptions now take priority over payment-timing refinements. Independent read-only evidence review found that the central case needs stronger joint driver and cash support; no replacement company assumptions are adopted. The standing generic-analysis boundary is recorded in AGENTS.md and adopted decisions: shared financial changes need a reusable analytical benefit, while issuer-specific forecast corrections stay in the company analysis. Policy/proposal updates require compatible history, an evidence bridge for material departures and a sensitivity addressing the main dependency, without a historical-peak ceiling. Independent documentation review passed. The 10% starting hurdle, 9% sensitivity and historical SIXRX distinction remain adopted. Existing formulas and saved analyses are unchanged; the remaining implementation is still proposed. User clarified that supported financial assumptions may be defended: a challenge triggers reassessment, while the report explains the evidence, business mechanism and selected magnitude beside each material forecast. The compact reader edition is implemented separately. The next evidence priority is a supportable operating-to-capital-and-cash bridge: joint forecast drivers, incremental capital needs and cash retained after all distributions. Matched peers and ownership/claim evidence remain explicit limits. Reuse the simple existing formulas; do not tune shared logic to the worked example. Cross-company audit found materially different price-relative targets, per-panel chart autoscaling, repeated probability precision without an evidence-to-number bridge, and selected exit multiples tied to current market pricing. All thirty saved scenario outputs and adopted weighted returns reproduce from their inputs; this verifies consistency, not forecast truth. Company-specific risk rationales exist and no fixed default was found. Proposed generic improvements are price-relative comparisons, explicit multiple provenance and a compact outcome/evidence/uncertainty note with an alternative-weight hurdle check. Existing analyses and policies remain preserved; the user chose scenario returns first, with weights and weighted returns secondary. Exact comparisons and primary-source citations are kept privately. Skill-structure assessment recommends two concise role entrypoints, company analysis and independent valuation challenge, sharing the existing canonical policy and formula definitions. The current runner sends text only and packet contract accepts policy/calculations only; explicit delivery and a compatible frozen role-skill identity are needed before adoption. This is a proposal, not an installed skill or a change to financial methods. A small cross-company behavior check should test probability justification, multiple provenance and readable decision evidence."
     },
     {
       "id": "company-reader-language",
@@ -649,12 +649,38 @@
       "evidence": [],
       "blocker": null,
       "note": "Batch validation exposed a general scope-check gap. Existing research states its limits; a reusable evidence-selection and display check remains to be implemented."
+    },
+    {
+      "id": "valuation-skill-drafts",
+      "milestone": "validation",
+      "title": "Draft philosophy-based analysis and valuation-review skills",
+      "status": "done",
+      "summary": "Translate the adopted philosophy, calculation catalogue and useful memo patterns into two concise role skills.",
+      "purpose": "Make initial valuations and material judgments easier to inspect without adding model complexity.",
+      "acceptance": [
+        "Draft analyst and independent valuation-review entrypoints derived from the current philosophy and existing bounded workflow.",
+        "State the simple initial diagnostics, primary EV/EBIT valuation bridge and return calculations, including their accounting scope and limits.",
+        "Extract generic memo structure and analytical lessons from saved references without copying issuer assumptions or private research into shared files.",
+        "Validate draft structure, source links and financial consistency; obtain independent read-only review and a bounded draft exercise.",
+        "Keep drafts separate from active discovery and historical packets; runner integration and company reruns remain subsequent work."
+      ],
+      "evidence": [
+        "docs/analysis-policy.md",
+        "docs/calculations.md",
+        "docs/analysis-workflow.md",
+        "docs/skill-drafts/betaforge-company-analysis/SKILL.md",
+        "docs/skill-drafts/betaforge-valuation-review/SKILL.md",
+        "docs/skill-drafts/betaforge-company-analysis/references/calculations.md",
+        "docs/skill-drafts/betaforge-company-analysis/references/memo-structure.md"
+      ],
+      "blocker": null,
+      "note": "Two role drafts and two focused references are complete, derived from current policy, the named registry and preserved memo/reference reviews. The initial diagnostics, primary EV/EBIT equity bridge, conditional checks and per-case/weighted cash-flow returns are explicit. Both skills pass the bundled validator; all 21 local links and local anchors resolve. Independent read-only financial/source review found no material findings. A fresh analyst and reviewer handled one hypothetical preliminary note using the drafts, with no material error found within that scope. This does not establish improved actual-company valuation quality. Drafts remain outside active discovery; runtime delivery, packet identity changes and full company trials are separate adoption work. Source derivation and exercise receipts stay private. PR/current-head review receipt belongs in the PR conversation; the user reviews and merges."
     }
   ],
   "session": {
-    "task": "nine-company-research",
-    "summary": "Research and private backups are complete. PR #17 manifest instructions now state the required company ID and have passed independent read-only review.",
-    "next_step": "Use PR #17 for the current-head Greptile receipt; the user reviews and merges. Next implementation task: material-event-coverage, using existing evidence tools and generic financial logic."
+    "task": "valuation-skill-drafts",
+    "summary": "Two philosophy-based skill drafts, a clear calculation guide and reusable memo structure are complete and independently checked.",
+    "next_step": "Review the draft content for adoption, then integrate explicit frozen skill delivery and test varied preserved companies. Keep scenario returns first, preserve historical runs and continue the reader improvements."
   },
   "references": [
     {
