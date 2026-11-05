@@ -8,6 +8,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import verify_development_corpus as corpus
+from serve_progress import load_corpus_catalogue
 from betaforge.storage import EvidenceStore
 
 
@@ -82,6 +83,9 @@ class DevelopmentCorpusTests(unittest.TestCase):
         self.assertEqual(manifest["companies"][0]["prices"]["last_date"], "2026-11-02")
         self.assertIn("insider", manifest["companies"][0]["empty_datasets"])
         self.assertIn("Original report PDFs", manifest["limits"][0])
+        catalogue = load_corpus_catalogue(result)
+        self.assertEqual([company["instrument_id"] for company in catalogue], [777, 888])
+        self.assertTrue(all(company["ticker"] == "" for company in catalogue))
         database = destination / "snapshot/evidence.sqlite3"
         self.assertEqual(corpus.digest(database), manifest["database_sha256"])
         with EvidenceStore(database, readonly=True) as store:

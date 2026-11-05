@@ -6,7 +6,7 @@ The workbench has three views: **Project** for priorities and completed work, **
 .venv/bin/python scripts/serve_progress.py
 ```
 
-Open **http://127.0.0.1:8765**. The project plan refreshes while the page is open. A company view requires an explicit private export.
+Open **http://127.0.0.1:8765**. The project plan refreshes while the page is open. Browse captured companies with an explicit corpus manifest; read their research by adding saved-view exports.
 
 ## Add a saved company run
 
@@ -47,12 +47,15 @@ For multiple companies, configure their saved memos in the same command:
 
 ```sh
 .venv/bin/python scripts/serve_progress.py \
+  --corpus data/corpora/CORPUS/manifest.json \
   --analysis data/saved-views/company-a.json \
   --analysis data/saved-views/company-b.json \
   --market-db data/evidence/evidence.sqlite3
 ```
 
-The Company selector groups these files by Börsdata instrument ID. Memo version then selects a report for that company. Only configured saved analyses appear; capturing a company's dataset does not produce its analysis automatically. Restart with the additional `--analysis` path when registering another memo.
+The Company selector combines the configured corpus and saved memos by Börsdata instrument ID. Captured companies without research show **No memo**; selecting one displays its snapshot date and **No saved analysis yet**. Memo version selects a saved report when available. Capturing data does not produce an analysis automatically.
+
+`--corpus` is optional and reads only the existing version-1 `verified_api_capture` manifest at startup. It exposes company ID, name, optional ticker and capture timestamp, without opening the frozen database or serving raw data. Omit `--analysis` to browse a catalogue before any memos exist. Restart when changing the corpus or registering another `--analysis` path; the Refresh button reloads the configured memo files and retains the startup catalogue. Unavailable or malformed corpus manifests fail startup rather than silently hiding companies.
 
 A newly selected company defaults to its newest analysis cutoff, then completion date. Your memo choice is retained when switching back or refreshing while it remains available. Identical visible version labels are distinguished by cutoff and, when necessary, analysis ID; company-name changes do not create a new company identity.
 
@@ -79,7 +82,7 @@ Reader editions retain the original analysis ID. Configure the chosen edition on
 
 ## Read the company tab
 
-- **Company and memo:** separate selectors choose the business and its saved report. The company header keeps the analysis cutoff separate from completion/review dates. The original conclusion remains available in a disclosure; the return overview copies existing results rather than rewriting the report.
+- **Company and memo:** separate selectors choose a captured business and its saved report when available. An available memo is selected initially; your company choice survives refresh even before a memo exists. The company header keeps the analysis cutoff separate from completion/review dates. The original conclusion remains available in a disclosure; the return overview copies existing results rather than rewriting the report.
 - **Analysis and scenarios:** the full structured report separates facts, interpretations and assumptions. Clearly dated present values and future targets link to case-specific rationale, assumptions and saved calculations. Present values use horizontal dots; future share targets use columns. Each chart has its own scale and no annual price path is invented. Present value includes discounted dividends; the future share target excludes separately paid dividends. Legacy targets remain in their saved basis when no structured endpoint exists. Conditional weights retain their qualifications.
 - **Management comparisons:** direct targets, guidance and related operating drivers retain issuer definitions, publication dates, target periods and physical-page quotations. An absent margin target stays absent; issuer ROCE and utilization are not relabelled operating ROIC or EBIT margin.
 - **Calculations:** named formulas, inputs, units, scale, source IDs, physical-page evidence, outputs and missing inputs. The original run trace, including scalar operations and named formulas, is available separately.

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-04T20:17:26.098617+00:00",
+  "updated_at": "2026-11-05T09:11:17.219072+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "return-and-reader-review",
@@ -359,7 +359,7 @@
         "docs/research/frozen-dataset-feasibility.md"
       ],
       "blocker": null,
-      "note": "Completed thirty distinct issuers: 2,910/2,910 responses, 2,620 source blobs, 724,710 current observations, 7–20 annual periods and 101,708 price rows. Original ten captures are unchanged. Source/basis/hash, SQLite integrity/foreign keys, 138,506 KPI metadata links and 64,905 percentage/MCURR unit checks pass with zero mismatches. Clean archive restore verified all 5,569 reviewed files; all seven downloaded original release assets match exact sizes/SHA256. Private release: development-corpus-30-2026-11-03. Three incomplete attempts were reacquired; bounded transport retry recovered two requests. Source import took 2,517.503 seconds; metadata lookup profiling remains in storage hardening. Original PDFs and accounting reconciliation are pending. PR #4 was reviewed at 5/5 and merged into the old feature branch; the main-landing task carries it into main. Final review receipts belong in PR conversations; the user merges.",
+      "note": "Completed thirty distinct issuers: 2,910/2,910 responses, 2,620 source blobs, 724,710 current observations, 7–20 annual periods and 101,708 price rows. Original ten captures are unchanged. Source/basis/hash, SQLite integrity/foreign keys, 138,506 KPI metadata links and 64,905 percentage/MCURR unit checks pass with zero mismatches. Clean archive restore verified all 5,569 reviewed files; all seven downloaded original release assets match exact sizes/SHA256. Private release: development-corpus-30-2026-11-03. Three incomplete attempts were reacquired; bounded transport retry recovered two requests. Source import took 2,517.503 seconds; metadata lookup profiling remains in storage hardening. Original PDFs and accounting reconciliation are pending. PR #4 was reviewed at 5/5 and merged into the old feature branch; the main-landing task carries it into main. Final review receipts belong in PR conversations; the user merges. Pre-cancellation audit on 4 November rechecked the archive inventory, raw-response/blob/database hashes and current private-release digest. The local compressed archive is verified; some unpacked files are macOS cloud-offloaded. Original PDFs and accounting reconciliation remain pending.",
       "summary": "Preserve verified API evidence for thirty operating companies.",
       "purpose": "Broaden development coverage without constant live access."
     },
@@ -570,12 +570,36 @@
       ],
       "blocker": null,
       "note": "Integrated the approved reader into the existing workbench with separate instrument-based company and memo-version selection, stable defaults and selection memory. Preserved sourced calculations, material mappings, legacy views and dated quotes. Added a technical map, analyst decision sequence and expandable stages distinguishing code checks, agent judgment and coordinator-managed independent challenge. Independent content, code and visual reviews passed; a company-name-drift memo-label ambiguity was fixed and rechecked. The exact proposed checkout ran 192 offline tests, OK with one private-evidence class skipped. Desktop and actual 390 px checks covered navigation across two synthetic companies and three memos, switch-back/refresh, real legacy selection, source/keyboard focus, period charts, price references and overflow. Only one issuer currently has real saved research; this UI test does not establish financial validation for another company. The selected private reader artifact is byte-identical to its previous checkpoint; no model or provider run. Final publication/current-head Greptile receipt remains in the PR conversation; user reviews and merges."
+    },
+    {
+      "id": "company-catalog-navigation",
+      "milestone": "saved-review",
+      "title": "Browse captured companies and their available memos",
+      "status": "done",
+      "summary": "Show captured companies before their first saved analysis exists.",
+      "purpose": "Navigate the development corpus without confusing data capture with completed research.",
+      "acceptance": [
+        "An explicitly configured private corpus manifest supplies company identity and capture date without opening its database or exposing raw datasets.",
+        "The Company selector includes captured companies and saved-analysis companies, with a clear empty state when a memo is unavailable.",
+        "Company and memo navigation, refresh and in-flight request guards preserve identity and selection.",
+        "Validate HTTP and UI behavior, desktop/mobile layout and independent read-only review before a focused main-targeted PR."
+      ],
+      "evidence": [
+        "scripts/serve_progress.py",
+        "web/progress/app.js",
+        "tests/test_progress.py",
+        "tests/test_progress_ui.py",
+        "docs/saved-analysis-view.md",
+        "tests/test_development_corpus.py"
+      ],
+      "blocker": null,
+      "note": "Implemented optional startup corpus catalogue and instrument-based union with configured saved memos. Empty companies show capture date and no-analysis status, with version selection disabled. Source-preserving memos, refresh memory and stale-request guards remain intact. Independent read-only review found no actionable defects. Clean proposed checkout: 198 offline tests passed, with one private-evidence class skipped; optional Node checks ran with the installed binary on PATH. Real thirty-company browser checks at 1280 × 720 and 390 × 844 verified catalogue options, existing memo versions, transitions, refresh, selection memory and no horizontal overflow or console errors. Exact catalogue and screenshots stay private. The user reviews and merges; publication/current-head Greptile receipts belong in the PR conversation. No provider acquisition or new company analysis run. Greptile identified missing optional tickers as a startup compatibility issue; missing/null tickers now display as empty, with HTTP startup and actual corpus-builder output regression coverage. Independent focused recheck passed."
     }
   ],
   "session": {
-    "task": "company-design-integration",
-    "summary": "Company/memo navigation and visual architecture/analysis explanation implemented and verified.",
-    "next_step": "Review the focused integration PR, then resume the operating-to-capital-and-cash evidence review. Validate a second real issuer before claiming broad financial coverage."
+    "task": "company-catalog-navigation",
+    "summary": "Captured company navigation and optional ticker compatibility are validated.",
+    "next_step": "Review and merge PR #16 after the fresh Greptile review; then resume operating-to-capital-and-cash evidence review and validate another issuer."
   },
   "references": [
     {

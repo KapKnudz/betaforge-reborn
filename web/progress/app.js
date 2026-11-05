@@ -14,6 +14,7 @@ let lastPlanText = null;
 let runsLoaded = false;
 let indexRequest = 0;
 let indexedRuns = [];
+let indexedCompanies = new Map();
 const selectedVersions = new Map();
 let runRequest = 0;
 let loadedRunId = null;
@@ -1018,7 +1019,11 @@ async function loadRun(id) {
   const request = ++runRequest;
   $("company-error").hidden = true;
   $("company-view").hidden = true;
-  if (!id) return;
+  if (!id) {
+    loadedRunId = null;
+    $("company-status").hidden = true;
+    return;
+  }
   const indexed = indexedRuns.find(run => run.id === id);
   if (indexed) selectedVersions.set(String(indexed.company.instrument_id), id);
   $("company-status").hidden = false;
@@ -1053,6 +1058,13 @@ function newestMemo(a, b) {
   const completion = run => Number.isFinite(Date.parse(run.reviewed_at)) ? Date.parse(run.reviewed_at) : 0;
   return String(b.analysis_date || "").localeCompare(String(a.analysis_date || "")) || completion(b) - completion(a) || a.id.localeCompare(b.id);
 }
+function showCompanyEmpty(company = null) {
+  const empty = $("company-empty");
+  empty.replaceChildren(element("h2", "", company ? displayName(company.name) : "No companies configured"),
+    element("p", "", company ? "No saved analysis yet." : "Add a captured company catalogue or saved memo to the workbench."));
+  if (company && company.captured_at) empty.append(element("p", "basis", "Börsdata snapshot · " + company.captured_at.slice(0, 10)));
+  empty.hidden = false;
+}
 function showCompany(id) {
   const versions = indexedRuns.filter(run => String(run.company.instrument_id) === id).sort(newestMemo);
   $("run-select").replaceChildren();
@@ -1066,6 +1078,11 @@ function showCompany(id) {
   const selected = versions.some(run => run.id === previous) ? previous : (versions[0] || {}).id || "";
   $("run-select").value = selected;
   $("run-select").disabled = !versions.length;
+  $("company-empty").hidden = versions.length > 0;
+  if (!versions.length) {
+    $("run-select").append(element("option", "", "No saved memo"));
+    showCompanyEmpty(indexedCompanies.get(String(id)));
+  }
   return loadRun(selected);
 }
 async function loadRuns(force = false) {
@@ -1083,16 +1100,23 @@ async function loadRuns(force = false) {
     const data = await getJSON("/api/runs");
     if (request !== indexRequest) return;
     if (!Array.isArray(data.runs)) throw new Error("Invalid saved index");
+    if (data.companies !== undefined && !Array.isArray(data.companies)) throw new Error("Invalid company catalogue");
     const selected = $("company-select").value;
     indexedRuns = data.runs.filter(run => run.company && Number.isInteger(run.company.instrument_id) && run.company.instrument_id > 0);
     const companies = new Map();
+    for (const company of data.companies || []) {
+      if (!company || !Number.isInteger(company.instrument_id) || company.instrument_id <= 0 || typeof company.name !== "string" || !company.name.trim()) throw new Error("Invalid captured company");
+      companies.set(String(company.instrument_id), company);
+    }
     for (const run of [...indexedRuns].sort(newestMemo)) {
       const id = String(run.company.instrument_id);
       if (!companies.has(id)) companies.set(id, run.company);
     }
+    indexedCompanies = companies;
     $("company-select").replaceChildren();
     for (const [id, company] of [...companies].sort((a, b) => displayName(a[1].name).localeCompare(displayName(b[1].name)) || Number(a[0]) - Number(b[0]))) {
-      const option = element("option", "", displayName(company.name) + (company.ticker ? " · " + company.ticker : "") + " · #" + id);
+      const hasMemo = indexedRuns.some(run => String(run.company.instrument_id) === id);
+      const option = element("option", "", displayName(company.name) + (company.ticker ? " · " + company.ticker : "") + " · #" + id + (hasMemo ? "" : " · No memo"));
       option.value = id;
       $("company-select").append(option);
     }
@@ -1101,11 +1125,13 @@ async function loadRuns(force = false) {
     $("company-empty").hidden = companies.size > 0;
     $("company-select").disabled = !companies.size;
     if (!companies.size) {
-      $("company-select").append(element("option", "", "No saved companies"));
+      $("company-select").append(element("option", "", "No companies configured"));
       $("run-select").replaceChildren(element("option", "", "No saved memos"));
-      $("company-status").textContent = "No local saved analysis has been explicitly configured.";
+      $("company-status").hidden = true;
+      showCompanyEmpty();
     } else {
-      $("company-select").value = companies.has(selected) ? selected : companies.keys().next().value;
+      const newest = [...indexedRuns].sort(newestMemo)[0];
+      $("company-select").value = companies.has(selected) ? selected : newest ? String(newest.company.instrument_id) : companies.keys().next().value;
       await showCompany($("company-select").value);
     }
   } catch (error) {

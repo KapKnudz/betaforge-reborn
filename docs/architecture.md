@@ -15,7 +15,7 @@ Acquisition → raw files + SQLite → frozen company packet
                                          ↓
                               read-only saved-run viewer
 
-work/plan.json → local research workbench ← explicit saved-view export
+work/plan.json → local research workbench ← explicit company catalogue + saved-view exports
 ```
 
 ## Ownership
@@ -31,7 +31,7 @@ work/plan.json → local research workbench ← explicit saved-view export
 | Analysis report | `betaforge/analysis_report.py` | Structured reasoning, sourced management comparisons, dated scenario references and hash-bound review feedback. |
 | Private preservation | `scripts/archive_research.py` | Versioned research bundles and verified restore. |
 | Saved-run presentation | `betaforge/saved_view.py`, `scripts/export_saved_analysis.py` | Verify existing artifact identity and package saved results for local inspection; no new financial arithmetic. |
-| Research workbench | `work/`, `scripts/serve_progress.py`, `web/progress/` | Session-maintained progress, visual architecture/process explanation and company/memo navigation over explicitly configured saved results. |
+| Research workbench | `work/`, `scripts/serve_progress.py`, `web/progress/` | Session-maintained progress, visual architecture/process explanation and navigation over explicitly configured company metadata and saved results. |
 | Design reference | `DESIGN.md`, `web/prototypes/company/`, `scripts/preview_company_design.py` | Preserve the approved design trial. The working Company view is maintained in `web/progress/`. |
 | Company examples | `examples/<company>/` | Issuer prompts, reconciliations, replay scripts and public example documents. |
 
