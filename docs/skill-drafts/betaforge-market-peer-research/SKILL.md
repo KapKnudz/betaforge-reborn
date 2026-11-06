@@ -17,6 +17,8 @@ Input: target company/security, information cutoff, business perimeter, prepared
 
 ## 1. Find and qualify peers
 
+Use the [discovery research](../../research/peer-market-discovery.md#how-the-agent-knows-what-to-search-for) when building the candidate list. Derive search terms from products, customers, revenue model, capital needs and geography; use the preserved Nordic directory and classification labels as leads, then broaden globally where the economic match warrants it. Confirm identity before following a Yahoo symbol or comparing share classes. The research distinguishes documented sources from unverified automation.
+
 Start with roughly three to five candidates by product/service, customers and end markets, pricing/contracts, capital intensity and reinvestment economics. Explain each match and principal mismatch. Retain fewer if necessary; a weak match may provide business context without supporting a numerical multiple comparison. Listing country and sector labels alone do not establish fit.
 
 Reuse preserved evidence. For retained peers, read the latest annual and relevant latest interim available by the cutoff; consult additional history only to resolve a material comparison. Capture primary source pages for the few figures that answer the question, normally revenue/growth, EBIT/margin and material cash/capital needs. Annual reports, issuer filings and official announcements control accounting meaning. SEC data can help locate filings for US reporters; verify the report definition before using a material number.

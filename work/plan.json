@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-05T21:54:26.049435+00:00",
+  "updated_at": "2026-11-06T16:56:10.129158+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "return-and-reader-review",
+  "next_task": "peer-discovery-pilot",
   "milestones": [
     {
       "id": "foundation",
@@ -698,12 +698,51 @@
       ],
       "blocker": null,
       "note": "Practical definitions, evidence/counterevidence tests and a fictional driver-based scenario example are complete. One combined upstream market/peer role returns a compact sourced comparison and driver brief; the lead retains forecasts, multiples and probabilities. All three draft skills pass the bundled validator; all 42 local links/anchors resolve, seven Markdown files pass whitespace checks and the three invented EBIT rows recompute exactly. Independent read-only review accepted the drafts after a cutoff-admission ambiguity was corrected and rechecked. This establishes draft consistency, not real-peer comparability, runtime delivery or forecasting improvement. Canonical policy, formulas, historical packets and saved valuations remain unchanged. The follow-up is local on feat/business-evidence-and-peers; PR #18 remains open and unchanged."
+    },
+    {
+      "id": "peer-discovery-research",
+      "milestone": "validation",
+      "title": "Research practical peer discovery and market classifications",
+      "status": "done",
+      "summary": "Compare Swedish and global discovery sources and reuse preserved classifications.",
+      "purpose": "Give the research skill a reproducible way to find economic peers before comparing numbers.",
+      "acceptance": [
+        "Document useful Swedish listed-company and company-register sources, their classification and access limits.",
+        "Assess Yahoo/global discovery sources and distinguish discovery, security identity and financial data.",
+        "Inspect preserved Börsdata directory/classification metadata without new API access.",
+        "Propose a small source-backed search workflow with concrete examples and independent review."
+      ],
+      "evidence": [
+        "docs/research/peer-market-discovery.md",
+        "docs/skill-drafts/betaforge-market-peer-research/SKILL.md",
+        "scripts/fetch_borsdata_context.py",
+        "betaforge/storage.py"
+      ],
+      "blocker": null,
+      "note": "Completed primary-source assessments of Swedish company/venue sources and global Yahoo/filing discovery. Direct saved-JSON checks confirm a wider Nordic instrument directory and taxonomy alongside the thirty-company financial corpus, without new API access. Two non-US Yahoo profiles were verified; Swedish screener output, stable automation, SCB authenticated access and bulk import remain unverified. The report supplies a business-profile-to-candidate-to-report workflow and concrete search examples without claiming a final peer set. Independent read-only review found no material findings; bundled skill validation, twelve local links/anchors, whitespace and plan JSON checks pass. Research only; no financial logic, saved valuation or runner change. Exact source notes and catalogue/check receipts remain private. Follow-up stays local on feat/business-evidence-and-peers; PR #18 remains open and unchanged."
+    },
+    {
+      "id": "peer-discovery-pilot",
+      "milestone": "validation",
+      "title": "Trial peer discovery across manufacturing and software",
+      "status": "pending",
+      "summary": "Test whether the proposed source workflow finds useful comparable businesses.",
+      "purpose": "Validate economic matching and accessible evidence before adding a routine research stage.",
+      "acceptance": [
+        "Choose explicit targets and information cutoff; preserve the short business profile and actual search/filter scope.",
+        "Save a bounded candidate list with issuer/security identity, source evidence, economic matches, material differences and inclusion/exclusion reasons.",
+        "Produce compact peer and market-driver briefs with compatible selected financials and valuation context where supported; localize gaps.",
+        "Review the contribution and source-access failures before implementing frozen-brief delivery or wider adoption."
+      ],
+      "evidence": [],
+      "blocker": null,
+      "note": "Proposed follow-up from the source research; no pilot, new subscription or runtime activation has occurred. Start with one company and use the second business model to test reuse."
     }
   ],
   "session": {
-    "task": "market-peer-skill-draft",
-    "summary": "Drafted practical philosophy definitions and a combined market/peer role; independent review and document checks pass.",
-    "next_step": "Review these drafts alongside PR #18, then verify a small peer/market brief and explicit frozen skill/context delivery on one preserved company before wider adoption. Continue scenario-return and reader work; retain original analyses."
+    "task": "peer-discovery-research",
+    "summary": "Completed structured source research and verified the preserved Nordic directory; reviewed discovery guidance is saved locally.",
+    "next_step": "Trial a small manufacturing-company peer/market brief, then a contrasting software brief. Preserve sources and selection reasons before integrating frozen delivery; keep historical analyses intact."
   },
   "references": [
     {
