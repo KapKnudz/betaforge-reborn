@@ -45,16 +45,18 @@ Use the guide's formulas and limits. These diagnostics inform assumptions; they 
 
 Choose one operating equation for the same business. Define bear/base/bull through business conditions and outcome ranges at a common horizon, rather than fixed percentage moves around today's price. Test material driver assumptions jointly against compatible history; explain a central case that combines exceptional scale and profitability.
 
-For each material forecast, exit multiple, cash-retention assumption and probability judgment, keep a short decision note:
+Keep one short assumption table in the valuation section. Show the material operating inputs, cash needs and exit multiple for each case. Use the latest comparable issuer result and its historical range. Cite any matched peer comparison and end-market outlook available at the cutoff, explain their relevance to the company's exposure and flag material gaps or conflicts.
 
-| Selected choice | Evidence/history | Business mechanism and reason for this magnitude | Contrary evidence, uncertainty or useful alternative |
-|---|---|---|---|
+| Material input | Dated issuer history, peer comparison and market evidence | Bear | Base | Bull | Why these amounts follow |
+|---|---|---|---|---|---|
+
+Explain the size of the differences between cases. If demand or utilization changes EBIT, carry the same operating conditions into the cash bridge. Choose the operating inputs before comparing the resulting returns with the share price.
 
 Select the exit multiple on the same earnings/claims basis as the forecast. Identify its provenance and economic justification. A maintained-current-multiple case is a conditional pricing benchmark; explain separate support before presenting it as an independent fair-value estimate. The market-implied EBIT check answers a conditional question and does not corroborate its own inputs.
 
 Support forecast cash with an earnings path or horizon average and material noncash, tax, interest, working-capital, investment and lease adjustments. Show cash uses, acquisitions, claim settlements, minorities and common dividends before retained cash. Complete the debt/claims/assets/share bridge once; identify financing or dilution needed to fund the case. State material post-statement events and any transaction scope the case excludes.
 
-Propose company-specific weights as saved assumptions, subject to user override. Explain what each representative point stands for, evidence for and against its likelihood, the degree of precision and what would change the judgment. Show a justified alternative allocation when uncertainty could change the hurdle conclusion. State omitted outcomes and conditional scope; evidence confidence is distinct from outcome probability. The reports supply no universal weight split.
+Set weights after defining the operating cases. For each case, record the conditions that have to occur, evidence for and against their likelihood, why the chosen weight is reasonable for this company and what would move it. Use the applicable company history, peer and end-market evidence when judging likelihood. Save weights as analyst assumptions subject to user override. Explain material omitted outcomes and label weakly supported weights indicative. Show an alternative allocation if it could change the hurdle conclusion. Give the call from the case returns and downside when the weights are too uncertain to rely on.
 
 Completion: each scenario has sourced or explicitly assumed drivers, an explained multiple, a funded or qualified cash/claims bridge and inspectable probability reasoning.
 

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-07T22:47:44.800409+00:00",
+  "updated_at": "2026-11-07T23:25:27.569965+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "peer-workflow-from-pilot",
@@ -768,7 +768,7 @@
       "summary": "Attach a private reviewed brief to a new frozen packet when useful.",
       "purpose": "Make peer evidence available and citable without starting web research inside the valuation runner.",
       "acceptance": [
-        "Use a manual brief to test whether it changes a material analyst judgment before implementing delivery.",
+        "Preselect one material forecast or multiple. Compare an analysis with and without a reviewed, cutoff-compatible peer and market brief, holding the issuer evidence, price, three-year horizon and method fixed. Record the supported assumption or weight change, or explain why the original choice still holds.",
         "If justified, verify target and cutoff, source hashes and relative paths at preparation; preserve no-brief behavior and prior packets.",
         "Verify a bounded analyst read, one structured claim with a peer citation separate from target facts, and resume rejection of changed evidence."
       ],
@@ -840,13 +840,13 @@
         "web/progress/process.js"
       ],
       "blocker": null,
-      "note": "Prepared the four draft guides and synthesis step for PR #18. Full offline suite passed (223 tests, one private-evidence class skipped). Four skill packages, local links, browser layouts and independent scope review passed. Current-head Greptile and user review belong to the PR."
+      "note": "Prepared the four draft guides and synthesis step for PR #18. Full offline suite passed (223 tests, one private-evidence class skipped). Four skill packages, local links, browser layouts and independent scope review passed. Current-head Greptile and user review belong to the PR. The follow-up ties the case amounts and weights to dated evidence. Independent recheck and draft links passed. The matched-brief comparison remains pending under the peer handoff task."
     }
   ],
   "session": {
     "task": "analysis-skills-review",
-    "summary": "Prepared the four guides and Skills map for review in PR #18.",
-    "next_step": "Verify the current-head review and leave the merge to the user."
+    "summary": "Structured the evidence for numerical scenarios and probability weights in the draft guides.",
+    "next_step": "Review the updated PR and test a matched brief on one material three-year assumption."
   },
   "references": [
     {
