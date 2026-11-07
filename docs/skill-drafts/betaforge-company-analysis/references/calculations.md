@@ -33,7 +33,7 @@ For each bear/base/bull case over the two-to-three-year horizon, choose one oper
 - `revenue_ebit`: `forecast EBIT = revenue × EBIT margin`.
 - `volume_ebit`: `forecast EBIT = sales tonnes × EBIT per tonne`, when that better explains the business.
 
-Use one estimate for the same operations. Anchor material drivers to annual/R12 results and history; explain their magnitude together. A central case combining record scale and strong profitability needs evidence. Select a defensible positive exit multiple on the same EBIT/claims basis.
+Use one estimate for the same operations. Anchor material drivers to annual/R12 results and history; explain their magnitude together. A central case combining record scale and strong profitability needs evidence. The structured bridge needs positive forecast EBIT, an economically defensible positive multiple, positive forecast shares and nonnegative common equity. Use the same EBIT and claims basis.
 
 `valuation_case` then applies:
 
@@ -48,6 +48,8 @@ present_value = future_target / (1 + r)^years
 ```
 
 Show every intermediate. Additional leases, pensions and NCI enter only when excluded from financial net debt and required by the selected EBIT/multiple convention. Identify supported surplus assets separately; cash already netted in debt is not added again. State target-date treasury shares, awards and issuance; historical EPS shares are not automatically forecast shares. Negative common equity is an equity shortfall, not a negative price quote.
+
+Describe any material loss or distress outcome that the bridge cannot price and explain its implications for financing and dilution. If the numerical cases omit that outcome, qualify any weighted result accordingly. If a required scenario has no defensible target, report the limitation and leave the structured valuation incomplete.
 
 Reconcile acquisition obligations: where each enters debt or cash uses, any declared aggregation/proxy and remaining gap. The registry has no acquisition-claim field. Do not silently relabel purchase obligations as actual NCI or remap historical cases. Keep targets conditional where the bridge leaves a material claim unresolved.
 
@@ -81,3 +83,15 @@ The implementation assumes constant year-end dividends and adds the target once 
 As a secondary summary, `scenario_weighted_values` weights comparable dividends and targets with explicit company-specific probabilities summing to one; `expected_cashflow_irr` then solves those weighted cash flows. Never average case IRRs. Label representative cases or omitted tails conditional/indicative.
 
 Compare returns with the starting **10% personal annual equity hurdle**. Show **9% present-value sensitivity**, holding cash flows, operations and probabilities fixed; rate-only changes affect PV, not IRR. Explain any rate override. This is not WACC. Keep **SIXRX trailing ten-year annualized total return**, with reinvested dividends and verified dates/series, separate as historical context. Missing SIXRX leaves that comparison unavailable, not the hurdle verdict.
+
+## Worked example: operating disappointment and the exit multiple
+
+Use the [fictional manufacturer](business-evidence.md#fictional-example) at an illustrative SEK 100 share price. Assume three years, 10 million diluted shares, SEK 110 million of financial net debt and SEK 10 million of additional leases. Assume zero other claims and non-operating assets. The base case has SEK 30 million in annual cash after operating, reinvestment and financing needs, before common dividends. A SEK 2 dividend per share leaves SEK 10 million retained each year and SEK 80 million of financial net debt at exit.
+
+| Check | Exit EBIT (SEK m) | Exit EV/EBIT | Annual dividend (SEK/share) | Future target (SEK/share) | Value today at 10% (SEK/share) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Base | 120.75 | 12× | 2.00 | 135.90 | 107.08 |
+| Multiple sensitivity | 120.75 | 10× | 2.00 | 111.75 | 88.93 |
+| Operating disappointment | 66.50 | 12× | 0.00 | 67.80 | 50.94 |
+
+In the base case, `valuation_case` multiplies EBIT by 12 to get SEK 1,449 million of EV. Subtracting SEK 80 million of net debt and SEK 10 million of leases leaves SEK 1,359 million for common shareholders. Divide by 10 million shares and discount the target and the three year-end dividends. In the operating disappointment, weaker orders, discounting and slower inventory clearance leave no cash to distribute or retain, so net debt stays at SEK 110 million. This checks the business and cash assumptions at the same multiple. The separate multiple sensitivity shows why the base result at SEK 100 needs evidence for the 12× assumption. Both multiples are illustrative.

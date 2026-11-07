@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-05T20:41:56.347760+00:00",
+  "updated_at": "2026-11-07T22:47:44.800409+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "return-and-reader-review",
+  "next_task": "peer-workflow-from-pilot",
   "milestones": [
     {
       "id": "foundation",
@@ -675,12 +675,178 @@
       ],
       "blocker": null,
       "note": "Two role drafts and two focused references are complete, derived from current policy, the named registry and preserved memo/reference reviews. The initial diagnostics, primary EV/EBIT equity bridge, conditional checks and per-case/weighted cash-flow returns are explicit. Both skills pass the bundled validator; all 21 local links and local anchors resolve. Independent read-only financial/source review found no material findings. A fresh analyst and reviewer handled one hypothetical preliminary note using the drafts, with no material error found within that scope. This does not establish improved actual-company valuation quality. Drafts remain outside active discovery; runtime delivery, packet identity changes and full company trials are separate adoption work. Source derivation and exercise receipts stay private. PR/current-head review receipt belongs in the PR conversation; the user reviews and merges."
+    },
+    {
+      "id": "market-peer-skill-draft",
+      "milestone": "validation",
+      "title": "Define business evidence and draft combined market and peer research",
+      "status": "done",
+      "summary": "Add practical investment definitions and one upstream research role.",
+      "purpose": "Ground business-driver scenarios in comparable evidence without adding model complexity.",
+      "acceptance": [
+        "Explain material investment judgments with observable evidence, counterevidence and simple examples, derived from the adopted philosophy.",
+        "Draft one combined market-and-peer role with economic matching, dated sources, a compact handoff and bounded follow-up.",
+        "Keep scenario formation tied to operating conditions, financials and capital needs before comparison with the market price.",
+        "Check financial consistency, source claims, skill structure and links through independent read-only review; keep runtime adoption separate."
+      ],
+      "evidence": [
+        "docs/skill-drafts/betaforge-company-analysis/SKILL.md",
+        "docs/skill-drafts/betaforge-company-analysis/references/business-evidence.md",
+        "docs/skill-drafts/betaforge-market-peer-research/SKILL.md",
+        "docs/skill-drafts/betaforge-market-peer-research/references/evidence-handoff.md",
+        "docs/skill-drafts/betaforge-valuation-review/SKILL.md"
+      ],
+      "blocker": null,
+      "note": "Practical definitions, evidence/counterevidence tests and a fictional driver-based scenario example are complete. One combined upstream market/peer role returns a compact sourced comparison and driver brief; the lead retains forecasts, multiples and probabilities. All three draft skills pass the bundled validator; all 42 local links/anchors resolve, seven Markdown files pass whitespace checks and the three invented EBIT rows recompute exactly. Independent read-only review accepted the drafts after a cutoff-admission ambiguity was corrected and rechecked. This establishes draft consistency, not real-peer comparability, runtime delivery or forecasting improvement. Canonical policy, formulas, historical packets and saved valuations remain unchanged. The follow-up is local on feat/business-evidence-and-peers; PR #18 remains open and unchanged."
+    },
+    {
+      "id": "peer-discovery-research",
+      "milestone": "validation",
+      "title": "Research practical peer discovery and market classifications",
+      "status": "done",
+      "summary": "Compare Swedish and global discovery sources and reuse preserved classifications.",
+      "purpose": "Give the research skill a reproducible way to find economic peers before comparing numbers.",
+      "acceptance": [
+        "Document useful Swedish listed-company and company-register sources, their classification and access limits.",
+        "Assess Yahoo/global discovery sources and distinguish discovery, security identity and financial data.",
+        "Inspect preserved Börsdata directory/classification metadata without new API access.",
+        "Propose a small source-backed search workflow with concrete examples and independent review."
+      ],
+      "evidence": [
+        "docs/research/peer-market-discovery.md",
+        "docs/skill-drafts/betaforge-market-peer-research/SKILL.md",
+        "scripts/fetch_borsdata_context.py",
+        "betaforge/storage.py"
+      ],
+      "blocker": null,
+      "note": "Completed primary-source assessments of Swedish company/venue sources and global Yahoo/filing discovery. Direct saved-JSON checks confirm a wider Nordic instrument directory and taxonomy alongside the thirty-company financial corpus, without new API access. Two non-US Yahoo profiles were verified; Swedish screener output, stable automation, SCB authenticated access and bulk import remain unverified. The report supplies a business-profile-to-candidate-to-report workflow and concrete search examples without claiming a final peer set. Independent read-only review found no material findings; bundled skill validation, twelve local links/anchors, whitespace and plan JSON checks pass. Research only; no financial logic, saved valuation or runner change. Exact source notes and catalogue/check receipts remain private. Follow-up stays local on feat/business-evidence-and-peers; PR #18 remains open and unchanged."
+    },
+    {
+      "id": "peer-discovery-pilot",
+      "milestone": "validation",
+      "title": "Test Börsdata branch discovery and Yahoo comparison data on one company",
+      "status": "done",
+      "summary": "Use one exact branch to select 5–10 Nordic candidates, then check Yahoo fields and primary reports.",
+      "purpose": "Learn which parts of the peer workflow are reliable enough to put into a skill.",
+      "acceptance": [
+        "Freeze the target, saved directory date, exact branch and candidate selection reasons.",
+        "Check 5–10 exact saved Yahoo symbols for accessible identity, operating figures and dated valuation context; record field gaps and access route.",
+        "Verify a small set of material figures and candidate fit against original reports where feasible; distinguish coverage from comparability.",
+        "Save and independently review the bounded pilot result before changing the skill or runtime."
+      ],
+      "evidence": [
+        "docs/research/peer-market-discovery.md"
+      ],
+      "blocker": null,
+      "note": "Completed the requested one-company manual pilot with eight exact-branch candidates and nine successful Yahoo symbol checks. Browser receipts distinguish quote dates from undated statistics/TTM columns. Latest annual capex was observed in eight cases, TTM capex in five. Five issuer-based margins and three same-year gross cash-capex ratios were checked. Source hashes, arithmetic, links and plan JSON passed. Independent read-only review accepted the pilot after a source-period wording correction. Findings support screening plus report verification, not an automated connector or an aligned peer valuation. A public new-layout preview was checked for one issuer; recheck after Yahoo’s 9 November change before binding field labels. Private receipts are ignored; the draft skill and historical runs were not changed."
+    },
+    {
+      "id": "peer-workflow-from-pilot",
+      "milestone": "validation",
+      "title": "Turn the reviewed peer pilot into a short research procedure",
+      "status": "in_progress",
+      "summary": "Recheck revised Yahoo fields, then specify the smallest report-checked workflow.",
+      "purpose": "Use the tested discovery and screening sequence without assuming a provider row is comparable.",
+      "acceptance": [
+        "Spot-check the default Yahoo financial statements after the announced change and retain source labels, periods and observed limits.",
+        "Draft the saved-branch to Yahoo screen to issuer verification sequence, with explicit candidate fit and comparable inputs.",
+        "Keep the manual procedure separate from supported automation and frozen runner delivery.",
+        "Return one comparable operating table for at most five peers and a short verdict supported by the measures and their scope."
+      ],
+      "evidence": [
+        "docs/skill-drafts/betaforge-market-peer-research/SKILL.md",
+        "docs/skill-drafts/betaforge-market-peer-research/references/evidence-handoff.md"
+      ],
+      "blocker": null,
+      "note": "The short manual procedure is drafted and independently reviewed after clarifying optional screening and eventual peer citation support. A contrasting software trial checked six starting names, two searches and three issuer report rows. Document validation, 17 local links and six arithmetic checks passed. The announced Yahoo default change has not occurred as of the trial; that spot check remains open. Proposed packet delivery is separate. Exact research stays private. The draft now targets three useful peers and caps the comparison at five, with one table and a scoped performance verdict. Independent review confirmed the rules for missing evidence and segment comparisons. Skill structure and local links passed validation."
+    },
+    {
+      "id": "peer-brief-packet-handoff",
+      "milestone": "validation",
+      "title": "Evaluate an optional reviewed peer brief input at packet preparation",
+      "status": "pending",
+      "summary": "Attach a private reviewed brief to a new frozen packet when useful.",
+      "purpose": "Make peer evidence available and citable without starting web research inside the valuation runner.",
+      "acceptance": [
+        "Use a manual brief to test whether it changes a material analyst judgment before implementing delivery.",
+        "If justified, verify target and cutoff, source hashes and relative paths at preparation; preserve no-brief behavior and prior packets.",
+        "Verify a bounded analyst read, one structured claim with a peer citation separate from target facts, and resume rejection of changed evidence."
+      ],
+      "evidence": [
+        "docs/skill-drafts/betaforge-market-peer-research/references/evidence-handoff.md"
+      ],
+      "blocker": null,
+      "note": "Proposed project preparation step. No native Codex lifecycle hooks, automatic dispatch or source connector have been added."
+    },
+    {
+      "id": "analysis-skill-map",
+      "milestone": "validation",
+      "title": "Map the draft skills and write a financial report guide",
+      "status": "done",
+      "summary": "Connect market research, valuation, memo writing and independent challenge in the workbench.",
+      "purpose": "Make it clear which guide to use at each stage and what evidence supports the methods and presentation.",
+      "acceptance": [
+        "Add a writing guide for the lead analyst using the existing six-section report and saved evidence.",
+        "Record primary investment-process and writing examples with specific reusable lessons.",
+        "Show four draft guides in Architecture with their timing, roles and links.",
+        "Check the documentation, served links and responsive workbench and obtain independent review."
+      ],
+      "evidence": [
+        "docs/analysis-process.md",
+        "docs/skill-drafts/betaforge-financial-report/SKILL.md",
+        "docs/research/investment-process-sources.md",
+        "docs/research/investor-writing-examples.md",
+        "docs/skill-drafts/betaforge-company-analysis/references/calculations.md",
+        "web/progress/process.js",
+        "tests/test_progress.py"
+      ],
+      "blocker": null,
+      "note": "Added four draft guide links to Architecture and mapped each guide to its role and stage. The lead analyst writes the memo using the existing report and calculation contracts. Source notes separate Hedborg and Armitage interviews from project policy. A fictional calculation illustrates operating disappointment and multiple sensitivity separately. The read-only review improved the history chart format and weighted-return export handoff. Four skill validations, local links, 27 HTTP tests and five UI tests passed. Chrome checks at 1280 × 720 and 390 × 844 showed four working guide links, working stage disclosures and no horizontal overflow. Drafts are available for manual use; runner adoption remains open and the company trial is tracked separately."
+    },
+    {
+      "id": "analysis-skill-pilot",
+      "milestone": "validation",
+      "title": "Trial the draft guides on one frozen company",
+      "status": "done",
+      "summary": "Use the guides manually to write and challenge one company memo.",
+      "purpose": "Check whether the guides improve the investment case and traceability before automating delivery.",
+      "acceptance": [
+        "Use a reviewed peer comparison only where it addresses a material question.",
+        "Compare the new memo with the prior analysis on forecast support, operating downside, equity bridge and readability.",
+        "Save the independent challenge and record which instructions helped or need refinement."
+      ],
+      "evidence": [
+        "docs/analysis-process.md",
+        "docs/skill-drafts/betaforge-financial-report/SKILL.md"
+      ],
+      "blocker": null,
+      "note": "Completed one controlled trial using the original frozen evidence and dated report price. Later peer research stayed outside the cutoff. The new Sol/xhigh run delivered all required pages and produced separate saved scenario IRRs. The coordinator replayed the scenario and indicative weighted cash-flow returns. One independent challenge and one revision clarified the material exit-multiple and cash assumptions and the presentation. The final reviewer accepted the exact revised report. Both memo versions load and switch in Chrome at desktop and mobile sizes. The draft report guide now includes the dated call, scenario-based judgment and viewer text conventions. The trial supports the presentation format on one company. Broader forecast quality and automatic skill delivery remain separate."
+    },
+    {
+      "id": "analysis-skills-review",
+      "milestone": "validation",
+      "title": "Prepare the draft research and valuation guides for review",
+      "status": "in_progress",
+      "summary": "Bring the four guides, their references and the workbench map into one review.",
+      "purpose": "Review how research, valuation, writing and independent challenge fit together before runner adoption.",
+      "acceptance": [
+        "Keep the four draft roles and their evidence boundaries explicit.",
+        "Validate local links, workbench behavior and public scope with an independent review.",
+        "Present the draft guides in PR #18 for user review."
+      ],
+      "evidence": [
+        "docs/analysis-process.md",
+        "docs/skill-drafts/betaforge-financial-report/SKILL.md",
+        "web/progress/process.js"
+      ],
+      "blocker": null,
+      "note": "Prepared the four draft guides and synthesis step for PR #18. Full offline suite passed (223 tests, one private-evidence class skipped). Four skill packages, local links, browser layouts and independent scope review passed. Current-head Greptile and user review belong to the PR."
     }
   ],
   "session": {
-    "task": "valuation-skill-drafts",
-    "summary": "Two philosophy-based skill drafts, a clear calculation guide and reusable memo structure are complete and independently checked.",
-    "next_step": "Review the draft content for adoption, then integrate explicit frozen skill delivery and test varied preserved companies. Keep scenario returns first, preserve historical runs and continue the reader improvements."
+    "task": "analysis-skills-review",
+    "summary": "Prepared the four guides and Skills map for review in PR #18.",
+    "next_step": "Verify the current-head review and leave the merge to the user."
   },
   "references": [
     {

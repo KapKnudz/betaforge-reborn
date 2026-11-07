@@ -38,6 +38,17 @@ The review step above is a coordinator responsibility. No autonomous review serv
 
 The lead analyst and independent reviewer are separate roles. The reviewer reads the same frozen evidence, policy, draft, saved inputs and calculations, and returns findings without changing files, starting new runs or granting waivers. The coordinator preserves the returned challenge. See [workflow: Run one lead analyst](analysis-workflow.md#2-run-one-lead-analyst) and [Challenge the draft independently](analysis-workflow.md#3-challenge-the-draft-independently).
 
+## Draft skill guides
+
+The local workbench lists these guides under **Architecture → Skills**. They describe intended use. The current runner delivers the packet policy and tools, while these guides are available for manual use as drafts.
+
+| Guide | When to use it | Owner and output |
+| --- | --- | --- |
+| [Market and peer research](skill-drafts/betaforge-market-peer-research/SKILL.md) | Before freezing, when a peer or market question matters to the thesis | Researcher supplies a short comparison with sources and limits. The coordinator decides what enters the packet. |
+| [Company analysis](skill-drafts/betaforge-company-analysis/SKILL.md) | While analysing the frozen evidence and building scenarios | Lead analyst explains business drivers and selects saved inputs for the named calculations. |
+| [Financial report writing](skill-drafts/betaforge-financial-report/SKILL.md) | As the lead analyst prepares the draft | The same analyst writes the six-section memo from the saved evidence and results. |
+| [Independent valuation review](skill-drafts/betaforge-valuation-review/SKILL.md) | After the draft | Separate reviewer challenges the material evidence, assumptions and conclusions. |
+
 ## What the analysis tries to understand
 
 The analyst starts with three to five earnings and cash drivers, rather than a universal ratio scorecard. It separates business quality from attractiveness at the dated price. Pricing power, competitive advantages, operating leverage and management’s capital allocation need business evidence. Historical performance and economically matched peers provide context when compatible evidence is available. A sector label or matching ratio is insufficient. See [policy: Investment philosophy](analysis-policy.md#investment-philosophy) and [Financial quality](analysis-policy.md#financial-quality).

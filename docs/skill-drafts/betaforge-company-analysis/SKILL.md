@@ -15,7 +15,7 @@ Apply the combined philosophy in [analysis-policy.md](../../analysis-policy.md):
 
 For an actual run, use the policy and definitions frozen in its packet. Use only the supplied evidence and permitted tools. The coordinator owns acquisition, packet preparation and independent reviewer dispatch. Ordinary operating companies are the initial scope; identify a different business or security scope before applying these equations.
 
-Read the [calculation guide](references/calculations.md) before selecting valuation inputs and the [memo structure](references/memo-structure.md) before writing. Follow the existing [analysis workflow](../../analysis-workflow.md) and six-section report contract.
+Read the [calculation guide](references/calculations.md) before selecting valuation inputs. The [investor process notes](../../research/investment-process-sources.md) explain the source of selected analytical ideas and where Betaforge makes its own choices. Follow the [analysis workflow](../../analysis-workflow.md) and six-section report contract.
 
 ## 1. Establish the evidence
 
@@ -27,7 +27,7 @@ Completion: material inputs have a stated meaning and saved source, or an explic
 
 ## 2. Explain the business and select initial calculations
 
-Identify three to five drivers of earnings and cash. Assess pricing power, competitive advantages, management promises versus outcomes, capital allocation and prospective dilution through business evidence. Compare own history first, economically matched global peers second, and qualified industry data third.
+Use the [business-evidence guide](references/business-evidence.md) to identify three to five drivers of earnings and cash and test pricing power, competitive advantages, management delivery, capital allocation and prospective dilution. The guide supplies working definitions, counterevidence and simple examples, without a scorecard. Compare own history first, economically matched global peers second, and qualified industry data third. Use a frozen [market-and-peer brief](../betaforge-market-peer-research/SKILL.md) when supplied; the coordinator owns external research, and you own its forecast implications.
 
 Select calculations by the question they answer:
 
@@ -64,6 +64,8 @@ Use saved input IDs and named deterministic formulas; normalize source scale onc
 
 Use the policy's starting 10% personal equity hurdle and 9% PV sensitivity, with explained overrides. Keep historical SIXRX total return separate. For the secondary weighted result, weight dated cash flows before solving IRR; explain when representative cases or omitted tails make it conditional. Test the principal operating disappointment and its associated capital/cash needs using existing formulas.
 
-Write the concise owner memo through the memo reference, preserving the six sections and saved references. Put detailed reconciliations, formulas and execution provenance in supporting evidence. Name observations that would weaken the thesis and the next evidence to inspect.
+Before writing the call, reconcile historical growth, margins and cash generation with the scenario assumptions. Say which material assumption usable peer evidence supports or challenges, and why the comparison fits. State when a missing or mismatched comparison limits the call. At the dated purchase price, judge the two-to-three-year case against the hurdle and a plausible operating disappointment. State what price or observable business change would justify revisiting the call.
+
+Use the [financial report guide](../betaforge-financial-report/SKILL.md) to write the owner memo from the saved analysis. Name observations that would weaken the thesis and the next evidence to inspect.
 
 Completion: the structured report references saved calculations and source evidence, explains its material judgments and uncertainties, and is ready for independent challenge. Structural submission acceptance is distinct from economic review.

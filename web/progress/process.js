@@ -26,8 +26,18 @@
         <p class="process-note">Opening this workbench reads saved files. It does not fetch research, call a model or launch an analysis. The map describes the system, not live activity.</p>
       </section>
 
+      <section class="process-section" aria-labelledby="process-skills-title">
+        <div class="process-section-heading"><span class="process-section-number">B</span><div><h3 id="process-skills-title">Skills</h3><p>Draft guides in order of use. Full references are in the repository.</p></div></div>
+        <ol class="process-skills">
+          <li><h4><a href="/docs/docs/skill-drafts/betaforge-market-peer-research/SKILL.md" target="_blank" rel="noopener">Market and peer research ↗</a></h4><p><strong>Before packet preparation.</strong> Prepare an optional brief on peers and end markets with links to sources.</p></li>
+          <li><h4><a href="/docs/docs/skill-drafts/betaforge-company-analysis/SKILL.md" target="_blank" rel="noopener">Company analysis and valuation ↗</a></h4><p><strong>During analysis.</strong> Use frozen evidence to explain earnings drivers and build scenarios.</p></li>
+          <li><h4><a href="/docs/docs/skill-drafts/betaforge-financial-report/SKILL.md" target="_blank" rel="noopener">Financial report writing ↗</a></h4><p><strong>While drafting the memo.</strong> The lead analyst writes the structured report and cites the evidence.</p></li>
+          <li><h4><a href="/docs/docs/skill-drafts/betaforge-valuation-review/SKILL.md" target="_blank" rel="noopener">Independent valuation review ↗</a></h4><p><strong>After the draft.</strong> A separate reviewer challenges the draft against its evidence and calculations.</p></li>
+        </ol>
+      </section>
+
       <section class="process-section" aria-labelledby="process-analysis-title">
-        <div class="process-section-heading"><span class="process-section-number">B</span><div><h3 id="process-analysis-title">From evidence to an investment case</h3><p>One lead analyst, a separate independent reviewer, and a coordinator who connects them.</p></div></div>
+        <div class="process-section-heading"><span class="process-section-number">C</span><div><h3 id="process-analysis-title">From evidence to an investment case</h3><p>One lead analyst, a separate independent reviewer, and a coordinator who connects them.</p></div></div>
         <dl class="process-roles" aria-label="Responsibility legend">
           <div><dt><span class="process-badge process-code">Code-enforced</span></dt><dd>Identity, tool access, arithmetic and structural checks.</dd></div>
           <div><dt><span class="process-badge process-judgment">Agent judgment</span></dt><dd>Business meaning, forecasts, probabilities and challenge.</dd></div>
