@@ -33,7 +33,7 @@ For each bear/base/bull case over the two-to-three-year horizon, choose one oper
 - `revenue_ebit`: `forecast EBIT = revenue × EBIT margin`.
 - `volume_ebit`: `forecast EBIT = sales tonnes × EBIT per tonne`, when that better explains the business.
 
-Use one estimate for the same operations. Anchor material drivers to annual/R12 results and history; explain their magnitude together. A central case combining record scale and strong profitability needs evidence. Select a defensible positive exit multiple on the same EBIT/claims basis.
+Use one estimate for the same operations. Anchor material drivers to annual/R12 results and history; explain their magnitude together. A central case combining record scale and strong profitability needs evidence. The structured bridge needs positive forecast EBIT, an economically defensible positive multiple, positive forecast shares and nonnegative common equity. Use the same EBIT and claims basis.
 
 `valuation_case` then applies:
 
@@ -48,6 +48,8 @@ present_value = future_target / (1 + r)^years
 ```
 
 Show every intermediate. Additional leases, pensions and NCI enter only when excluded from financial net debt and required by the selected EBIT/multiple convention. Identify supported surplus assets separately; cash already netted in debt is not added again. State target-date treasury shares, awards and issuance; historical EPS shares are not automatically forecast shares. Negative common equity is an equity shortfall, not a negative price quote.
+
+Describe any material loss or distress outcome that the bridge cannot price and explain its implications for financing and dilution. If the numerical cases omit that outcome, qualify any weighted result accordingly. If a required scenario has no defensible target, report the limitation and leave the structured valuation incomplete.
 
 Reconcile acquisition obligations: where each enters debt or cash uses, any declared aggregation/proxy and remaining gap. The registry has no acquisition-claim field. Do not silently relabel purchase obligations as actual NCI or remap historical cases. Keep targets conditional where the bridge leaves a material claim unresolved.
 
