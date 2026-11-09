@@ -4,7 +4,7 @@ Git carries code, draft skills and the current plan. Exact provider data, PDFs, 
 
 ## Prepare the environment
 
-1. Choose **Work in → Cloud → Create environment** and select `KapKnudz/betaforge-reborn`. Use the published working branch until its PR is merged; then use `main`.
+1. Choose **Work in → Cloud → Create environment** and select `KapKnudz/betaforge-reborn`. Use `feat/valuation-skill-drafts` until [PR #18](https://github.com/KapKnudz/betaforge-reborn/pull/18) is merged; then use `main`.
 2. Ask setup to install Python (3.14.7 is tested locally), Node.js for the JavaScript checks, and Poppler (`poppler-utils` on Debian/Ubuntu). Run from the repository root:
 
    ```sh
@@ -31,3 +31,9 @@ Start the progress website with `.venv/bin/python scripts/serve_progress.py`. A 
 - Run a bounded tool smoke before a full analysis. Local saved-result validation is not evidence of a successful cloud model run.
 
 Local tests and memo viewing have been exercised on the Mac. Linux/cloud setup, private-release access, preview access and the nested runner still require verification in the actual cloud environment. Local personal skills and command wrappers are not portable dependencies; use repository instructions and available equivalent tools.
+
+## Private checkpoint
+
+The [9 November research release](https://github.com/KapKnudz/betaforge-research-private/releases/tag/cloud-research-2026-11-09) preserves the recent AQ/Lime trials, saved views, audit notes, investor-writing originals and benchmarks. Its manifest records application commit `d29d4ad`; later handoff-only commits do not rewrite the saved runs. The archive's selected source hashes and uploaded asset digest were checked. It supplements the earlier corpus and nine-company releases; it is not a complete replacement for them.
+
+Restore into a clean location and verify the included checksum. Keep original packets intact: preparing or relocating a new runnable packet is separate from restoring a saved result. Private Cloud access and a full Cloud restore/replay remain to be tested.

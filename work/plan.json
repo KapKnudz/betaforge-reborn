@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-09T22:31:45.356777+01:00",
+  "updated_at": "2026-11-09T22:40:32.807560+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "peer-workflow-from-pilot",
@@ -14,7 +14,7 @@
     {
       "id": "workflow",
       "title": "Persistent project workflow",
-      "status": "in_progress",
+      "status": "done",
       "summary": "Short README, project instructions, current plan, clear boundaries, PR rules and local progress display."
     },
     {
@@ -1139,7 +1139,7 @@
       "id": "cloud-publication-handoff",
       "milestone": "workflow",
       "title": "Publish current project for Codex Cloud",
-      "status": "in_progress",
+      "status": "done",
       "summary": "Publish latest reusable code and guides with a clear cloud startup and private research boundary.",
       "purpose": "Continue development from GitHub without depending on one workstation.",
       "acceptance": [
@@ -1148,16 +1148,18 @@
         "Document cloud setup, private evidence restore and unverified runtime requirements."
       ],
       "evidence": [
-        "docs/cloud-handoff.md"
+        "docs/cloud-handoff.md",
+        "https://github.com/KapKnudz/betaforge-reborn/pull/18",
+        "https://github.com/KapKnudz/betaforge-research-private/releases/tag/cloud-research-2026-11-09"
       ],
       "blocker": null,
-      "note": "238 offline tests pass with local socket access. Independent review fixes cover malformed memo tables, accounting labels and cloud preview privacy. Browser memo/review render verified. Publication, private backup and current-head Greptile review remain."
+      "note": "Code and guides published to PR #18 branch with earlier history preserved. 238 local tests pass; clean public checkout passes 230 tests with one private-evidence class skipped. Independent review fixes and browser checks pass. Selected research archive uploaded privately and digest verified. Current-head Greptile review pending; merge and actual Cloud setup remain user-owned follow-up."
     }
   ],
   "session": {
     "task": "cloud-publication-handoff",
-    "summary": "Preparing current working tree for publication and cloud continuation.",
-    "next_step": "Complete validation, publish branch and run Greptile review."
+    "summary": "Published latest code and selected private research for cloud continuation. Actual Cloud runtime remains unverified.",
+    "next_step": "Finish current-head Greptile review, then user reviews/merges PR #18 and follows docs/cloud-handoff.md to prepare and test the Cloud environment."
   },
   "references": [
     {
