@@ -11,7 +11,7 @@ The local Python controller drives the desktop-bundled Codex app-server and disp
   --output /absolute/path/new-run-directory
 ```
 
-The output must be new unless `--resume` is explicit. Default deadline is 7,200 seconds; `--timeout` may reduce it. `--smoke` performs a bounded financial-query, first-report/page-image and calculation check using the supplied packet. It waives full reading only for that integration check; it does not expect a named company's report, page or earnings values. `--codex` can select another verified executable; the default is `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.
+The output must be new unless `--resume` is explicit. Default deadline is 7,200 seconds; `--timeout` may reduce it. `--smoke` performs a bounded financial-query, first-report/page-image and calculation check using the supplied packet. It waives full reading only for that integration check; it does not expect a named company's report, page or earnings values. `--codex` selects an explicit executable or PATH command. Otherwise the runner discovers `codex` on PATH, then checks the existing Mac application bundle. An unavailable executable fails before creating run output. Discovery does not establish client compatibility or authentication.
 
 A minimal packet has this shape; the numeric ID below is illustrative, never a runtime default:
 

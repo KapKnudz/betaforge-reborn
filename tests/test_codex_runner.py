@@ -8,10 +8,47 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
-from betaforge.codex_runner import AppServer, child_environment, integration_smoke_prompt, run, safe_event, verify_implementation, verify_prompt
+from betaforge.codex_runner import AppServer, child_environment, integration_smoke_prompt, resolve_codex, run, safe_event, verify_implementation, verify_prompt
 
 
 class RunnerTests(unittest.TestCase):
+    def test_explicit_executable_precedes_path_and_mac_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            for name in ('explicit', 'codex', 'mac-codex'):
+                executable=root/name;executable.write_text('#!/bin/sh\n');executable.chmod(0o700)
+            with patch.dict(os.environ, {'PATH':str(root)}), \
+                 patch('betaforge.codex_runner.DEFAULT_CODEX',str(root/'mac-codex')):
+                self.assertEqual(resolve_codex(str(root/'explicit')),str(root/'explicit'))
+                self.assertEqual(resolve_codex('explicit'),str(root/'explicit'))
+                with self.assertRaisesRegex(FileNotFoundError,'not found or not executable'):
+                    resolve_codex(str(root/'missing'))
+
+    def test_default_executable_uses_path_before_mac_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            for name in ('codex', 'mac-codex'):
+                executable=root/name;executable.write_text('#!/bin/sh\n');executable.chmod(0o700)
+            with patch.dict(os.environ, {'PATH':str(root)}), \
+                 patch('betaforge.codex_runner.DEFAULT_CODEX',str(root/'mac-codex')):
+                self.assertEqual(resolve_codex(),str(root/'codex'))
+            with patch.dict(os.environ, {'PATH':''}), \
+                 patch('betaforge.codex_runner.DEFAULT_CODEX',str(root/'mac-codex')):
+                self.assertEqual(resolve_codex(),str(root/'mac-codex'))
+
+    def test_unavailable_executable_creates_no_output_or_evidence_store(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);output=root/'run'
+            nonexecutable=root/'codex';nonexecutable.write_text('#!/bin/sh\n');nonexecutable.chmod(0o600)
+            with patch.dict(os.environ, {'PATH':str(root)}), \
+                 patch('betaforge.codex_runner.DEFAULT_CODEX',str(nonexecutable)), \
+                 patch('betaforge.codex_runner.EvidenceTools') as tools:
+                for executable in (None,str(nonexecutable),str(root/'missing')):
+                    with self.subTest(executable=executable), self.assertRaisesRegex(FileNotFoundError,'Codex executable'):
+                        run(root/'packet.json',None,output,executable=executable)
+                    self.assertFalse(output.exists())
+                tools.assert_not_called()
+
     def test_run_requests_and_records_sol_xhigh(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp)
@@ -35,11 +72,15 @@ for line in sys.stdin:
   print(json.dumps({'method':'turn/completed','params':{'turn':{'id':'turn','status':'completed'}}}),flush=True)
 '''
             def fake_server(executable,cwd,event_path):
+                self.assertEqual(executable,sys.executable)
                 return AppServer('',cwd,event_path,command=[sys.executable,'-u','-c',code])
             with patch('betaforge.codex_runner.EvidenceTools',return_value=tools), \
+                 patch('betaforge.codex_runner.shutil.which',return_value=sys.executable) as which, \
                  patch('betaforge.codex_runner.AppServer',side_effect=fake_server), \
-                 patch('betaforge.codex_runner.subprocess.run',return_value=subprocess.CompletedProcess([],0,'fake codex')):
+                 patch('betaforge.codex_runner.subprocess.run',return_value=subprocess.CompletedProcess([],0,'fake codex')) as version:
                 state=run(root/'packet.json',prompt,root/'run',timeout_seconds=5)
+            which.assert_called_once_with('codex')
+            self.assertEqual(version.call_args.args[0],[sys.executable,'--version'])
             self.assertEqual(state['status'],'completed')
             events=[json.loads(line) for line in (root/'run/events.jsonl').read_text().splitlines()]
             requests={event['message'].get('method'):event['message'].get('params',{})
@@ -141,7 +182,7 @@ for line in sys.stdin:
         with patch('betaforge.codex_runner.EvidenceTools',return_value=tools), \
              patch('betaforge.codex_runner.AppServer',side_effect=fake_server), \
              patch('betaforge.codex_runner.subprocess.run',return_value=subprocess.CompletedProcess([],0,'fake codex')):
-            return run(root/'packet.json',root/'prompt.md',root/'run',timeout_seconds=5,structured=True,**options)
+            return run(root/'packet.json',root/'prompt.md',root/'run',timeout_seconds=5,executable=sys.executable,structured=True,**options)
 
     def tools(self):
         tools=Mock(analysis_contract={},packet={},identity={'packet_sha256':'packet'})
@@ -223,7 +264,7 @@ for line in sys.stdin:
                     def invoke(**options):
                         with patch('betaforge.codex_runner.AppServer',side_effect=fake_server), \
                              patch('betaforge.codex_runner.subprocess.run',return_value=subprocess.CompletedProcess([],0,'fake codex')):
-                            return run(fixture.packet,prompt,output,timeout_seconds=5,structured=True,**options)
+                            return run(fixture.packet,prompt,output,timeout_seconds=5,executable=sys.executable,structured=True,**options)
                     first=invoke()
                     (output/'analysis.json').write_text('{"draft":true}')
                     (output/'answer.md').write_text('Original draft')
@@ -245,7 +286,7 @@ for line in sys.stdin:
                          patch('betaforge.codex_runner.AppServer',side_effect=OSError('Injected startup failure') if failure=='server' else fake_server), \
                          patch.object(Path,'write_text',write if failure=='prompt' else original_write), \
                          patch.object(Path,'mkdir',mkdir if failure=='workspace' else original_mkdir):
-                        failed=run(fixture.packet,prompt,output,timeout_seconds=5,structured=True,resume=True,review_feedback=feedback_path)
+                        failed=run(fixture.packet,prompt,output,timeout_seconds=5,executable=sys.executable,structured=True,resume=True,review_feedback=feedback_path)
                     self.assertEqual(failed['status'],'failed')
                     self.assertEqual(failed['revision_count'],1)
                     self.assertIsNone(failed['analysis_sha256'])
