@@ -88,6 +88,17 @@ body:has(#tab-company[aria-selected=true], #tab-architecture[aria-selected=true]
 #company-view .period-chart{max-width:700px}
 #company-view .period-history>details{margin:12px 0}
 #company-view .period-history>details .table-wrap{margin:0}
+#company-view .scenario-returns{margin-top:20px;padding-top:12px;border-top:1px solid var(--line);max-width:475px}
+#company-view .scenario-returns h4{font-size:16px;margin:0 0 2px}
+#company-view .scenario-returns>a{display:inline-block;font-size:13px;margin-top:5px}
+#company-view .driver-comparison{margin:16px 0}
+#company-view .driver-history{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px}
+#company-view .driver-history h4{font-size:15px;margin:0 0 4px}
+#company-view .chart.driver-chart .axis-text{font-size:14px}
+#company-view .driver-actual-line{fill:none;stroke:var(--ink);stroke-width:2}
+#company-view .driver-actual{fill:var(--ink)}
+#company-view .driver-trailing{fill:var(--paper);stroke:var(--ink);stroke-width:2}
+#company-view .sensitivity-table td:nth-child(2){min-width:200px;text-align:left}
 #company-view .basis{font-size:13px;line-height:1.65}
 #company-view .saved-text{font-size:15px}
 #company-view details{font-size:14px;line-height:1.65}

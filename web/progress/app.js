@@ -223,9 +223,9 @@ function number(value) {
   if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) return null;
   return Number(value);
 }
-function rounded(value, minimumFractionDigits = 0) {
+function rounded(value, minimumFractionDigits = 0, maximumFractionDigits = 2) {
   const numeric = number(value);
-  return numeric === null ? "Unavailable" : numeric.toLocaleString("en-GB", { minimumFractionDigits, maximumFractionDigits: 2 });
+  return numeric === null ? "Unavailable" : numeric.toLocaleString("en-GB", { minimumFractionDigits, maximumFractionDigits });
 }
 function savedValue(value, unit, minimumFractionDigits = 0) {
   const displayUnit = unit === "percent" ? "%" : unit === "dimensionless" ? "×" : unit;
@@ -493,13 +493,12 @@ function datedEndpoint(date) {
 function scenarioEndpoints(run) {
   return run.analysis ? run.analysis.scenarios : (run.scenarios || []).filter((item) => item.present_value && item.future_target);
 }
+function shortScenarioName(scenario) {
+  return {bear: "Bear", base: "Base", bull: "Bull"}[scenario.id] || "Case";
+}
 function endpointChart(run, quote = null) {
   const scenarios = scenarioEndpoints(run);
   const wrapper = element("div", "endpoint-charts");
-  const weightLabel = (scenario) => {
-    const weight = (run.probability || {}).weights && run.probability.weights[scenario.id];
-    return number(weight) === null ? "weight unavailable" : rounded(Number(weight) * 100) + "%";
-  };
   for (const [key, heading, dateKey] of [["present_value", "Present value", "present_value_date"], ["future_target", "Future target", "target_date"]]) {
     const panel = element("div", "endpoint-panel");
     const present = key === "present_value";
@@ -513,7 +512,7 @@ function endpointChart(run, quote = null) {
     } else {
       const priceMatches = quote && matchingPrice({...quote, value: quote.normalized_value, scale: "1"}, scenarios.map((item) => item[key]));
       const maximum = Math.max(1, ...values, priceMatches ? quote.normalized_value : 0);
-      const svg = svgElement("svg", { viewBox: "0 0 500 250", class: "chart endpoint-chart " + (present ? "present-chart" : "future-chart"), role: "img", "aria-label": heading + (present ? " horizontal dot plot: " : " vertical columns: ") + scenarios.map((item) => item.name + ", saved weight " + weightLabel(item) + ", " + text(item[key].value) + " " + item[key].unit + ", " + datedEndpoint(item[dateKey])).join("; ") });
+      const svg = svgElement("svg", { viewBox: "0 0 500 250", class: "chart endpoint-chart " + (present ? "present-chart" : "future-chart"), role: "img", "aria-label": heading + (present ? " horizontal dot plot: " : " vertical columns: ") + scenarios.map((item) => item.name + ", " + text(item[key].value) + " " + item[key].unit + ", " + datedEndpoint(item[dateKey])).join("; ") });
       svg.append(svgElement("text", { x: 16, y: 20, class: "axis-text" }, [...units][0]));
       if (present) {
         svg.append(svgElement("line", { x1: 130, x2: 430, y1: 213, y2: 213, class: "chart-axis" }), svgElement("text", { x: 130, y: 237, class: "axis-text" }, "0"), svgElement("text", { x: 430, y: 237, class: "axis-text", "text-anchor": "end" }, rounded(maximum)));
@@ -529,20 +528,20 @@ function endpointChart(run, quote = null) {
         }
       }
       scenarios.forEach((scenario, index) => {
-        const label = { bear: "Bear", base: "Base", bull: "Bull" }[scenario.id] || "Scenario";
+        const label = shortScenarioName(scenario);
         const link = svgElement("a", { href: "#scenario-" + scenario.id, "aria-label": scenario.name + ": rationale and assumptions" });
         link.addEventListener("click", (event) => openSavedTarget("scenario-" + scenario.id, event));
         if (present) {
           const y = 55 + index * 145 / Math.max(1, scenarios.length - 1);
           const x = 130 + values[index] / maximum * 300;
           link.append(svgElement("rect", { x: 0, y: y - 27, width: 500, height: Math.min(60, 145 / Math.max(1, scenarios.length - 1)), fill: "transparent", "pointer-events": "all", class: "chart-hit-area" }));
-          link.append(svgElement("text", { x: 16, y: y - 2 }, label), svgElement("text", {x: 16, y: y + 18, class: "axis-text"}, weightLabel(scenario) + " weight"), svgElement("circle", { cx: x, cy: y, r: 7, class: "scenario-dot " + scenario.id }), svgElement("text", { x, y: y - 13, "text-anchor": "middle" }, rounded(scenario[key].value)));
+          link.append(svgElement("text", { x: 16, y: y + 5 }, label), svgElement("circle", { cx: x, cy: y, r: 7, class: "scenario-dot " + scenario.id }), svgElement("text", { x, y: y - 13, "text-anchor": "middle" }, rounded(scenario[key].value)));
         } else {
           const slot = 440 / scenarios.length;
           const x = 30 + index * slot + slot / 2;
           const height = values[index] / maximum * 135;
           link.append(svgElement("rect", { x: 30 + index * slot, y: 28, width: slot, height: 212, fill: "transparent", "pointer-events": "all", class: "chart-hit-area" }));
-          link.append(svgElement("rect", { x: x - Math.min(38, slot * .3), y: 188 - height, width: Math.min(76, slot * .6), height, class: "scenario-bar " + scenario.id }), svgElement("text", { x, y: 177 - height, "text-anchor": "middle" }, rounded(scenario[key].value)), svgElement("text", { x, y: 217, "text-anchor": "middle" }, label + " · " + weightLabel(scenario)));
+          link.append(svgElement("rect", { x: x - Math.min(38, slot * .3), y: 188 - height, width: Math.min(76, slot * .6), height, class: "scenario-bar " + scenario.id }), svgElement("text", { x, y: 177 - height, "text-anchor": "middle" }, rounded(scenario[key].value)), svgElement("text", { x, y: 217, "text-anchor": "middle" }, label));
         }
         svg.append(link);
       });
@@ -580,10 +579,140 @@ function scalarCell(cell) {
   const value = String(cell).trim();
   return /^[+-]?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/.test(value) ? number(value.replace(/,/g, "")) : null;
 }
+function matchesDisplayedCell(cell, value) {
+  const displayed = scalarCell(cell);
+  if (displayed === null) return false;
+  const precision = cell.trim().split(".")[1]?.length || 0;
+  return precision <= 12 && scalarCell(rounded(value, 0, precision)) === displayed;
+}
+function driverForecasts(run) {
+  const scenarios = scenarioEndpoints(run);
+  const year = scenarios[0]?.target_date?.value;
+  if (!/^\d{4}$/.test(year) || scenarios.length < 2 || scenarios.some(item =>
+    item.target_date?.value !== year || item.target_date.precision !== "year")) return null;
+  const originals = run.original_calculations || [];
+  const forecast = scenarios.map(scenario => {
+    const valuation = originals.find(calc => calc.id === scenario.valuation_calculation_id && calc.formula === "valuation_case");
+    const ebit = valuation && formulaInput(valuation, "forecast_ebit");
+    const operating = ebit && originals.find(calc => [calc.id, calc.id + "#ebit"].includes(ebit.id) && calc.formula === "revenue_ebit");
+    if (!operating || operating.outputs?.ebit?.value !== ebit.calculation_value || operating.outputs.ebit.unit !== ebit.unit) return null;
+    const sales = formulaInput(operating, "revenue"), margin = formulaInput(operating, "ebit_margin");
+    const currency = sales?.unit === "currency" ? sales.currency : sales?.unit;
+    const salesValue = number(sales?.calculation_value), marginValue = number(margin?.calculation_value);
+    if (!/^[A-Z]{3}$/.test(currency) || salesValue === null || margin?.unit !== "dimensionless" || marginValue === null) return null;
+    return {scenario, currency, sales: salesValue / 1e6, margin: marginValue * 100, calculation: operating.id};
+  });
+  if (forecast.some(item => !item || item.currency !== forecast[0].currency)) return null;
+  // The saved operating table declares the accounting basis of the formula inputs.
+  const operatingTables = (run.analysis?.sections || []).filter(section => section.id === "valuation")
+    .flatMap(section => section.paragraphs.flatMap(paragraph => paragraph.text.split(/\r?\n/).flatMap((line, index, lines) => {
+      const headers = tableCells(line);
+      if (headers.length !== scenarios.length + 1 || !headers[0].startsWith(year + " ") ||
+          !scenarios.every((scenario, i) => headers[i + 1] === scenario.name) || !isTableDivider(lines[index + 1])) return [];
+      return [readTableRows(lines, index + 2)];
+    })));
+  const comparable = operatingTables.some(rows => {
+    const sales = rows.find(row => row[0] === "Net sales, " + forecast[0].currency + " m");
+    const margin = rows.find(row => row[0] === "Reported EBIT margin");
+    return forecast.every((item, i) => {
+      const marginCell = margin?.[i + 1];
+      return matchesDisplayedCell(sales?.[i + 1], item.sales) &&
+        marginCell?.endsWith("%") && matchesDisplayedCell(marginCell.slice(0, -1), item.margin);
+    });
+  });
+  return comparable ? {year, forecast} : null;
+}
+function driverHistory(headers, rows, context) {
+  const saved = context?.drivers;
+  if (!saved) return null;
+  const {forecast, year} = saved, currency = forecast[0].currency;
+  const sales = headers.indexOf("Net sales (" + currency + " m)"), margin = headers.indexOf("EBIT margin (%)");
+  if (sales < 1 || margin < 1 || !/^\s*Reported group (?:history|actuals) uses? net sales\b/i.test(context.paragraph.text)) return null;
+  const references = new Set(context.paragraph.references);
+  const actuals = (context.run.original_calculations || []).filter(calc =>
+    calc.formula === "ebit_margin" && references.has(calc.id + "#margin_percent"));
+  const periods = rows.map(row => {
+    const label = row[0], annual = /^\d{4}$/.test(label), trailing = /^R12\b/.test(label);
+    const record = actuals.find(calc => {
+      const ebit = formulaInput(calc, "ebit"), revenue = formulaInput(calc, "revenue");
+      const date = ebit?.period_end, output = calc.outputs?.margin_percent;
+      const revenueValue = number(revenue?.calculation_value);
+      if (ebit?.kind !== "flow" || !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > context.run.analysis_date || date.slice(0, 4) >= year ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(ebit.period_start) ||
+          !revenue || (revenue.unit === "currency" ? revenue.currency : revenue.unit) !== currency ||
+          output?.unit !== "percent" || !matchesDisplayedCell(row[margin], output.value) ||
+          revenueValue === null || !matchesDisplayedCell(row[sales], revenueValue / 1e6)) return false;
+      const days = (Date.parse(date) - Date.parse(ebit.period_start)) / 86400000 + 1;
+      if (!(days >= 360 && days <= 372)) return false;
+      const report = (context.run.sources || []).find(source => source.id === revenue.report_id);
+      const datedFlow = revenue.kind === "flow" && revenue.report_type === ebit.report_type &&
+        revenue.period_start === ebit.period_start && revenue.period_end === date;
+      // Some cited report inputs record the exact flow dates in the saved label.
+      const citedFlow = revenue.kind === "report" && report?.period?.end === date && report.published_at &&
+        report.published_at <= context.run.analysis_date && revenue.quote && references.has(report.id + ":p" + revenue.page) &&
+        (revenue.label || "").includes(ebit.period_start + " to " + date);
+      if (!datedFlow && !citedFlow) return false;
+      if (annual) return ebit.report_type === "year" && label === date.slice(0, 4);
+      const month = new Date(date + "T00:00:00Z").toLocaleString("en-GB", {month: "long", timeZone: "UTC"});
+      return trailing && ebit.report_type === "r12" && label === "R12 " + month + " " + date.slice(0, 4);
+    });
+    return {label, annual, trailing, date: record && formulaInput(record, "ebit").period_end};
+  });
+  if (periods.filter(item => item.annual).length < 2 || periods.filter(item => item.trailing).length > 1 ||
+      periods.some((item, i) => !item.date || (i > 0 && (!periods[i - 1].annual || periods[i - 1].date >= item.date))) ||
+      new Set(periods.map(item => item.label)).size !== rows.length) return null;
+  const section = element("div", "driver-history");
+  for (const [index, key, unit] of [[sales, "sales", ""], [margin, "margin", "%"]]) {
+    const values = rows.map(row => scalarCell(row[index])), targets = forecast.map(item => item[key]);
+    const minimum = Math.min(...values, ...targets), maximum = Math.max(...values, ...targets);
+    const y = (value) => 133 - (value - minimum) / (maximum - minimum || 1) * 89;
+    const actualX = (i) => 67 + 184 * i / Math.max(1, rows.length - 1);
+    const caseX = (i) => 289 + 120 * i / (forecast.length - 1);
+    const svg = svgElement("svg", {viewBox: "0 0 438 172", class: "chart driver-chart", role: "img",
+      "aria-label": headers[index] + ". History on the memo's stated basis: " + rows.map(row => row[0] + " " + row[index] + unit).join(", ") +
+        ". Separate " + year + " assumptions: " + forecast.map(item => item.scenario.name + " " + rounded(item[key]) + unit).join(", ")});
+    for (const value of new Set([minimum, maximum])) {
+      svg.append(svgElement("line", {x1: 61, x2: 430, y1: y(value), y2: y(value), class: "chart-axis"}),
+        svgElement("text", {x: 57, y: y(value) + 4, "text-anchor": "end", class: "axis-text"}, rounded(value) + unit));
+    }
+    svg.append(svgElement("line", {x1: 270, x2: 270, y1: 22, y2: 138, class: "chart-axis"}),
+      svgElement("text", {x: 349, y: 14, "text-anchor": "middle", class: "axis-text"}, year + " assumptions"));
+    periods.forEach((period, i) => {
+      if (period.annual && i > 0 && Number(period.label) - Number(periods[i - 1].label) === 1) {
+        svg.append(svgElement("line", {x1: actualX(i - 1), x2: actualX(i), y1: y(values[i - 1]), y2: y(values[i]), class: "driver-actual-line"}));
+      }
+      const point = svgElement("circle", {cx: actualX(i), cy: y(values[i]), r: 4, class: period.annual ? "driver-actual" : "driver-trailing"});
+      point.append(svgElement("title", {}, period.label + " · " + rows[i][index] + unit));
+      svg.append(point);
+      if (i === 0 || i === periods.length - 1 || (period.annual && periods[i + 1]?.trailing)) {
+        svg.append(svgElement("text", {x: actualX(i), y: 157, "text-anchor": "middle", class: "axis-text"}, period.annual ? period.label : "R12"));
+      }
+    });
+    forecast.forEach(({scenario}, i) => {
+      const point = svgElement("circle", {cx: caseX(i), cy: y(targets[i]), r: 5, class: "scenario-dot " + scenario.id});
+      point.append(svgElement("title", {}, scenario.name + " · " + rounded(targets[i]) + unit));
+      svg.append(point, svgElement("text", {x: caseX(i), y: y(targets[i]) - 9, "text-anchor": "middle", class: "axis-text"}, rounded(targets[i]) + unit),
+        svgElement("text", {x: caseX(i), y: 157, "text-anchor": "middle", class: "axis-text"}, shortScenarioName(scenario)));
+    });
+    const panel = element("div");
+    panel.append(element("h4", "", headers[index]), svg);
+    section.append(panel);
+  }
+  const trailing = periods.find(item => item.trailing);
+  const wrap = element("div", "driver-comparison");
+  wrap.append(section, element("p", "chart-caption", "Saved history" + (trailing ? " · open dot " + trailing.label : "") +
+    ". The separate " + year + " markers are terminal assumptions. Accounting labels follow the memo's stated basis. Check the linked records for the underlying definitions."), detail("Source table and forecast calculations", [
+    table(headers, rows), referenceList([...new Set([...context.paragraph.references, ...forecast.map(item => item.calculation)])], context.run),
+  ]));
+  return wrap;
+}
 let periodTableId = 0;
-function periodTable(headers, rows) {
+function periodTable(headers, rows, context) {
   const saved = table(headers, rows);
+  if (headers.includes("What changes from base") && headers.includes("Annual IRR")) saved.className += " sensitivity-table";
   if (headers[0] !== "Period" || rows.length < 2 || rows.some(row => row.length !== headers.length || !row[0])) return saved;
+  const drivers = driverHistory(headers, rows, context);
+  if (drivers) return drivers;
   const measures = headers.flatMap((label, index) => index && rows.every(row => scalarCell(row[index]) !== null) ? [{label, index, values: rows.map(row => scalarCell(row[index]))}] : []);
   if (!measures.length) return saved;
   const wrapper = element("div", "period-history"), label = element("label", "", "Measure"), select = element("select"), chart = element("div", "period-chart");
@@ -608,7 +737,21 @@ function periodTable(headers, rows) {
   wrapper.append(label, select, chart, element("p", "chart-caption", "Exact saved values and period labels. Source references and saved qualifications below retain period length, units and basis."), detail("Source table", [saved]));
   return wrapper;
 }
-function readableReport(markdown) {
+function isTableDivider(line) {
+  const cells = tableCells(line ?? "");
+  return cells.length > 0 && cells.every(cell => /^:?-{3,}:?$/.test(cell));
+}
+function readTableRows(lines, index) {
+  const rows = [];
+  while (index < lines.length && lines[index].includes("|")) {
+    const row = tableCells(lines[index]);
+    if (!row.length) break;
+    rows.push(row);
+    index++;
+  }
+  return rows;
+}
+function readableReport(markdown, context) {
   const node = element("div", "report-body");
   const lines = String(markdown || "").split(/\r?\n/);
   let paragraph = [];
@@ -616,15 +759,13 @@ function readableReport(markdown) {
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index];
     const heading = line.match(/^\s{0,3}(#{1,6})\s+(.+?)\s*#*$/);
+    const headers = line.includes("|") ? tableCells(line) : [];
     if (heading) { flush(); node.append(element("h4", "", heading[2])); }
-    else if (line.includes("|") && index + 1 < lines.length && tableCells(lines[index + 1]).length && tableCells(lines[index + 1]).every(cell => /^:?-{3,}:?$/.test(cell))) {
+    else if (headers.length && isTableDivider(lines[index + 1])) {
       flush();
-      const headers = tableCells(line);
-      const rows = [];
-      index += 2;
-      while (index < lines.length && lines[index].includes("|") && lines[index].trim()) { rows.push(tableCells(lines[index])); index++; }
-      index--;
-      node.append(periodTable(headers, rows));
+      const rows = readTableRows(lines, index + 2);
+      index += rows.length + 1;
+      node.append(periodTable(headers, rows, context));
     } else if (!line.trim()) flush();
     else paragraph.push(line);
   }
@@ -654,12 +795,12 @@ function companySections(view) {
   }
   return panels;
 }
-function readerSection(section, run) {
+function readerSection(section, run, drivers) {
   const block = element("article", "reader-section");
   block.id = "reader-" + section.id;
   for (const [index, paragraph] of (section.paragraphs || []).entries()) {
     const heading = String(paragraph.text || "").match(/^###\s+([^\n]+)\n+/);
-    const content = readableReport(heading ? paragraph.text.slice(heading[0].length) : paragraph.text);
+    const content = readableReport(heading ? paragraph.text.slice(heading[0].length) : paragraph.text, {paragraph, run, drivers});
     content.append(detail((paragraph.kind || "Saved text") + " · sources & calculations", [referenceList(paragraph.references, run)]));
     if (heading) {
       const subsection = detail(heading[1], [content], section.id === "drivers" && index === 0);
@@ -745,8 +886,8 @@ function scenarioRationale(run, useMemo = true) {
     valuation.append(document.createTextNode("Present value · " + datedEndpoint(scenario.present_value_date) + ": "), savedValue(scenario.present_value.value, scenario.present_value.unit), document.createTextNode(". Future target · " + datedEndpoint(scenario.target_date) + ": "), savedValue(scenario.future_target.value, scenario.future_target.unit));
     item.append(valuation);
     const weight = (run.probability || {}).weights && run.probability.weights[scenario.id];
-    item.append(element("h4", "", "Why this weight"), element("p", "basis", "Saved weight: " + (number(weight) === null ? "Unavailable" : rounded(Number(weight) * 100) + "%") + ". " + (prose.probability_rationale || "No separate weight rationale saved.")));
-    const assumptions = [element("h4", "", "Valuation assumptions"), element("p", "saved-text", text(prose.assumption_rationale)), referenceList([scenario.valuation_calculation_id, scenario.weight_ref, ...(prose.references || [])].filter(Boolean), run)];
+    if (number(weight) !== null) item.append(element("h4", "", "Why this weight"), element("p", "basis", "Saved weight: " + rounded(Number(weight) * 100) + "%. " + (prose.probability_rationale || "No separate weight rationale saved.")));
+    const assumptions = [element("h4", "", "Valuation assumptions"), element("p", "saved-text", text(prose.assumption_rationale)), referenceList([scenario.valuation_calculation_id, scenario.weight_ref, ...(scenario.probability_references || []), ...(prose.references || [])].filter(Boolean), run)];
     item.append(detail("Assumptions, sources & calculation", assumptions));
     section.append(item);
   }
@@ -769,14 +910,89 @@ function returnCalculation(run) {
   const candidates = selected === undefined ? returns : returns.filter((calc) => calc.id === selected);
   return candidates.length === 1 ? candidates[0] : null;
 }
+function formulaInput(calculation, field) {
+  const inputs = (calculation.inputs || []).filter((input) => input.field === field);
+  return inputs.length === 1 && inputs[0].id && inputs[0].id === (calculation.input_ids || {})[field] ? inputs[0] : null;
+}
+function usesReportPrice(calculation, price) {
+  const input = calculation && formulaInput(calculation, "price");
+  return input && price && price.id && price.source_id && price.date && input.id === price.id &&
+    ["value", "unit", "scale", "currency", "source_id"].every((key) => input[key] === price[key]) &&
+    (input.date || input.period_end) === price.date;
+}
 function returnUsesReportPrice(run) {
-  const price = run.price, calculation = returnCalculation(run);
-  if (!price || !price.id || !price.source_id || !calculation) return false;
-  const inputs = (calculation.inputs || []).filter((input) => input.field === "price");
-  if (inputs.length !== 1 || (calculation.input_ids || {}).price !== price.id || inputs[0].id !== price.id) return false;
-  return number(((calculation.outputs || {}).irr_percent || {}).value) !== null && ["value", "unit", "scale", "currency", "source_id"].every((key) => inputs[0][key] === price[key]) &&
-    (inputs[0].date || inputs[0].period_end) === price.date &&
-    (((calculation.outputs || {}).irr_percent || {}).value === (run.benchmark || {}).candidate_annualized_return_percent);
+  const calculation = returnCalculation(run);
+  const output = ((calculation || {}).outputs || {}).irr_percent || {};
+  return Boolean(usesReportPrice(calculation, run.price) && number(output.value) !== null &&
+    output.value === (run.benchmark || {}).candidate_annualized_return_percent);
+}
+function matchedScenarioReturns(run) {
+  const scenarios = scenarioEndpoints(run), price = run.price;
+  if (!run.analysis || scenarios.length < 2 || !(normalizedPrice(price) > 0)) return null;
+  const calculations = (run.original_calculations || []).filter(calc => calc.operation === "financial_formula");
+  const matches = [];
+  for (const scenario of scenarios) {
+    const valuation = calculations.find(calc => calc.id === scenario.valuation_calculation_id && calc.formula === "valuation_case");
+    if (!valuation || (Object.hasOwn(valuation.input_ids || {}, "price") || (valuation.inputs || []).some(input => input.field === "price")) &&
+        !usesReportPrice(valuation, price)) return null;
+    const years = formulaInput(valuation, "years"), dividend = formulaInput(valuation, "annual_dividend_per_share");
+    const hurdle = formulaInput(valuation, "required_return");
+    const terminal = (valuation.outputs || {}).future_target;
+    if (!years || !dividend || !hurdle || !terminal || !scenario.target_date?.value ||
+        terminal.value !== scenario.future_target.value || terminal.unit !== scenario.future_target.unit ||
+        !matchingPrice({...price, scale: "1", value: normalizedPrice(price)}, [terminal, dividend])) return null;
+    const horizon = number(years.calculation_value), rate = number(hurdle.calculation_value);
+    if (years.unit !== "dimensionless" || !Number.isInteger(horizon) || horizon < 1 || horizon > 10 ||
+        hurdle.unit !== "dimensionless" || rate === null || rate < 0 || !Number.isFinite(rate * 100)) return null;
+    const sameInput = (saved, reference) => saved && ["id", "value", "unit", "scale", "currency", "calculation_value"].every(key => saved[key] === reference[key]);
+    const candidates = calculations.filter(calc => {
+      if (calc.formula !== "expected_cashflow_irr" || !usesReportPrice(calc, price)) return false;
+      const target = formulaInput(calc, "expected_future_target");
+      return target && target.id === valuation.id + "#future_target" && target.unit === terminal.unit &&
+        target.calculation_value === terminal.value && sameInput(formulaInput(calc, "years"), years) &&
+        sameInput(formulaInput(calc, "expected_annual_dividend_per_share"), dividend);
+    });
+    if (candidates.length !== 1) return null;
+    const result = (candidates[0].outputs || {}).irr_percent || {};
+    if (result.unit !== "percent" || number(result.value) === null) return null;
+    matches.push({scenario, horizon, rate, calculation: candidates[0], valuation, value: result.value});
+  }
+  const first = matches[0];
+  return matches.every(item => item.horizon === first.horizon && item.rate === first.rate &&
+    datedEndpoint(item.scenario.target_date) === datedEndpoint(first.scenario.target_date)) ? matches : null;
+}
+function scenarioReturnChart(run, matches) {
+  const section = element("section", "scenario-returns");
+  section.append(element("h4", "", "Annual scenario returns"));
+  const hurdle = matches[0].rate * 100, zero = 0;
+  const values = matches.map(item => number(item.value));
+  const minimum = Math.min(zero, ...values), maximum = Math.max(hurdle, zero, ...values);
+  const span = maximum - minimum || 1;
+  const x = (value) => 82 + (value - minimum) / span * 240;
+  const bottom = 30 + matches.length * 32;
+  const svg = svgElement("svg", {viewBox: "0 0 420 " + (bottom + 19), class: "chart return-chart", role: "img",
+    "aria-label": "Annual cash-flow returns at the " + run.price.date + " report price. " + matches.map(({scenario, value}) => scenario.name + " " + value + "%").join(", ") + ". Saved hurdle " + rounded(hurdle) + "%."});
+  for (const [value, css] of [[zero, "chart-axis"], [hurdle, "price-line"]]) {
+    svg.append(svgElement("line", {x1: x(value), x2: x(value), y1: 26, y2: bottom, class: css}));
+  }
+  svg.append(svgElement("text", {x: x(zero), y: bottom + 16, "text-anchor": "middle", class: "axis-text"}, "0%"),
+    svgElement("text", {x: x(hurdle), y: 16, "text-anchor": "middle", class: "axis-text"}, rounded(hurdle) + "% hurdle"));
+  matches.forEach(({scenario, value, calculation}, index) => {
+    const y = 41 + index * 32;
+    const target = "scenario-" + scenario.id;
+    const link = svgElement("a", {href: "#" + target, "aria-label": scenario.name + " " + value + "%. Read assumptions."});
+    link.addEventListener("click", event => openSavedTarget(target, event));
+    link.append(svgElement("rect", {x: 0, y: y - 14, width: 420, height: 30, fill: "transparent", "pointer-events": "all", class: "chart-hit-area"}),
+      svgElement("text", {x: 5, y: y + 5}, shortScenarioName(scenario)),
+      svgElement("circle", {cx: x(number(value)), cy: y, r: 6, class: "scenario-dot " + scenario.id}),
+      svgElement("text", {x: 410, y: y + 5, "text-anchor": "end"}, rounded(value) + "%"),
+      svgElement("title", {}, "Saved return " + value + "% · " + calculation.id));
+    svg.append(link);
+  });
+  section.append(svg, element("p", "chart-caption", "Includes model year-end dividends over " + matches[0].horizon + " years at the report price of " +
+    rounded(normalizedPrice(run.price), 2) + " " + run.price.currency + "/share on " + run.price.date + "."),
+    savedLink("company-scenarios", "See present values and share targets", ""));
+  return section;
 }
 function returnExplanation(run) {
   const calc = returnCalculation(run);
@@ -820,10 +1036,9 @@ function renderCompany(run) {
   const reportPrice = element("div", "report-price");
   reportPrice.append(headlinePrice(price, normalizedPrice(price)));
   fact("Report price", reportPrice, text(price.date || price.period_end));
-  const estimatedReturn = (run.benchmark || {}).candidate_annualized_return_percent;
   const boundReturn = returnUsesReportPrice(run);
-  const returnRow = fact("Conditional annual return", savedValue(boundReturn ? estimatedReturn : null, "percent"), boundReturn ? "At report price · " + text(price.date) : "Report-price binding unavailable");
-  if (boundReturn) returnRow.append(savedLink("return-explanation", "How this return is calculated", ""));
+  const scenarioReturns = matchedScenarioReturns(run);
+  if (scenarioReturns) conclusion.append(scenarioReturnChart(run, scenarioReturns));
   const base = scenarioEndpoints(run).find(scenario => scenario.id === "base") || scenarioEndpoints(run)[0] || {};
   const baseCalculation = (run.calculations || []).find(calc => calc.id === base.valuation_calculation_id) || {};
   const required = number(((baseCalculation.inputs || {}).required_return || {}).calculation_value);
@@ -836,11 +1051,17 @@ function renderCompany(run) {
     panels.evidence.append(element("p", "basis", "Reader edition edited " + text(memo.edited_at) + ". The independent challenge applies to the canonical analysis, not this editorial rewrite."), detail("Reader edition provenance", [element("pre", "", text({schema_version: memo.schema_version, analysis_sha256: memo.analysis_sha256, edited_at: memo.edited_at}))]));
   }
   if (boundReturn) panels.valuation.append(returnExplanation(run));
+  if (scenarioReturns) panels.valuation.append(detail("Saved annual return calculations", [
+    table(["Scenario", "Saved annual return", "Records"], scenarioReturns.map(({scenario, value, calculation, valuation}) => [
+      scenario.name, savedValue(value, "percent"), referenceList([calculation.id, valuation.id], run),
+    ])),
+  ]));
   if (scenarioEndpoints(run).length) panels.valuation.append(scenarioAssumptions(run));
+  const drivers = driverForecasts(run);
   for (const section of (memo || {}).sections || []) {
     const chapter = element("section", "memo-section");
-    chapter.append(element("h3", "", section.title || section.id), readerSection(section, run));
-    (section.id === "valuation" ? panels.valuation : panels.business).append(chapter);
+    chapter.append(element("h3", "", section.title || section.id), readerSection(section, run, drivers));
+    (["valuation", "risks"].includes(section.id) ? panels.valuation : panels.business).append(chapter);
   }
   if (!memo) panels.business.append(element("p", "basis", "This saved run has no structured business sections. Read the original report in Evidence."), savedLink("legacy-report", "Read the original report", ""));
   const scenarioSection = element("section", "company-section");
@@ -850,10 +1071,13 @@ function renderCompany(run) {
   const scenarioGrid = element("div", "scenario-grid");
   scenarioGrid.id = "company-valuation-charts";
   scenarioGrid.append(endpoints.length ? endpointChart(run) : scenarioChart(run));
-  const scenarioTable = table(["Scenario", "Present value", "Weight", "Saved basis"], (run.scenarios || []).map((s) => {
+  const savedScenarios = run.scenarios || [];
+  const hasWeights = savedScenarios.some(item => number(item.weight) !== null);
+  const scenarioTable = table(["Scenario", "Present value", ...(hasWeights ? ["Weight"] : []), "Saved basis"], savedScenarios.map((s) => {
     const basis = element("div");
     basis.append(element("p", "basis", s.basis), referenceList(s.calculation_ids, run), detail("Exact value & calculation IDs", [element("p", "exact", text(s.value) + " " + s.unit + (s.weight !== undefined ? " · exact weight " + text(s.weight) : "")), element("p", "exact", (s.calculation_ids || []).join(", "))]));
-    return [s.name, savedValue(s.value, String(s.unit || "").replace(/ today$/, "")), s.weight === undefined || s.weight === null ? "Unavailable" : rounded(Number(s.weight) * 100) + "%", basis];
+    return [s.name, savedValue(s.value, String(s.unit || "").replace(/ today$/, "")),
+      ...(hasWeights ? [number(s.weight) === null ? "Unavailable" : rounded(Number(s.weight) * 100) + "%"] : []), basis];
   }));
   panels.valuation.append(detail("Saved scenario values & exact records", [scenarioTable]));
   if (endpoints.length) {
@@ -864,9 +1088,11 @@ function renderCompany(run) {
   }
   scenarioSection.append(scenarioGrid);
   const probability = run.probability || {};
-  scenarioSection.append(element("p", "weight-note", probability.status === "proposed" ? "Analyst-proposed weights · conditional, not calibrated." : probabilityDescription(probability)), savedLink("company-panel-valuation", "Read assumptions, risks & saved hurdle →", "memo-next"));
-  panels.valuation.append(detail("Weight qualifications & exact saved weights", [element("p", "basis", probabilityDescription(probability)), element("p", "basis", run.analysis ? text(run.analysis.probability_limits) : ""), element("pre", "", text(probability.weights))]));
-  panels.overview.append(scenarioSection);
+  if (!scenarioReturns) scenarioSection.append(savedLink("company-panel-valuation", "Read assumptions, risks & saved hurdle →", "memo-next"));
+  panels.valuation.append(detail(probability.status === "missing" ? "Probability basis" : "Weight qualifications & exact saved weights",
+    [element("p", "basis", probabilityDescription(probability)), probability.status === "missing" ? null : element("pre", "", text(probability.weights))].filter(Boolean)));
+  if (scenarioReturns) panels.valuation.append(scenarioSection);
+  else panels.overview.append(scenarioSection);
   panels.evidence.append(detail("Original analysis", [renderAnalysis(run)]));
   if (run.reader_memo && memo === run.reader_memo) panels.evidence.append(detail("Canonical scenario reasoning", [scenarioRationale(run, false)]));
   if (endpoints.length) panels.valuation.append(scenarioRationale(run));
@@ -944,6 +1170,7 @@ function renderCompany(run) {
   const benchmark = run.benchmark || {};
   const benchmarkContent = [table(["Saved statistic", "Percent / percentage points"], [["Candidate annualized return (%)", savedValue(benchmark.candidate_annualized_return_percent)], ["Benchmark annualized return (%)", savedValue(benchmark.benchmark_annualized_return_percent)], ["Difference (percentage points)", savedValue(benchmark.difference_percentage_points)]]), element("p", "basis", text(benchmark.interpretation)), element("p", "basis", text(benchmark.limits)), element("p", "basis", text(benchmark.context))];
   benchmarkContent[0].id = "company-return";
+  if (boundReturn) benchmarkContent.push(savedLink("return-explanation", "How the conditional return was calculated"));
   working.append(detail("Return & benchmark", benchmarkContent));
   const sourceContent = [];
   for (const source of sources) {

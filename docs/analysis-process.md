@@ -33,18 +33,29 @@ The review step above is a coordinator responsibility. No autonomous review serv
 | Responsibility | Meaning | Boundary |
 | --- | --- | --- |
 | **Code-enforced** | Check source/artifact identity, tool access, delivery coverage, named arithmetic and report structure. | Passing these checks does not establish financial truth. |
-| **Agent judgment** | Interpret business mechanics, choose economic definitions and forecasts, explain weights and challenge conclusions. | A plausible explanation is not a calibrated prediction. |
+| **Agent judgment** | Interpret business mechanics, choose economic definitions and forecasts, assess the basis for any weights and challenge conclusions. | A plausible explanation is not a calibrated prediction. |
 | **Coordinator · session policy** | Select the question and corpus, dispatch a fresh independent reviewer, save feedback and request an explicit revision. | These session actions are not automatically dispatched by the analyst runner. |
 
 The lead analyst and independent reviewer are separate roles. The reviewer reads the same frozen evidence, policy, draft, saved inputs and calculations, and returns findings without changing files, starting new runs or granting waivers. The coordinator preserves the returned challenge. See [workflow: Run one lead analyst](analysis-workflow.md#2-run-one-lead-analyst) and [Challenge the draft independently](analysis-workflow.md#3-challenge-the-draft-independently).
 
+## Draft skill guides
+
+The local workbench lists these guides under **Architecture → Skills**. They describe intended use. The current runner delivers the packet policy and tools, while these guides are available for manual use as drafts.
+
+| Guide | When to use it | Owner and output |
+| --- | --- | --- |
+| [Market and peer research](skill-drafts/betaforge-market-peer-research/SKILL.md) | Before freezing, when issuer evidence leaves a material question | Researcher returns a bounded answer or gap with sources and implications. The coordinator decides what enters the packet. |
+| [Company analysis](skill-drafts/betaforge-company-analysis/SKILL.md) | While analysing the frozen evidence and building scenarios | Lead analyst writes the business brief before selecting forecast inputs for the named calculations. |
+| [Financial report writing](skill-drafts/betaforge-financial-report/SKILL.md) | As the lead analyst prepares the draft | The same analyst writes the six-section memo from the saved evidence and results. |
+| [Independent valuation review](skill-drafts/betaforge-valuation-review/SKILL.md) | After the draft | Separate reviewer challenges the material evidence, assumptions and conclusions. |
+
 ## What the analysis tries to understand
 
-The analyst starts with three to five earnings and cash drivers, rather than a universal ratio scorecard. It separates business quality from attractiveness at the dated price. Pricing power, competitive advantages, operating leverage and management’s capital allocation need business evidence. Historical performance and economically matched peers provide context when compatible evidence is available. A sector label or matching ratio is insufficient. See [policy: Investment philosophy](analysis-policy.md#investment-philosophy) and [Financial quality](analysis-policy.md#financial-quality).
+The analyst starts with three to five earnings and cash drivers and separates business quality from attractiveness at the dated price. Pricing power, competitive advantages, operating leverage and management’s capital allocation need business evidence. Use compatible company history first. For each material input addressed by peers, record a changed assumption, a new sensitivity or why the comparison stays as context. See [investment philosophy](analysis-policy.md#investment-philosophy), [evidence and comparisons](analysis-policy.md#evidence-and-comparisons) and [financial quality](analysis-policy.md#financial-quality).
 
 The case follows earnings through working capital, reinvestment, financing, minority interests and dilution to common shareholders. It uses one understandable operating equation, normally revenue × EBIT margin or volume × earnings per unit. A complete claims-and-shares bridge connects that earnings forecast with per-share value. It tests modest disappointments, explains interactions and names observations that would weaken the thesis. See [policy: Valuation methods](analysis-policy.md#valuation-methods) and [Output and calculation discipline](analysis-policy.md#output-and-calculation-discipline).
 
-The current primary method is forward operating EV/EBIT. No full DCF or reverse DCF is implemented. A market-implied EBIT calculation is conditional on selected assumptions; it is not a unique market forecast. The analyst proposes company-specific scenario probabilities, which the user can override; code checks valid weights and totals, not calibration or adequate tail coverage. See [policy: Probabilities and returns](analysis-policy.md#probabilities-and-returns) and [calculation catalogue: Expected return, personal hurdle and historical comparison](calculations.md#expected-return-personal-hurdle-and-historical-comparison).
+The current primary method is forward operating EV/EBIT. A market-implied EBIT calculation shows the operating result required by selected assumptions. Scenario probabilities are optional. When evidence supports numerical weights, the analyst cites that evidence and explains the choice and its limits. The user can override the proposal. See [policy: Probabilities and returns](analysis-policy.md#probabilities-and-returns) and [calculation catalogue: Expected return, personal hurdle and historical comparison](calculations.md#expected-return-personal-hurdle-and-historical-comparison).
 
 The inspectable reasoning is the saved rationale, selected evidence, assumptions, formulas and independent challenge. It is not a complete record of internal model deliberation. The observable report contract requires labelled paragraphs, references and scenario rationales; see [`validate_report`](../betaforge/analysis_report.py) and [`submit_analysis`](../betaforge/tools.py).
 
@@ -64,27 +75,31 @@ The inspectable reasoning is the saved rationale, selected evidence, assumptions
 
 **Agent judgment:** read the business, reconcile source differences, inspect original page images when extraction is ambiguous and select comparable periods, adjustment bases and ownership scope. Financial definitions must remain visible. See [policy: Financial quality](analysis-policy.md#financial-quality), [material input rules](material-inputs.md) and [Codex integration: Tool contract](codex-integration.md#tool-contract).
 
+**Draft manual practice:** start a [business brief](skill-drafts/betaforge-company-analysis/references/business-evidence.md#write-the-business-brief-before-forecasting) with preserved issuer reports. Explain why customers buy and which recent developments could change earnings or cash. The coordinator handles bounded external research on material gaps before freezing evidence for a new run. The runner does not require a separate brief.
+
 **Code-enforced:** `read_report` delivers complete consecutive physical pages within a bounded response and records delivery coverage. `search_reports` returns bounded snippets and does not increase full-page coverage. Financial/dataset queries are bounded and selected-company access is constrained. `record_input` saves a numeric assumption or a report input with report/page and a quote matching saved text; it creates a content-based input ID. See [`EvidenceTools.coverage`, `read_report`, `search_reports`, `get_financials`, `get_dataset`, `record_input` and `resolve_input`](../betaforge/tools.py).
 
 **Limit:** delivery is not comprehension. A matching quotation does not independently verify the numeric extraction, economic definition or reconciliation. Report inputs are explicitly marked `analyst_extracted_not_independently_reconciled`. Search coverage is distinct from complete report delivery. See those same tool methods and [Codex integration: Tool contract](codex-integration.md#tool-contract).
 
 ## 3. Explain drivers and calculate scenarios
 
-**Inputs → outputs:** saved observations and assumptions → named calculation records, bear/base/bull values, sensitivities and the conditional return statistic.
+**Inputs → outputs:** saved observations and assumptions → named calculation records, bear/base/bull values and annual cash-flow returns, and sensitivities.
 
 **Agent judgment:** connect each material forecast to its evidence anchor, business mechanism and selected magnitude. Test the joint growth/margin assumption against history, current evidence and capital needs. Explain multiple selection, retained cash, additional claims, non-operating assets and future diluted shares without counting benefits or claims twice. See [policy: Valuation methods](analysis-policy.md#valuation-methods) and [catalogue: Primary scenario bridge](calculations.md#primary-scenario-bridge-valuation_case).
+
+**Draft manual practice:** use the completed business brief to show what changes an assumption, warrants a sensitivity or remains context. Carry material unanswered questions into the affected case.
 
 **Code-enforced:** the analyst calls named financial formulas using saved IDs; the wrapper applies each original source scale once. Python Decimal arithmetic retains normalized inputs, formula/version, outputs, units, missing inputs and warnings. Known incompatible units, currencies and paired periods are rejected. Some capital/earnings checks reject known quarter/YTD or opening-date conflicts. See [`EvidenceTools.calculate_financial` and `_financial_periods`](../betaforge/tools.py), [`financials.evaluate`](../betaforge/financials.py), and [catalogue: Common conventions](calculations.md#common-conventions).
 
 **Limit:** the registry currently assumes SEK, actual tonnes and actual shares. Undated assumptions and economically mismatched scope still require judgment. Group cash conversion is not automatically parent-common free cash flow; issuer ROCE, provider ROIC and selected operating ROIC retain different definitions. See [catalogue: Implemented named formulas](calculations.md#implemented-named-formulas).
 
-The return statistic weights scenario cash flows, then solves their IRR. It does not average scenario IRRs. The implementation supports constant year-end dividends and one common integer horizon of 1–10 years. Compare the result with the selected personal hurdle; keep the historical SIXRX total return separate. Changing only the present-value discount rate does not change modeled IRR. See [catalogue: Expected return, personal hurdle and historical comparison](calculations.md#expected-return-personal-hurdle-and-historical-comparison), and `scenario_weighted_values` / `expected_cashflow_irr` in [`financials.evaluate`](../betaforge/financials.py).
+Each case has an annual cash-flow IRR at the dated price. Compare the three returns with the personal hurdle and keep the historical SIXRX total return separate. With supported probabilities, an optional weighted IRR first weights the scenario payments and then solves their IRR. The formulas support constant year-end dividends and a common integer horizon of 1–10 years. A change in the present-value discount rate alone leaves cash-flow IRR unchanged. See [catalogue: Expected return, personal hurdle and historical comparison](calculations.md#expected-return-personal-hurdle-and-historical-comparison), and `scenario_weighted_values` / `expected_cashflow_irr` in [`financials.evaluate`](../betaforge/financials.py).
 
 ## 4. Submit a traceable report
 
 **Inputs → outputs:** evidence, saved assumptions and calculations → `analysis.json`, readable `answer.md`, input/calculation artifacts and hashes binding those saved artifacts.
 
-**Code-enforced:** require thesis, drivers, quality, management, valuation and risks sections; fact/interpretation/assumption paragraph labels and resolvable references; three bear/base/bull cases; compatible endpoint dates; saved probability assumptions summing exactly to one. Scenario targets and present values are copied from saved `valuation_case` outputs. Structured completion requires complete mandatory page delivery and an accepted submission. See [`validate_report`](../betaforge/analysis_report.py), [`EvidenceTools.submit_analysis`](../betaforge/tools.py) and structured completion in [`_run_with_tools`](../betaforge/codex_runner.py).
+**Code-enforced:** require six sections, labelled paragraphs with resolvable references, and bear, base and bull cases with compatible dates. The tool copies scenario targets and present values from saved `valuation_case` outputs. New reports explain omitted probabilities or supply three saved weights summing to one, each with a rationale and factual source reference. Structured completion requires complete mandatory page delivery and an accepted submission. See [`validate_report`](../betaforge/analysis_report.py), [`EvidenceTools.submit_analysis`](../betaforge/tools.py) and [`_run_with_tools`](../betaforge/codex_runner.py).
 
 **Agent judgment:** save the causal investment case and its uncertainty, including scenario and probability rationales, disappointment checks, disconfirmers and management’s important promises versus outcomes. See [policy: Output and calculation discipline](analysis-policy.md#output-and-calculation-discipline).
 

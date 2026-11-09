@@ -17,9 +17,9 @@ The reader should quickly understand the business case, what the price requires,
 
 1. **Quiet header:** company and ticker; separate labelled company and memo-version selectors. Keep the memo selector at the upper right and project navigation subordinate to the company research.
    Captured companies remain selectable before their first memo. Show a concise empty state with the snapshot date; keep data availability distinct from completed analysis.
-2. **Overview:** a short investment conclusion alongside a compact facts panel. Distinguish the latest stored market quote from the dated report price. Label conditional annual return and the report's required return accurately.
-3. **Valuation graphic:** show the three scenarios with legible values, units, probabilities and dates. Use different chart forms for present values and future share targets. Selecting a scenario opens its assumptions.
-4. **Full-width expandable sections:** Investment case; Valuation assumptions; Financials and management; Evidence. Each has a short useful summary. Details are closed initially; links open the relevant section and focus their target.
+2. **Overview:** place a short investment conclusion and compact facts panel beside the three scenarios' annual cash-flow IRRs. Use one scale with zero and the selected hurdle. Give the dated report price, horizon and dividend treatment. Distinguish the latest stored market quote from the report price.
+3. **Valuation graphics:** place dated present values and future share targets in the valuation details. Keep them in the overview when a comparable saved set of IRRs is unavailable. Use different chart forms for the two measures. Selecting a scenario opens its assumptions. Put any supported probabilities and weighted return in supporting detail with their limits.
+4. **Full-width expandable sections:** Investment case, Valuation assumptions, Financials and management, and Evidence. Compare compatible driver history with separately marked trailing 12-month results and dated forecast endpoints where supported. In Valuation assumptions, prioritize one saved sensitivity or a reconciled cash bridge that explains the decision. Details are closed initially. Links open the relevant section and focus their target.
 
 Use one overview and expandable sections rather than the current five Company subtabs. On narrow screens, stack the memo, facts and charts while retaining the reading order.
 
@@ -49,7 +49,7 @@ Review the actual browser at 1280 × 720 and 390 × 844:
 
 - The desktop opening shows the company, conclusion, dated key figures and a meaningful part of the valuation graphic without a large decorative header.
 - Overview and sections feel like one coherent research page. Small labels and repeated explanations do not dominate.
-- Both chart forms are readable and visibly different. Scenario and source links reveal the right details; keyboard navigation and focus work.
+- The overview IRRs share a scale and show zero and the selected hurdle. The present-value and target charts use distinct forms. Scenario and source links reveal the right details. Keyboard navigation and focus work.
 - Financial values, units, dates, definitions and qualifications match their saved records. Missing values remain explicit.
 - Narrow layouts have no page-wide horizontal overflow; wide tables scroll within their own containers.
 - Compare with the selected references for hierarchy, density and clarity. Code checks and model review support correctness; the user decides whether the visual direction is right.

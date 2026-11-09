@@ -3,7 +3,7 @@ import json
 import unittest
 
 import test_tools
-from betaforge.analysis_report import SECTIONS, validate_report, validate_saved_report, validate_review
+from betaforge.analysis_report import SECTIONS, render_markdown, validate_report, validate_saved_report, validate_review
 from betaforge.financials import FORMULAS
 from betaforge.tools import digest
 
@@ -12,7 +12,7 @@ class AnalysisReportTests(unittest.TestCase):
     setUp = test_tools.ToolsTests.setUp
     tearDown = test_tools.ToolsTests.tearDown
 
-    def report(self):
+    def report(self, weighted=True, version=2):
         self.tools.structured = True
         self.tools.packet['analysis_date'] = '2026-11-04'
         self.tools.read_report('example', 1)
@@ -24,9 +24,14 @@ class AnalysisReportTests(unittest.TestCase):
         calc = self.tools.calculate_financial('valuation_case', ids, 'Test bridge', 'Test basis')
         cases = []
         for identifier, weight in [('bear', '.2'), ('base', '.5'), ('bull', '.3')]:
-            ref = self.tools.record_input(weight, identifier + ' probability', 'dimensionless', 'assumption')['id']
-            cases.append(dict(id=identifier, name=identifier, valuation_calculation_id=calc['id'], present_value_date={'value':'2026-11-04','precision':'day'}, target_date={'value':'2029','precision':'year'}, rationale='Mechanism evidence', assumption_rationale='Explicit model assumptions', references=['example:p1', calc['id']+'#present_value'], weight_ref=ref, probability_rationale='Conditional point probability'))
-        return dict(schema_version=1, analysis_date='2026-11-04', summary='Conditional case.', sections=[dict(id=key,title=key,paragraphs=[dict(kind='interpretation',text='Evidence and interpretation.',references=['example:p1'])]) for key in SECTIONS], management_comparisons=[dict(id='operating-margin',metric_key='ebit_margin',metric_label='Margin',relationship='related',statement_type='driver',statement='Source statement',statement_date='2026-01-01',target_period=None,basis='Group, reported',actual=None,actual_references=[],references=['example:p1'],evidence={'report_id':'example','page':1,'quote':'Net revenue was 10.25 million SEK.'})], scenarios=cases, probability_limits='Representative outcomes omit tails.')
+            case = dict(id=identifier, name=identifier, valuation_calculation_id=calc['id'], present_value_date={'value':'2026-11-04','precision':'day'}, target_date={'value':'2029','precision':'year'}, rationale='Mechanism evidence', assumption_rationale='Explicit model assumptions', references=['example:p1', calc['id']+'#present_value'])
+            if weighted:
+                ref = self.tools.record_input(weight, identifier + ' probability', 'dimensionless', 'assumption')['id']
+                case.update(weight_ref=ref, probability_rationale='Conditional point probability')
+                if version == 2:
+                    case['probability_references'] = ['example:p1']
+            cases.append(case)
+        return dict(schema_version=version, analysis_date='2026-11-04', summary='Conditional case.', sections=[dict(id=key,title=key,paragraphs=[dict(kind='interpretation',text='Evidence and interpretation.',references=['example:p1'])]) for key in SECTIONS], management_comparisons=[dict(id='operating-margin',metric_key='ebit_margin',metric_label='Margin',relationship='related',statement_type='driver',statement='Source statement',statement_date='2026-01-01',target_period=None,basis='Group, reported',actual=None,actual_references=[],references=['example:p1'],evidence={'report_id':'example','page':1,'quote':'Net revenue was 10.25 million SEK.'})], scenarios=cases, probability_limits='Representative outcomes omit tails.' if weighted else 'Comparable outcome frequencies are unavailable.')
 
     def test_canonical_values_are_copied_and_generated_report_retains_evidence(self):
         report = self.report()
@@ -42,6 +47,54 @@ class AnalysisReportTests(unittest.TestCase):
         self.assertIn('year precision', answer)
         self.assertIn('example:p1', answer)
         self.assertIn('Net revenue was', answer)
+        self.assertIn('Probability sources: example:p1', answer)
+
+    def test_new_report_can_omit_probabilities_without_losing_scenario_values(self):
+        report = self.report(weighted=False)
+        self.tools.submit_analysis(report)
+        saved = json.loads((self.root/'run/analysis.json').read_text())
+        validate_saved_report(saved, self.tools)
+        self.assertEqual(saved['schema_version'], 2)
+        self.assertEqual(saved['scenarios'][0]['future_target']['value'], '10')
+        self.assertNotIn('weight_ref', saved['scenarios'][0])
+        answer = (self.root/'run/answer.md').read_text()
+        self.assertNotIn('Probability:', answer)
+        self.assertIn(report['probability_limits'], answer)
+
+    def test_weights_require_complete_source_backed_rationales_and_exact_total(self):
+        original = self.report()
+        mutations = [
+            lambda s: s.pop('probability_references'),
+            lambda s: s.update(probability_rationale=' '),
+            lambda s: s.update(probability_references=[]),
+            lambda s: s.update(probability_references=['example:p3']),
+            lambda s: s.update(probability_references=[s['weight_ref']]),
+            lambda s: s.update(weight_ref=original['scenarios'][1]['weight_ref']),
+            lambda s: s.update(weight_ref=self.tools.record_input(
+                '0.20000000000000000000000000000000000001', 'Nearly valid', 'dimensionless', 'assumption')['id']),
+            lambda s: [s.pop(key) for key in ('weight_ref', 'probability_rationale', 'probability_references')],
+        ]
+        for mutate in mutations:
+            report = deepcopy(original)
+            mutate(report['scenarios'][0])
+            with self.subTest(case=report['scenarios'][0]), self.assertRaises(ValueError):
+                self.tools.submit_analysis(report)
+
+    def test_legacy_schema_remains_readable_with_original_markdown(self):
+        legacy = self.report(version=1)
+        legacy['scenarios'][0]['weight_ref'] = self.tools.record_input(
+            '0.20000000000000000000000000000000000001', 'Archived probability', 'dimensionless', 'assumption')['id']
+        with self.assertRaisesRegex(ValueError, 'schema version'):
+            self.tools.submit_analysis(legacy)
+        saved = validate_report(legacy, self.tools, saved=True)
+        self.assertEqual(validate_saved_report(saved, self.tools), saved)
+        case = legacy['scenarios'][0]
+        self.assertIn(
+            f"Explicit model assumptions\nProbability: {case['weight_ref']}. Conditional point probability\n"
+            f"Calculation: {case['valuation_calculation_id']}\n",
+            render_markdown(saved),
+        )
+        self.assertNotIn('Probability sources:', render_markdown(saved))
 
     def test_fabricated_references_dates_and_quotes_are_rejected(self):
         original = self.report()

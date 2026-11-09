@@ -21,6 +21,10 @@ DOCUMENTS = (
     "work/README.md", "docs/analysis-policy.md", "docs/calculations.md", "docs/company-workflow.md",
     "docs/research/system-readiness-review.md",
     "docs/research/borsdata-retrieval-storage.md", "docs/codex-integration.md", "docs/saved-analysis-view.md", "docs/material-inputs.md", "docs/analysis-workflow.md",
+    "docs/skill-drafts/betaforge-market-peer-research/SKILL.md",
+    "docs/skill-drafts/betaforge-company-analysis/SKILL.md",
+    "docs/skill-drafts/betaforge-financial-report/SKILL.md",
+    "docs/skill-drafts/betaforge-valuation-review/SKILL.md",
 )
 ROUTES = {
     "/": ("web/progress/index.html", "text/html; charset=utf-8"),

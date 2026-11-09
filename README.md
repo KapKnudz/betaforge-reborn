@@ -22,6 +22,7 @@ Personal company research: collect evidence, check financial definitions and pro
 - **Understand boundaries:** read the [architecture](docs/architecture.md).
 - **Design the interface:** read the [design brief](DESIGN.md).
 - **Make a change:** follow the [contribution and PR workflow](CONTRIBUTING.md).
+- **Continue in Codex Cloud:** use the [cloud setup and handoff](docs/cloud-handoff.md).
 
 ## Run locally
 

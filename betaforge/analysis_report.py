@@ -3,12 +3,16 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, Inexact, localcontext
 import re
 
 from betaforge.financials import FORMULAS
 
 SECTIONS = ('thesis', 'drivers', 'quality', 'management', 'valuation', 'risks')
+REPORT_VERSION = 2
+SCENARIO_FIELDS = ('id', 'name', 'valuation_calculation_id', 'present_value_date', 'target_date',
+                   'rationale', 'assumption_rationale', 'references')
+PROBABILITY_FIELDS = ('weight_ref', 'probability_rationale', 'probability_references')
 
 
 def text(value, label, maximum=12000):
@@ -53,15 +57,55 @@ def references(values, tools, required=False):
     return values
 
 
-def validate_report(report, tools):
+def probability_weights(report, resolve_record, check_references):
+    from betaforge.tools import decimal, unit_dimensions
+
+    text(report['probability_limits'], 'probability limits')
+    legacy = report['schema_version'] == 1
+    required = set(PROBABILITY_FIELDS[:2] if legacy else PROBABILITY_FIELDS)
+    present = [set(PROBABILITY_FIELDS) & scenario.keys() for scenario in report['scenarios']]
+    if not legacy and not any(present):
+        return {}
+    if any(keys != required for keys in present):
+        raise ValueError('Supply complete probability evidence and weights for all cases, or omit all weights')
+    weights = {}
+    for scenario in report['scenarios']:
+        text(scenario['probability_rationale'], 'probability rationale')
+        if 'probability_references' in scenario:
+            evidence = scenario['probability_references']
+            check_references(evidence)
+            if not any(re.fullmatch(r'[A-Za-z0-9_-]+:p[1-9]\d*', ref) or ref.startswith('obs_') or
+                       (ref.startswith('input:') and resolve_record(ref).get('kind') == 'report')
+                       for ref in evidence):
+                raise ValueError('Probability rationale requires a saved factual source')
+        weight_ref = text(scenario['weight_ref'], 'weight reference', 200)
+        weight = resolve_record(weight_ref)
+        if weight.get('kind') != 'assumption' or unit_dimensions(weight):
+            raise ValueError('Scenario weight must reference a saved dimensionless probability assumption')
+        value, scale = decimal(weight['value']), decimal(weight.get('scale', '1'))
+        with localcontext() as context:
+            context.prec = max(40, len(value.as_tuple().digits) + len(scale.as_tuple().digits) + 10)
+            fraction = value * scale
+        if not 0 <= (value * scale if legacy else fraction) <= 1:
+            raise ValueError('Scenario probability must be between zero and one')
+        weights[scenario['id']] = str(fraction)
+    with localcontext() as context:
+        # New weights use up to two 200-character Decimal inputs per case.
+        context.prec = 28 if legacy else 450
+        context.clear_flags()
+        if sum(map(Decimal, weights.values())) != 1 or (not legacy and context.flags[Inexact]):
+            raise ValueError('Scenario probabilities must sum to one')
+    return weights
+
+
+def validate_report(report, tools, *, saved=False):
     fields(report, ('schema_version', 'analysis_date', 'summary', 'sections', 'management_comparisons', 'scenarios', 'probability_limits'))
-    if type(report['schema_version']) is not int or report['schema_version'] != 1:
+    if type(report['schema_version']) is not int or report['schema_version'] not in ((1, REPORT_VERSION) if saved else (REPORT_VERSION,)):
         raise ValueError('Unsupported report schema version')
     iso_date(report['analysis_date'])
     if report['analysis_date'] != tools.packet.get('analysis_date'):
         raise ValueError('Analysis date must match frozen packet')
     text(report['summary'], 'summary')
-    text(report['probability_limits'], 'probability limits')
     sections = report['sections']
     if not isinstance(sections, list) or len(sections) != len(SECTIONS) or {s.get('id') for s in sections if isinstance(s, dict)} != set(SECTIONS):
         raise ValueError('Require the six stable analysis sections')
@@ -123,13 +167,12 @@ def validate_report(report, tools):
     scenarios = report['scenarios']
     if not isinstance(scenarios, list) or len(scenarios) != 3 or {s.get('id') for s in scenarios if isinstance(s, dict)} != {'bear', 'base', 'bull'}:
         raise ValueError('Require bear, base and bull scenarios')
-    saved = deepcopy(report)
-    weights = Decimal(0)
+    canonical = deepcopy(report)
     targets = set()
     from betaforge.tools import decimal, unit_dimensions
-    for item in saved['scenarios']:
-        fields(item, ('id', 'name', 'valuation_calculation_id', 'present_value_date', 'target_date', 'rationale', 'assumption_rationale', 'references', 'weight_ref', 'probability_rationale'))
-        for key in ('name', 'rationale', 'assumption_rationale', 'probability_rationale'):
+    for item in canonical['scenarios']:
+        fields(item, SCENARIO_FIELDS, PROBABILITY_FIELDS)
+        for key in ('name', 'rationale', 'assumption_rationale'):
             text(item[key], key)
         references(item['references'], tools, required=True)
         pv_date = dated_endpoint(item['present_value_date'])
@@ -152,14 +195,11 @@ def validate_report(report, tools):
         years = next((r['calculation_value'] for r in calculation['inputs'] if r['field'] == 'years'), None)
         if years is None or int(target[:4]) - int(pv_date[:4]) != decimal(years):
             raise ValueError('Target year must match the saved valuation horizon')
-        weight = tools.state['inputs'].get(item['weight_ref'], {})
-        if weight.get('kind') != 'assumption' or unit_dimensions(weight) or not 0 <= decimal(weight['value']) * decimal(weight.get('scale', '1')) <= 1:
-            raise ValueError('Scenario weight must reference a saved dimensionless probability assumption')
-        weights += decimal(weight['value']) * decimal(weight.get('scale', '1'))
-    if weights != 1 or len(targets) != 1:
-        raise ValueError('Probabilities must sum to one and scenario endpoints must match')
-    saved.update(identity=deepcopy(tools.identity), validation_status='syntax_and_identity_valid', review_status='unreviewed')
-    return saved
+    probability_weights(canonical, tools.resolve_input, lambda refs: references(refs, tools, required=True))
+    if len(targets) != 1:
+        raise ValueError('Scenario endpoints must match')
+    canonical.update(identity=deepcopy(tools.identity), validation_status='syntax_and_identity_valid', review_status='unreviewed')
+    return canonical
 
 
 def render_markdown(report):
@@ -170,7 +210,12 @@ def render_markdown(report):
             lines += [f"**{paragraph['kind'].capitalize()}:** {paragraph['text']}", 'References: ' + ', '.join(paragraph['references']), '']
     lines += ['## Scenario endpoints', '']
     for item in report['scenarios']:
-        lines += [f"### {item['name']}", '', f"Present value ({item['present_value_date']['value']}): {item['present_value']['value']} {item['present_value']['unit']}. Target ({item['target_date']['value']}, {item['target_date']['precision']} precision): {item['future_target']['value']} {item['future_target']['unit']}.", item['rationale'], item['assumption_rationale'], 'Probability: ' + item['weight_ref'] + '. ' + item['probability_rationale'], 'Calculation: ' + item['valuation_calculation_id'], 'References: ' + ', '.join(item['references']), '']
+        lines += [f"### {item['name']}", '', f"Present value ({item['present_value_date']['value']}): {item['present_value']['value']} {item['present_value']['unit']}. Target ({item['target_date']['value']}, {item['target_date']['precision']} precision): {item['future_target']['value']} {item['future_target']['unit']}.", item['rationale'], item['assumption_rationale']]
+        if 'weight_ref' in item:
+            lines += ['Probability: ' + item['weight_ref'] + '. ' + item['probability_rationale']]
+        if 'probability_references' in item:
+            lines += ['Probability sources: ' + ', '.join(item['probability_references'])]
+        lines += ['Calculation: ' + item['valuation_calculation_id'], 'References: ' + ', '.join(item['references']), '']
     lines += [report['probability_limits'], '', '## Management comparisons', '']
     for item in report['management_comparisons']:
         lines += [f"### {item['metric_label']} ({item['relationship']})", '', item['statement'], 'Date: ' + str(item['statement_date']) + '; target period: ' + str(item['target_period']), 'Basis: ' + item['basis'], 'Actual: ' + str(item['actual']), 'References: ' + ', '.join(item['references'] + item['actual_references']), '']
@@ -205,12 +250,12 @@ def validate_review(feedback, packet_sha256, analysis_sha256):
     return validate_feedback(feedback, {'packet_sha256': packet_sha256}, analysis_sha256)
 
 
-REPORT_CONTRACT = '''Call submit_analysis with {report:{schema_version:1,analysis_date,summary,
+REPORT_CONTRACT = '''Call submit_analysis with {report:{schema_version:2,analysis_date,summary,
 sections:[{id,title,paragraphs:[{kind,text,references:[saved_reference]}]}],
 management_comparisons:[{id,metric_key,metric_label,relationship,statement_type,statement,
 statement_date,target_period,basis,actual,actual_references:[],references:[],evidence}],
 scenarios:[{id,name,valuation_calculation_id,present_value_date,target_date,rationale,
-assumption_rationale,references:[],weight_ref,probability_rationale}],probability_limits}}.
+assumption_rationale,references:[]}],probability_limits}}.
 Six sections exactly: thesis, drivers, quality, management, valuation, risks. Paragraph kinds:
 fact, interpretation, assumption; each needs saved references. Sources: REPORT:pN physical
 pages, saved observation/input IDs, calc:ID#output. Management metric_key must be a named
@@ -224,8 +269,17 @@ Dates are {value:'YYYY' or 'YYYY-MM' or 'YYYY-MM-DD',precision:'year'|'month'|'d
 value date is the analysis date at day precision. Preserve honest target precision; don't invent
 days from an annual horizon. All cases share the endpoint and saved integer years. Each case
 references a saved complete valuation_case; do not supply present_value/future_target numbers:
-the client copies these outputs. weight_ref is a saved dimensionless assumption; weights sum
-exactly to one. Provide company-specific probability evidence and omitted-tail limitations.
+the client copies these outputs. Save a separate annual cash-flow IRR for each case using its
+saved dividend input and future_target output, the common years and the dated report price.
+Compare case returns with the hurdle. Omit all weights and weighted results unless evidence
+supports a numerical distribution. Explain the omission in probability_limits. For supported
+weights, add weight_ref (a saved dimensionless assumption), probability_rationale (why this
+likelihood), and probability_references (including saved factual pages, report inputs or
+observations) to all three cases. Weights sum to one. Describe scenario coverage, omitted tails
+and uncertainty in probability_limits. For weighted IRR, reuse the selected valuation_case
+inputs and outputs plus the cited weight inputs in scenario_weighted_values. Use that
+calculation's expected dividend and future target, its years input and the report price
+in expected_cashflow_irr. Keep any weighted result secondary to individual cases.
 Write the summary as a short investment conclusion for a financial reader, following the
 supplied policy's writing rules. Explain the business mechanism, selected forecast magnitude
 and shareholder return implication. Name concrete cash uses and operating risks; support
@@ -249,7 +303,7 @@ def validate_saved_report(report, tools):
     for scenario in candidate.get('scenarios', []):
         scenario.pop('present_value', None)
         scenario.pop('future_target', None)
-    expected = validate_report(candidate, tools)
+    expected = validate_report(candidate, tools, saved=True)
     if expected != report:
         raise ValueError('Saved report differs from validated evidence and calculation outputs')
     return expected
