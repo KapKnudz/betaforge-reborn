@@ -1,6 +1,6 @@
 # Simple calculations for an initial valuation
 
-This draft summarizes [analysis policy version 3](../../../analysis-policy.md) and the [calculation catalogue](../../../calculations.md). They and the [named registry](../../../../betaforge/financials.py) remain canonical for definitions, fields and limits. Select calculations by business question, without a ratio scorecard or new financial model.
+Use the [analysis policy](../../../analysis-policy.md), [calculation catalogue](../../../calculations.md) and [named registry](../../../../betaforge/financials.py) for canonical definitions, fields and limits. Select calculations that answer a specific business question.
 
 Preserve source IDs, dates, periods, currency, scale, scope and adjustments. Normalize once into registry units: SEK, actual shares and tonnes; forecast rates are fractions. Use Decimal and round for display. Keep reported and adjusted EBIT separate. Missing inputs affect only dependent conclusions. Numerical reconciliation alone does not establish an accounting definition.
 
@@ -78,6 +78,18 @@ Show each case's annual cash-flow IRR first. Reuse `expected_cashflow_irr`: set 
 
 The implementation assumes constant year-end dividends and adds the target once to the final dividend. Inputs require positive price, nonnegative receipts and an integer 1–10-year horizon; no positive receipts gives no finite IRR.
 
-As a secondary summary, `scenario_weighted_values` weights comparable dividends and targets with explicit company-specific probabilities summing to one; `expected_cashflow_irr` then solves those weighted cash flows. Never average case IRRs. Label representative cases or omitted tails conditional/indicative.
+When the [probability policy](../../../analysis-policy.md#probabilities-and-returns) supports weights, use `scenario_weighted_values` with explicit company-specific probabilities summing to one, then `expected_cashflow_irr` on the weighted cash flows. Label results from representative cases or omitted tails conditional. For unweighted cases, use individual returns and the price or operating conditions required to clear the hurdle.
 
 Compare returns with the starting **10% personal annual equity hurdle**. Show **9% present-value sensitivity**, holding cash flows, operations and probabilities fixed; rate-only changes affect PV, not IRR. Explain any rate override. This is not WACC. Keep **SIXRX trailing ten-year annualized total return**, with reinvested dividends and verified dates/series, separate as historical context. Missing SIXRX leaves that comparison unavailable, not the hurdle verdict.
+
+## Worked example: operating disappointment and the exit multiple
+
+Use the [fictional manufacturer](business-evidence.md#fictional-example) at an illustrative SEK 100 share price. Assume three years, 10 million diluted shares, SEK 110 million of financial net debt and SEK 10 million of additional leases. Assume zero other claims and non-operating assets. The base case has SEK 30 million in annual cash after operating, reinvestment and financing needs, before common dividends. A SEK 2 dividend per share leaves SEK 10 million retained each year and SEK 80 million of financial net debt at exit.
+
+| Check | Exit EBIT (SEK m) | Exit EV/EBIT | Annual dividend (SEK/share) | Future target (SEK/share) | Value today at 10% (SEK/share) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Base | 120.75 | 12× | 2.00 | 135.90 | 107.08 |
+| Multiple sensitivity | 120.75 | 10× | 2.00 | 111.75 | 88.93 |
+| Operating disappointment | 66.50 | 12× | 0.00 | 67.80 | 50.94 |
+
+In the base case, `valuation_case` multiplies EBIT by 12 to get SEK 1,449 million of EV. Subtracting SEK 80 million of net debt and SEK 10 million of leases leaves SEK 1,359 million for common shareholders. Divide by 10 million shares and discount the target and the three year-end dividends. In the operating disappointment, weaker orders, discounting and slower inventory clearance leave no cash to distribute or retain, so net debt stays at SEK 110 million. This checks the business and cash assumptions at the same multiple. The separate multiple sensitivity shows why the base result at SEK 100 needs evidence for the 12× assumption. Both multiples are illustrative.

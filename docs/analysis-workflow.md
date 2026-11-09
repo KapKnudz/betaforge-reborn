@@ -22,6 +22,8 @@ Completion: the packet has explicit identities, source hashes, coverage requirem
 
 ## 2. Run one lead analyst
 
+When applying the draft guides manually, start a [business brief](skill-drafts/betaforge-company-analysis/references/business-evidence.md#write-the-business-brief-before-forecasting) from preserved issuer reports. The coordinator handles any targeted external checks before freezing evidence for a new run. The lead analyst finishes the brief from admitted evidence before selecting forecasts. Structured submission does not require a separate brief.
+
 Use Sol/xhigh with the existing evidence tools and `--structured`:
 
 ```sh
@@ -33,17 +35,17 @@ Use Sol/xhigh with the existing evidence tools and `--structured`:
 
 The analyst reads the required reports, investigates material questions and submits six readable sections: thesis, earnings drivers, financial quality, management, valuation and risks. Facts, interpretations and assumptions carry distinct labels and saved references. Scenario values come from saved `valuation_case` outputs, with explicit dates and their precision. Management statements retain their wording, source, publication date, target period and definition.
 
-The report explains three to five drivers, useful quality diagnostics, one operating equation, the equity bridge, company-specific probabilities, modest disappointments and evidence that would break the thesis. It uses the policy rather than inventing a scorecard. A management ROCE target is compared with issuer ROCE; related utilization or pricing guidance is labelled as a driver when shown beside EBIT margin.
+The report explains three to five drivers, useful quality diagnostics, one operating equation, the equity bridge, individual scenario returns, modest disappointments and evidence that would break the thesis. If the report uses weights, it explains their basis under the [probability policy](analysis-policy.md#probabilities-and-returns). A management ROCE target is compared with issuer ROCE. Related utilization or pricing guidance is labelled as a driver when shown beside EBIT margin.
 
 Apply the policy's [writing rules](analysis-policy.md#output-and-calculation-discipline). The opening explains the investment case and its main uncertainty in plain financial language; each important forecast connects evidence, business mechanism and magnitude. The [investor examples](research/investor-writing-examples.md) are optional source reading for the coordinator, not additional issuer evidence or a replacement investment strategy. Review the forecast rationale, cash explanation and conclusion for clarity as part of the existing challenge.
 
-Completion: required pages are delivered and `submit_analysis` accepts the report. This checks structure, source identity and saved calculation references. It does not certify economic judgment.
+Completion: required pages are delivered and `submit_analysis` accepts the report. This checks structure, source identity and saved calculation references. It does not certify economic judgment or enforce the presence of each requested scenario IRR. The independent review must check all three returns and their matched price, cash flows and horizon; the viewer falls back to saved valuation endpoints when compatible returns are missing. Probability validation checks reference presence and arithmetic, not whether the evidence supports the assigned likelihoods.
 
 ## 3. Challenge the draft independently
 
-Dispatch a fresh Sol/xhigh reviewer with the same frozen evidence, policy, draft, saved inputs and calculations. The reviewer reads existing artifacts; it changes no files, starts no code, test, provider, model, browser or PDF-render runs, and grants no waivers. The coordinator saves its returned challenge as `draft-review.json` using `betaforge.tools.write_json`. If the draft is accepted, also save that exact review as `analysis-review.json` for display.
+Dispatch a fresh Sol/xhigh reviewer with the same frozen evidence, policy, draft, saved inputs and calculations, and the manual business brief when used. The reviewer reads existing artifacts; it changes no files, starts no code, test, provider, model, browser or PDF-render runs, and grants no waivers. The coordinator saves its returned challenge as `draft-review.json` using `betaforge.tools.write_json`. If the draft is accepted, also save that exact review as `analysis-review.json` for display.
 
-Challenge the thesis rather than confirm it. Cover business mechanics, management comparisons, financial definitions, earnings versus cash, capital allocation and dilution, operating forecasts, the multiple and equity bridge, probability coverage, return timing and disconfirming evidence. Cite file sections and saved references. For each finding, give a bounded verdict, reasoning and missing evidence; distinguish a supported local claim from a broader unverified claim. Name any unresolved disagreement.
+Challenge the thesis. Cover business mechanics, management comparisons, financial definitions, earnings versus cash, capital allocation and dilution, operating forecasts, the multiple and equity bridge, return timing, any probability coverage and disconfirming evidence. Check how each material use of peer evidence affected the analysis. Cite file sections and saved references. For each finding, give a bounded verdict, reasoning and missing evidence. Distinguish a supported local claim from a broader unverified claim. Name any unresolved disagreement.
 
 Challenge the source of forecast cash as well as its uses. Connect assumed cash generation to the earnings path, noncash items, cash taxes, interest, working-capital movements and recurring investment. A compact reconciliation is enough; terminal earnings alone do not explain average cash over the horizon. Keep unsupported components explicit rather than inventing them.
 

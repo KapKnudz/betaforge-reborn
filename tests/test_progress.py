@@ -86,6 +86,23 @@ class ProgressTests(unittest.TestCase):
         self.assertEqual(self.request("/web/progress/process.js")[0], 404)
         self.assertEqual(self.request("/docs/data/private.json")[0], 404)
 
+    def test_only_listed_skill_guides_are_served(self):
+        for name in ("betaforge-market-peer-research", "betaforge-company-analysis",
+                     "betaforge-financial-report", "betaforge-valuation-review"):
+            with self.subTest(skill=name):
+                folder = "docs/skill-drafts/" + name
+                (self.root / folder / "references").mkdir(parents=True)
+                (self.root / folder / "SKILL.md").write_text(name)
+                (self.root / folder / "references/evidence.md").write_text("Unlisted reference")
+                status, headers, body = self.request("/docs/" + folder + "/SKILL.md")
+                self.assertEqual((status, body), (200, name.encode()))
+                self.assertTrue(headers["Content-Type"].startswith("text/plain"))
+                self.assertEqual(self.request("/docs/" + folder + "/references/evidence.md")[0], 404)
+        unlisted = "docs/skill-drafts/unlisted/SKILL.md"
+        (self.root / unlisted).parent.mkdir()
+        (self.root / unlisted).write_text("Unlisted skill")
+        self.assertEqual(self.request("/docs/" + unlisted)[0], 404)
+
     def test_completed_plan_allows_no_next_task(self):
         self.plan["next_task"] = None
         self.plan["tasks"][0]["status"] = "done"

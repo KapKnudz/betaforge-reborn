@@ -2,6 +2,33 @@
 
 Draft working definitions for the [adopted philosophy](../../../analysis-policy.md#investment-philosophy). Use them to make judgments inspectable, without a universal score or numerical threshold. The [calculation guide](calculations.md) owns the simple financial diagnostics. These examples illustrate questions to investigate; they are not facts about any issuer or default forecast assumptions.
 
+## Write the business brief before forecasting
+
+Start with preserved issuer reports and comparable company history. In a short private brief, explain what the company sells, who buys it and why customers choose it. Select three to five developments that could materially change earnings, cash needs or per-share value. For each development, record:
+
+- What happened, with the dated source and the activity it affects.
+- How it could affect earnings or cash, with evidence for the likely size and timing and any material unknowns.
+- The strongest contrary evidence or an explicit gap, and the next observation that would test the claim.
+- What it changes in a forecast assumption or sensitivity, or why it stays as context.
+
+Before freezing evidence for a new run, the coordinator can use this outline to identify up to three questions that could change a case or the investment call. Use the [market and peer research guide](../../betaforge-market-peer-research/SKILL.md#2-connect-market-evidence-to-operating-drivers) for any manual external checks. The lead analyst finishes the brief from admitted evidence and carries unresolved questions into the affected assumptions.
+
+Use disclosed contributions to explain changes in sales or profit. Leave any unattributed growth explicit and test whether the case depends on it. Check that the selected demand, pricing, margins and capital needs can occur together in the same case.
+
+## Explain material assumptions
+
+For the few assumptions that could materially change value, funding or the investment call, keep one short decision note:
+
+**Dated business evidence and baseline → operating mechanism → selected magnitude and timing → effect on cash, value and the decision.**
+
+Include the strongest contrary evidence. Distinguish what the evidence supports from the remaining analyst judgment, including a retained forecast. For an improvement, express the required change in simple business or financial terms—for example, the extra annual EBIT needed from a margin uplift—and explain how and when it could occur. Recent growth anchors a continuation case; it does not establish its duration. Directional evidence without an amount or timing stays qualified rather than becoming a precise forecast.
+
+Where support is thin, use an existing case or one relevant sensitivity to show whether a plausible alternative changes the call. State when even the range is judgmental. Identify the next observation that would change the view; missing optional disclosure alone does not require waiting. Cash reconciliation establishes arithmetic, not the reliability of its assumptions, and average cash generation does not establish funding at a payment date.
+
+When comparing runs, distinguish new evidence, changed interpretation and discretionary choices such as exit multiples or capital allocation. Hold other assumptions fixed to isolate an effect, or show the main contributions and disclose that several choices changed together. A clearer narrative alone does not justify a different number.
+
+Completion: each material assumption has an explained amount and horizon or an explicit gap, with its consequence for the decision. Use the existing notes and report sections; no extra model or exhaustive table is required.
+
 ## Turn a judgment into an evidence test
 
 For a material claim, record: **observation and source → economic mechanism → financial consequence → strongest contrary evidence**. Keep the observation separate from the interpretation. Missing disclosure means the claim is unproven; it does not establish that the company lacks the attribute.
@@ -49,7 +76,7 @@ All figures are invented to illustrate the process. They are not recommended for
 
 `EBIT = revenue × margin` explains the arithmetic, not why the forecasts are likely. Each row still needs evidence for its magnitude and combined conditions. A margin below the historical range needs explanation just as a new high does. Complete the earnings-to-cash and common-equity bridges, justify the multiple and forecast shares, and only then compare values and dividend-inclusive returns with the dated share price. Changing that price alone must not silently change the operating assumptions or target value.
 
-Propose probabilities afterward, with company-specific reasons, uncertainty and omitted outcomes visible. More peer data can improve the argument; it cannot make precise scenario probabilities observed facts.
+Assign probabilities only when comparable outcome frequencies or a documented elicitation support the numbers. Record the evidence, uncertainty and omitted outcomes. Otherwise leave the cases unweighted and explain the gap. More peer data can improve the operating argument without establishing scenario probabilities.
 
 ## Basis and limits
 

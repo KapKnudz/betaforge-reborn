@@ -5,7 +5,7 @@ solves a formula, or infers a valuation from prose.
 """
 from copy import deepcopy
 from datetime import date, datetime
-from decimal import Decimal, InvalidOperation, localcontext
+from decimal import Decimal, InvalidOperation
 import hashlib
 import json
 from pathlib import Path
@@ -499,10 +499,14 @@ def _validate_reader_memo(memo, view, references):
     if not isinstance(scenarios, list) or len(scenarios) != len(canonical_ids):
         raise ValueError("Reader memo requires each canonical scenario")
     scenario_ids = []
+    weighted = bool(view["probability"]["weights"])
     for scenario in scenarios:
-        _object(scenario, {"id", "rationale", "assumption_rationale", "probability_rationale", "references"})
+        required = {"id", "rationale", "assumption_rationale", "references"}
+        if weighted:
+            required.add("probability_rationale")
+        _object(scenario, required)
         scenario_ids.append(text(scenario["id"], "reader-memo scenario ID", 100))
-        for key in ("rationale", "assumption_rationale", "probability_rationale"):
+        for key in required - {"id", "references"}:
             text(scenario[key], "reader-memo " + key, 1200)
         references(scenario["references"])
     if set(scenario_ids) != canonical_ids:
@@ -533,10 +537,51 @@ def _normalized_calculation(record):
     return result
 
 
-def _probability_value(record):
-    with localcontext() as context:
-        context.prec = max(40, len(record["value"]) + len(record["scale"]) + 10)
-        return str(Decimal(record["value"]) * Decimal(record["scale"]))
+def _return_uses_report_price(calculation, price):
+    inputs = [item for item in calculation["inputs"] if item.get("field") == "price"]
+    return (price and price["id"] and price["source_id"] and len(inputs) == 1 and
+            calculation["input_ids"].get("price") == inputs[0].get("id") == price["id"] and
+            all(inputs[0].get(key) == price[key] for key in ("value", "unit", "scale", "currency", "source_id")) and
+            (inputs[0].get("date") or inputs[0].get("period_end")) == price["date"])
+
+
+def _candidate_returns(report, calculations, price):
+    returns = [calc for calc in calculations.values() if calc.get("formula") == "expected_cashflow_irr"]
+    if report["schema_version"] == 1:
+        return returns
+    if not all("weight_ref" in scenario for scenario in report["scenarios"]):
+        return []
+    expected = {}
+    present_values = {}
+    for scenario in report["scenarios"]:
+        case = scenario["id"]
+        valuation = calculations[scenario["valuation_calculation_id"]]
+        expected[f"{case}_weight"] = scenario["weight_ref"]
+        present_values[f"{case}_present_value"] = (valuation["id"], valuation["id"] + "#present_value")
+        expected[f"{case}_future_target"] = valuation["id"] + "#future_target"
+        expected[f"{case}_annual_dividend_per_share"] = valuation["input_ids"].get("annual_dividend_per_share")
+        if case == "base":
+            years = Decimal(next(item["calculation_value"] for item in valuation["inputs"] if item["field"] == "years"))
+    weighted = {
+        calc["id"] for calc in calculations.values()
+        if calc.get("formula") == "scenario_weighted_values"
+        and all(identifier and calc["input_ids"].get(field) == identifier for field, identifier in expected.items())
+        and all(calc["input_ids"].get(field) in identifiers for field, identifiers in present_values.items())
+        and any(item["field"] == "years" and item.get("calculation_value") is not None
+                and Decimal(item["calculation_value"]) == years for item in calc["inputs"])
+    }
+    matches = []
+    for calc in returns:
+        inputs = calc["input_ids"]
+        source_id, _, output = inputs.get("expected_future_target", "").partition("#")
+        if (source_id in weighted and output == "expected_future_target" and
+                inputs.get("expected_annual_dividend_per_share") == source_id + "#expected_annual_dividend_per_share" and
+                any(item["field"] == "years" and item.get("calculation_value") is not None
+                    and Decimal(item["calculation_value"]) == years for item in calc["inputs"]) and
+                _return_uses_report_price(calc, price) and
+                calc["outputs"].get("irr_percent", {}).get("value") is not None):
+            matches.append(calc)
+    return matches
 
 
 def _historical_benchmark_return(context, analysis_date):
@@ -559,13 +604,16 @@ def _historical_benchmark_return(context, analysis_date):
 
 def _validate_structured_view(view):
     """Check retained claims; original PDFs are verified only by the exporter."""
-    from betaforge.analysis_report import SECTIONS, dated_endpoint, fields, render_markdown, text, validate_review
+    from betaforge.analysis_report import (
+        PROBABILITY_FIELDS, REPORT_VERSION, SCENARIO_FIELDS, SECTIONS, dated_endpoint, fields,
+        probability_weights, render_markdown, text, validate_review,
+    )
     from betaforge.financials import FORMULAS
     from betaforge.tools import unit_dimensions
     report, provenance = view["analysis"], view["provenance"]
     fields(report, ("schema_version", "analysis_date", "summary", "sections", "management_comparisons", "scenarios",
                     "probability_limits", "identity", "validation_status", "review_status"))
-    if (type(report["schema_version"]) is not int or report["schema_version"] != 1 or
+    if (type(report["schema_version"]) is not int or report["schema_version"] not in (1, REPORT_VERSION) or
             report["analysis_date"] != view["analysis_date"] or report["summary"] != view["conclusion"] or
             report["validation_status"] != "syntax_and_identity_valid" or report["review_status"] != "unreviewed"):
         raise ValueError("Canonical analysis claims differ from saved view")
@@ -617,32 +665,10 @@ def _validate_structured_view(view):
     expected_calculations = [_normalized_calculation(calc) for calc in originals.values() if calc["operation"] == "financial_formula"]
     if view["calculations"] != expected_calculations:
         raise ValueError("Named calculations differ from original trace")
-    returns = [calc for calc in originals.values() if calc.get("formula") == "expected_cashflow_irr"]
-    if "return_calculation_id" in view["benchmark"]:
-        selected_id = view["benchmark"]["return_calculation_id"]
-        _text(selected_id)
-        selected = originals.get(selected_id)
-        if selected is None or selected.get("operation") != "financial_formula" or selected.get("formula") != "expected_cashflow_irr":
-            raise ValueError("Selected return must identify a saved expected cash-flow IRR calculation")
-        price = view["price"]
-        inputs = [item for item in selected["inputs"] if item.get("field") == "price"]
-        if (not price or not price["id"] or not price["source_id"] or len(inputs) != 1 or
-                selected["input_ids"].get("price") != price["id"] or inputs[0].get("id") != price["id"] or
-                any(inputs[0].get(key) != price[key] for key in ("value", "unit", "scale", "currency", "source_id")) or
-                (inputs[0].get("date") or inputs[0].get("period_end")) != price["date"]):
-            raise ValueError("Selected return must use the exact saved report price")
-        output = selected["outputs"].get("irr_percent", {})
-        if output.get("value") is None or output.get("unit") != "percent":
-            raise ValueError("Selected return requires a saved annual IRR percent output")
-        returns = [selected]
-    candidate = returns[0]["outputs"].get("irr_percent", {}).get("value") if len(returns) == 1 else None
-    # Earlier structured exports left the comparator unselected despite retaining its context.
-    if (view["benchmark"]["candidate_annualized_return_percent"] != candidate or
-            view["benchmark"]["benchmark_annualized_return_percent"] not in
-            (None, _historical_benchmark_return(view["benchmark"]["context"], view["analysis_date"])) or
-            view["benchmark"]["difference_percentage_points"] is not None):
-        raise ValueError("Benchmark must preserve the saved return without inventing a comparison")
-
+    if report["schema_version"] == REPORT_VERSION and any(
+            originals[calc["id"]]["input_ids"] != {field: item["id"] for field, item in calc["inputs"].items()}
+            for calc in expected_calculations):
+        raise ValueError("Named calculation input IDs differ from retained inputs")
     def reference(identifier):
         text(identifier, "reference", 200)
         match = re.fullmatch(r"([A-Za-z0-9_-]+):p([1-9]\d*)", identifier)
@@ -674,7 +700,6 @@ def _validate_structured_view(view):
             if {key: value for key, value in item.items() if key in SOURCE_RECORD_FIELDS} != retained:
                 raise ValueError("Calculation input differs from retained source record")
     text(report["summary"], "summary")
-    text(report["probability_limits"], "probability limits")
     sections = report["sections"]
     if not isinstance(sections, list) or len(sections) != 6 or {s.get("id") for s in sections if isinstance(s, dict)} != set(SECTIONS):
         raise ValueError("Invalid canonical analysis sections")
@@ -730,10 +755,10 @@ def _validate_structured_view(view):
     scenarios = report["scenarios"]
     if not isinstance(scenarios, list) or len(scenarios) != 3 or {s.get("id") for s in scenarios if isinstance(s, dict)} != {"bear", "base", "bull"} or len(view["scenarios"]) != 3:
         raise ValueError("Invalid canonical scenarios")
-    weights, endpoints = {}, set()
+    endpoints = set()
     for item, display in zip(scenarios, view["scenarios"]):
-        fields(item, ("id", "name", "valuation_calculation_id", "present_value_date", "target_date", "rationale", "assumption_rationale", "references", "weight_ref", "probability_rationale", "present_value", "future_target"))
-        for key in ("name", "rationale", "assumption_rationale", "probability_rationale"):
+        fields(item, SCENARIO_FIELDS + ("present_value", "future_target"), PROBABILITY_FIELDS)
+        for key in ("name", "rationale", "assumption_rationale"):
             text(item[key], key)
         references(item["references"])
         pv_date, target = (dated_endpoint(item[key]) for key in ("present_value_date", "target_date"))
@@ -749,17 +774,39 @@ def _validate_structured_view(view):
             output = calc["outputs"].get(key)
             if item[key] != output or unit_dimensions(output) != {"SEK": 1, "shares": -1} or Decimal(output["value"]) < 0:
                 raise ValueError("Canonical scenario differs from retained valuation output")
-        weight = by_id.get(item["weight_ref"], {})
-        if weight.get("kind") != "assumption" or unit_dimensions(weight) or weight.get("value") is None:
-            raise ValueError("Scenario lacks a saved probability assumption")
-        weights[item["id"]] = _probability_value(weight)
         expected = {"id": item["id"], "name": item["name"], "value": item["present_value"]["value"], "unit": item["present_value"]["unit"],
-                    "basis": calc["basis"], "calculation_ids": [calc["id"]], "weight": weights[item["id"]],
+                    "basis": calc["basis"], "calculation_ids": [calc["id"]],
                     **{key: item[key] for key in ("present_value", "future_target", "present_value_date", "target_date")}}
-        if display != expected:
+        if {key: value for key, value in display.items() if key != "weight"} != expected:
             raise ValueError("Displayed scenario differs from canonical analysis")
-    if len(endpoints) != 1 or sum(map(Decimal, weights.values())) != 1 or view["probability"] != {"weights": weights, "basis": report["probability_limits"], "status": "proposed"}:
+    weights = probability_weights(report, lambda ref: by_id.get(ref, {}), references)
+    if (len(endpoints) != 1 or
+            any(("weight" in scenario) != bool(weights) for scenario in view["scenarios"]) or
+            view["probability"] != {"weights": weights, "basis": report["probability_limits"],
+                                    "status": "proposed" if weights else "missing"}):
         raise ValueError("Canonical probability claims differ from saved view")
+    returns = _candidate_returns(report, originals, view["price"])
+    if "return_calculation_id" in view["benchmark"]:
+        selected_id = view["benchmark"]["return_calculation_id"]
+        _text(selected_id)
+        returns = [calc for calc in returns if calc["id"] == selected_id and calc["operation"] == "financial_formula"]
+        if len(returns) != 1:
+            raise ValueError("Selected return must identify an eligible saved cash-flow IRR calculation")
+        selected = returns[0]
+        if not _return_uses_report_price(selected, view["price"]):
+            raise ValueError("Selected return must use the exact saved report price")
+        output = selected["outputs"].get("irr_percent", {})
+        if output.get("value") is None or output.get("unit") != "percent":
+            raise ValueError("Selected return requires a saved annual IRR percent output")
+    elif report["schema_version"] == REPORT_VERSION and len(returns) == 1:
+        raise ValueError("Saved weighted return requires its calculation ID")
+    candidate = returns[0]["outputs"].get("irr_percent", {}).get("value") if len(returns) == 1 else None
+    # Earlier structured exports left the comparator unselected despite retaining its context.
+    if (view["benchmark"]["candidate_annualized_return_percent"] != candidate or
+            view["benchmark"]["benchmark_annualized_return_percent"] not in
+            (None, _historical_benchmark_return(view["benchmark"]["context"], view["analysis_date"])) or
+            view["benchmark"]["difference_percentage_points"] is not None):
+        raise ValueError("Benchmark must preserve the saved return without inventing a comparison")
     if "analysis_review" in view:
         review = validate_review(view["analysis_review"], provenance["packet_sha256"], analysis_hash)
         if _saved_json_hash(review) != provenance["review_sha256"]:
@@ -772,7 +819,10 @@ def _validate_structured_view(view):
 
 def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_id, method, return_calculation_id=None):
     """Export a submitted structured run after verifying all frozen evidence."""
-    from betaforge.analysis_report import references as validate_references, render_markdown, validate_saved_report, validate_review
+    from betaforge.analysis_report import (
+        REPORT_VERSION, probability_weights, references as validate_references, render_markdown,
+        validate_saved_report, validate_review,
+    )
     from betaforge.tools import EvidenceTools
     run_dir, packet_dir = map(checked_path, (run_dir, packet_dir))
     run_body, analysis_body = (_body(run_dir / name) for name in ("run.json", "analysis.json"))
@@ -799,6 +849,7 @@ def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_
             if not tools.coverage()["complete"] or run.get("coverage") != tools.coverage():
                 raise ValueError("Structured reading coverage differs from completed run")
             validate_saved_report(report, tools)
+            probabilities = probability_weights(report, tools.resolve_input, lambda refs: validate_references(refs, tools, required=True))
             packet, identity = tools.packet, tools.identity
             review_path = run_dir / "analysis-review.json"
             review = validate_review(_json(review_path), identity["packet_sha256"], analysis_hash) if review_path.exists() else None
@@ -826,7 +877,7 @@ def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_
             for item in report["management_comparisons"]:
                 references.update(item["references"] + item["actual_references"])
             for item in report["scenarios"]:
-                references.update(item["references"] + [item["weight_ref"]])
+                references.update(item["references"] + item.get("probability_references", []))
             if review is not None:
                 for finding in review["findings"]:
                     saved_references = [identifier for identifier in finding["references"]
@@ -861,14 +912,18 @@ def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_
                 price["date"] = saved_price.get("date", saved_price.get("period_end"))
             benchmark = dict.fromkeys(BENCHMARK_FIELDS)
             benchmark["limits"] = ["Saved expected return and historical benchmark context are not a forecast comparison."]
-            returns = [calc for calc in originals["calculations"] if calc.get("formula") == "expected_cashflow_irr"]
+            returns = _candidate_returns(report, state["calculations"], price)
             if return_calculation_id is not None:
                 benchmark["return_calculation_id"] = return_calculation_id
                 returns = [calc for calc in returns if calc["id"] == return_calculation_id]
                 if len(returns) != 1:
-                    raise ValueError("Selected return calculation is unavailable")
+                    raise ValueError("Selected return calculation is unavailable or ineligible")
             if len(returns) == 1:
                 benchmark["candidate_annualized_return_percent"] = returns[0]["outputs"].get("irr_percent", {}).get("value")
+                if report["schema_version"] == REPORT_VERSION:
+                    benchmark["return_calculation_id"] = returns[0]["id"]
+            if not probabilities:
+                benchmark["limits"] = ["Scenario returns are conditional. Historical benchmark context is a separate comparison."]
             benchmark_entry = packet.get("market_benchmark_context", packet.get("benchmark_context"))
             if benchmark_entry:
                 saved_context = _json(_child(packet_dir, benchmark_entry["context_path"]))
@@ -877,17 +932,19 @@ def build_structured_saved_view(run_dir, packet_dir, company_name, ticker, view_
                 benchmark["context"], packet["analysis_date"])
         finally:
             tools.store.close()
-    probabilities = {item["id"]: _probability_value(state["inputs"][item["weight_ref"]]) for item in report["scenarios"]}
     calculations = {calc["id"]: calc for calc in originals["calculations"]}
     scenarios = [{"id": item["id"], "name": item["name"], "value": item["present_value"]["value"], "unit": item["present_value"]["unit"],
                   "basis": calculations[item["valuation_calculation_id"]]["basis"], "calculation_ids": [item["valuation_calculation_id"]],
-                  "weight": probabilities[item["id"]], **{key: item[key] for key in ("present_value", "future_target", "present_value_date", "target_date")}} for item in report["scenarios"]]
+                  **({"weight": probabilities[item["id"]]} if probabilities else {}),
+                  **{key: item[key] for key in ("present_value", "future_target", "present_value_date", "target_date")}} for item in report["scenarios"]]
     narrative_body = _body(run_dir / "answer.md")
     if narrative_body.decode("utf-8") != render_markdown(report):
         raise ValueError("Structured narrative differs from canonical analysis")
     view = {"schema_version": 1, "id": view_id, "company": {"name": company_name, "ticker": ticker, "instrument_id": packet["instrument_id"]},
             "analysis_date": packet["analysis_date"], "reviewed_at": run["finished_at"], "method": method, "price": price,
-            "conclusion": report["summary"], "scenarios": scenarios, "probability": {"weights": probabilities, "basis": report["probability_limits"], "status": "proposed"},
+            "conclusion": report["summary"], "scenarios": scenarios,
+            "probability": {"weights": probabilities, "basis": report["probability_limits"],
+                            "status": "proposed" if probabilities else "missing"},
             "calculations": [_normalized_calculation(calc) for calc in originals["calculations"] if calc["operation"] == "financial_formula"],
             "original_calculations": originals["calculations"], "interpretation": [], "notes": [], "narrative": narrative_body.decode("utf-8"),
             "sources": sources, "benchmark": benchmark, "analysis": report, "saved_records": records,

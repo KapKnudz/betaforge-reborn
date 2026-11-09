@@ -161,6 +161,8 @@ for line in sys.stdin:
             events=[json.loads(line) for line in (root/'run/events.jsonl').read_text().splitlines()]
             thread=next(e['message']['params'] for e in events if e['message'].get('method')=='thread/start')
             self.assertIn('submit_analysis',[t['name'] for t in thread['dynamicTools']])
+            self.assertIn('schema_version:2', thread['baseInstructions'])
+            self.assertIn('Omit all weights and weighted results unless evidence', thread['baseInstructions'])
             self.assertIn('analysis_report.py',state['implementation_sha256'])
 
     def test_feedback_revision_freezes_original_and_rejects_second_revision_or_changed_feedback(self):

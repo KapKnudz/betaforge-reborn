@@ -518,8 +518,25 @@ class StructuredSavedViewTests(unittest.TestCase):
     def build(self, **kwargs):
         return build_saved_view(None, self.run, self.root, "Sample", "SAMP", "sample-20261104", "Saved structured analysis", **kwargs)
 
-    def save_return_calculations(self, count=2):
+    def persist_run(self):
         from betaforge.tools import write_json
+
+        self.tools.save()
+        for name in ("inputs", "calculations"):
+            write_json(self.run / (name + ".json"), list(self.tools.state[name].values()))
+            self.run_data[name + "_sha256"] = SavedViewTests.digest(self.run / (name + ".json"))
+        self.run_data["analysis_sha256"] = SavedViewTests.digest(self.run / "analysis.json")
+        write_json(self.run / "run.json", self.run_data)
+
+    def save_return_calculations(self, count=2):
+        from betaforge.analysis_report import render_markdown, validate_report
+        from betaforge.tools import write_json
+        from test_analysis_report import AnalysisReportTests
+
+        legacy = validate_report(AnalysisReportTests.report(self, version=1), self.tools, saved=True)
+        write_json(self.run / "analysis.json", legacy)
+        (self.run / "answer.md").write_text(render_markdown(legacy))
+        self.tools.state["analysis_sha256"] = SavedViewTests.digest(self.run / "analysis.json")
         price = self.tools.get_financials(report_type="price", fields=["price_close"])["observations"][0]
         inputs = {"price": price["id"], **{field: self.tools.record_input(value, field, unit, "assumption")["id"]
                   for field, value, unit in (("expected_annual_dividend_per_share", "2", "SEK/shares"),
@@ -528,12 +545,91 @@ class StructuredSavedViewTests(unittest.TestCase):
         for target in ("120", "130")[:count]:
             inputs["expected_future_target"] = self.tools.record_input(target, "Terminal target", "SEK/shares", "assumption")["id"]
             calculations.append(self.tools.calculate_financial("expected_cashflow_irr", inputs, "Saved return", "Report-price cash flows"))
-        self.tools.save()
-        for name in ("inputs", "calculations"):
-            write_json(self.run / (name + ".json"), list(self.tools.state[name].values()))
-            self.run_data[name + "_sha256"] = SavedViewTests.digest(self.run / (name + ".json"))
-        write_json(self.run / "run.json", self.run_data)
+        self.persist_run()
         return calculations
+
+    def record_case_returns(self, report):
+        price = self.tools.get_financials(report_type="price", fields=["price_close"])["observations"][0]
+        weighted_inputs = {}
+        for scenario in report["scenarios"]:
+            case = scenario["id"]
+            valuation = self.tools.state["calculations"][scenario["valuation_calculation_id"]]
+            target = valuation["id"] + "#future_target"
+            dividend = valuation["input_ids"]["annual_dividend_per_share"]
+            years = valuation["input_ids"]["years"]
+            weighted_inputs.update({
+                "years": years, f"{case}_weight": scenario["weight_ref"],
+                f"{case}_present_value": valuation["id"],
+                f"{case}_future_target": target, f"{case}_annual_dividend_per_share": dividend,
+            })
+        individual = self.tools.calculate_financial("expected_cashflow_irr", {
+            "price": price["id"], "expected_future_target": target,
+            "expected_annual_dividend_per_share": dividend, "years": years,
+        }, "Individual return", "Report-price cash flows")
+        weighted = self.tools.calculate_financial("scenario_weighted_values", weighted_inputs,
+                                                  "Weighted values", "Same date, scope and horizon")
+        aggregate = self.tools.calculate_financial("expected_cashflow_irr", {
+            "price": price["id"], "expected_future_target": weighted["id"] + "#expected_future_target",
+            "expected_annual_dividend_per_share": weighted["id"] + "#expected_annual_dividend_per_share", "years": years,
+        }, "Weighted return", "Report-price cash flows")
+        return individual, aggregate
+
+    def test_supported_return_selects_weighted_cash_flows_and_retains_probability_sources(self):
+        from test_analysis_report import AnalysisReportTests
+
+        report = AnalysisReportTests.report(self)
+        observation = self.tools.get_financials(report_type="price", fields=["price_close"])["observations"][0]
+        report["scenarios"][0]["probability_references"] = [observation["id"]]
+        individual, aggregate = self.record_case_returns(report)
+        self.tools.submit_analysis(report)
+        self.persist_run()
+        view = self.build()
+        self.assertEqual(view["benchmark"]["return_calculation_id"], aggregate["id"])
+        self.assertEqual(view["benchmark"]["candidate_annualized_return_percent"], aggregate["outputs"]["irr_percent"]["value"])
+        self.assertIn(observation["id"], {record["id"] for record in view["saved_records"]})
+        with self.assertRaisesRegex(ValueError, "ineligible"):
+            self.build(return_calculation_id=individual["id"])
+        view["benchmark"]["return_calculation_id"] = individual["id"]
+        with self.assertRaisesRegex(ValueError, "eligible"):
+            validate_saved_view(view)
+
+    def test_unweighted_export_and_reader_memo_preserve_individual_returns_in_trace(self):
+        from test_analysis_report import AnalysisReportTests
+
+        individual, aggregate = self.record_case_returns(AnalysisReportTests.report(self))
+        report = AnalysisReportTests.report(self, weighted=False)
+        self.tools.submit_analysis(report)
+        self.persist_run()
+        view = self.build()
+        self.assertEqual(view["probability"], {"weights": {}, "basis": report["probability_limits"], "status": "missing"})
+        self.assertTrue(all("weight" not in scenario for scenario in view["scenarios"]))
+        self.assertIsNone(view["benchmark"]["candidate_annualized_return_percent"])
+        self.assertNotIn("return_calculation_id", view["benchmark"])
+        self.assertIn(individual, view["original_calculations"])
+        self.assertIn(aggregate, view["original_calculations"])
+        for calc in (individual, aggregate):
+            with self.assertRaisesRegex(ValueError, "ineligible"):
+                self.build(return_calculation_id=calc["id"])
+        memo = self.reader_memo(view)
+        for scenario in memo["scenarios"]:
+            del scenario["probability_rationale"]
+        self.assertEqual(attach_reader_memo(view, memo)["reader_memo"], memo)
+        memo["scenarios"][0]["probability_rationale"] = "A proposed weight."
+        with self.assertRaises(ValueError):
+            attach_reader_memo(view, memo)
+
+    def test_named_calculation_input_ids_must_match_retained_inputs(self):
+        from test_analysis_report import AnalysisReportTests
+
+        _, aggregate = self.record_case_returns(AnalysisReportTests.report(self))
+        calculations = self.tools.state["calculations"]
+        del calculations[aggregate.pop("id")]
+        aggregate["input_ids"]["expected_future_target"] = aggregate["input_ids"]["expected_annual_dividend_per_share"]
+        aggregate["id"] = "calc:" + hashlib.sha256(json.dumps(aggregate, sort_keys=True).encode()).hexdigest()[:20]
+        calculations[aggregate["id"]] = aggregate
+        self.persist_run()
+        with self.assertRaisesRegex(ValueError, "input IDs differ"):
+            self.build()
 
     def test_explicit_return_selection_copies_saved_output_and_keeps_history(self):
         calculations = self.save_return_calculations()

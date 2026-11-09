@@ -75,10 +75,10 @@ const selected = {...original,id: "calc:adopted",outputs: {irr_percent: {value: 
 run.original_calculations.push(selected);
 run.benchmark.candidate_annualized_return_percent = "8.4";
 evaluate("renderCompany(run)");
-assert(panel("overview").textContent.includes("Report-price binding unavailable"));
+assert(!$("return-explanation"));
 run.benchmark.return_calculation_id = selected.id;
 evaluate("renderCompany(run)");
-assert(panel("overview").textContent.includes("Conditional annual return8.4%At report price"));
+assert(!panel("overview").textContent.includes("Conditional annual return"));
 assert($("return-explanation").textContent.includes("Saved annual return8.4%"));
 assert(all($("return-explanation")).some(node => node.href === "#calculation-calc:adopted"));
 for (const id of [null, "calc:missing", "calc:old", original.id]) {
@@ -93,6 +93,89 @@ for (const [key,value] of [["id","obs:other"],["value","101"],["unit","currency"
 ''')
 
     @unittest.skipUnless(shutil.which("node"), "Node is required for the buildless UI check")
+    def test_unweighted_return_and_driver_charts_require_matching_saved_records(self):
+        self.run_ui(r'''
+const input = (field, id, value, unit, extra = {}) => ({field,id,value,unit,scale:"1",calculation_value:value,...extra});
+const saved = (id, formula, inputs, outputs) => ({id,formula,operation:"financial_formula",inputs,outputs,input_ids:Object.fromEntries(inputs.map(item => [item.field,item.id]))});
+const price = {...run.price, field:"price"};
+const years = input("years","input:years","3","dimensionless");
+const hurdle = input("required_return","input:hurdle","0.12","dimensionless");
+const cases = [["bear","Bear","60","-14","90","0.08","7200000"],["base","Base","140","13","120","0.1","12000000"],["bull","Bull","170","24","150","0.12","18000000"]];
+run.analysis.schema_version = 2;
+run.analysis.scenarios = cases.map(([id,name,target]) => ({...scenario,id,name,valuation_calculation_id:"calc:case-"+id,future_target:{value:target,unit:"SEK/share"},weight_ref:undefined,probability_rationale:undefined}));
+run.scenarios = run.analysis.scenarios.map(item => ({...run.scenarios[0],name:item.name,calculation_ids:[item.valuation_calculation_id]}));
+run.probability = {status:"missing",weights:{},basis:"Comparable outcomes are unavailable."};
+run.benchmark = {};
+run.original_calculations = [run.original_calculations.find(item => item.id === "calc:irr")];
+for (const [id,name,target,irr,sales,margin,ebit] of cases) {
+  const operatingId = "calc:operating-" + id, caseId = "calc:case-" + id;
+  const dividend = input("annual_dividend_per_share","input:dividend-"+id,"2","SEK/share");
+  run.original_calculations.push(
+    saved(operatingId,"revenue_ebit",[input("revenue","input:sales-"+id,sales+"000000","SEK"),input("ebit_margin","input:margin-"+id,margin,"dimensionless")],{ebit:{value:ebit,unit:"SEK"}}),
+    saved(caseId,"valuation_case",[years,hurdle,dividend,input("forecast_ebit",operatingId,ebit,"SEK")],{future_target:{value:target,unit:"SEK/share"}}),
+    saved("calc:return-"+id,"expected_cashflow_irr",[price,years,{...dividend,field:"expected_annual_dividend_per_share"},input("expected_future_target",caseId+"#future_target",target,"SEK/share")],{irr_percent:{value:irr,unit:"percent"}}),
+  );
+}
+function historical(id, type, start, end, sales, margin) {
+  const period = {kind:"flow",report_type:type,period_start:start,period_end:end};
+  return saved(id,"ebit_margin",[input("ebit","input:actual-ebit-"+id,"8000000","SEK",period),
+    input("revenue","input:actual-revenue-"+id,sales+"000000","SEK",period)],{margin_percent:{value:margin,unit:"percent"}});
+}
+run.original_calculations.push(
+  historical("calc:actual-one","year","2024-01-01","2024-12-31","80","10"),
+  historical("calc:actual-two","year","2025-01-01","2025-12-31","100","8"),
+  historical("calc:actual-r12","r12","2025-10-01","2026-09-30","105","7.62"),
+);
+const actual = run.analysis.sections.find(item => item.id === "drivers").paragraphs[0];
+actual.text = "Reported group history uses net sales.\n\n| Period | Net sales (SEK m) | EBIT margin (%) |\n| --- | --- | --- |\n| 2024 | 80 | 10 |\n| 2025 | 100 | 8 |\n| R12 September 2026 | 105 | 7.62 |";
+actual.references = ["calc:actual-one#margin_percent","calc:actual-two#margin_percent","calc:actual-r12#margin_percent"];
+const valuation = run.analysis.sections.find(item => item.id === "valuation").paragraphs[0];
+valuation.text = "|\n\n| 2029 operating bridge | Bear | Base | Bull |\n| --- | --- | --- | --- |\n| Net sales, SEK m | 90 | 120 | 150 |\n| Reported EBIT margin | 8% | 10% | 12% |\n|";
+const sensitivity = run.analysis.sections.find(item => item.id === "risks").paragraphs[0];
+sensitivity.text = "| Check | What changes from base | Annual IRR |\n| --- | --- | --- |\n| Cash | More capital | 3% |";
+evaluate("renderCompany(run)");
+const annual = () => all(panel("overview")).find(node => node.attributes.class === "chart return-chart");
+assert.match(annual().attributes["aria-label"], /Bear -14%, Base 13%, Bull 24%.*12%/);
+assert(panel("valuation").contains($("company-scenarios")));
+assert(disclosure("Probability basis").textContent.includes(run.probability.basis));
+assert(!$("return-explanation"));
+assert(!$("scenario-bear").textContent.includes("Why this weight"));
+assert(!disclosure("Saved scenario values & exact records").textContent.includes("Weight"));
+assert(all(panel("valuation")).some(node => node.className === "table-wrap sensitivity-table"));
+assert.equal(all($("reader-valuation")).filter(node => node.tagName === "P" && node.textContent === "|").length, 2);
+const drivers = () => all($("reader-drivers")).filter(node => node.attributes.class === "chart driver-chart");
+assert.equal(drivers().length,2);
+assert.match(drivers()[0].attributes["aria-label"], /History on the memo's stated basis: .*R12 September 2026 105.*2029 assumptions: Bear 90, Base 120, Bull 150/);
+assert($("reader-drivers").textContent.includes("Accounting labels follow the memo's stated basis."));
+const calc = (variant, id) => variant.original_calculations.find(item => item.id === "calc:" + id);
+for (const mutate of [
+  variant => variant.price.date = "2026-10-29",
+  variant => variant.original_calculations.push({...calc(variant,"return-base"),id:"calc:ambiguous"}),
+  variant => calc(variant,"return-base").input_ids.expected_future_target = "calc:weighted#expected_future_target",
+  variant => calc(variant,"return-base").inputs[2].calculation_value = "3",
+  variant => calc(variant,"case-base").inputs.push({...price,value:"77"}),
+  variant => { const inputs = calc(variant,"case-base").inputs; inputs[1] = {...inputs[1],calculation_value:"0.10"}; },
+]) {
+  const variant = structuredClone(run); mutate(variant); sandbox.variant = variant;
+  evaluate("renderCompany(variant)");
+  assert(!annual(), mutate.toString());
+  assert.equal($("company-scenarios").parentElement,panel("overview"));
+}
+for (const mutate of [
+  variant => variant.analysis_date = "2025-12-31",
+  variant => variant.analysis.sections[1].paragraphs[0].text = actual.text.replace("R12 September 2026","R12 June 2026"),
+  variant => variant.analysis.sections[1].paragraphs[0].text = actual.text.replace("Reported group history","In contrast to reported group history, this sample"),
+  variant => calc(variant,"actual-r12").inputs[1].kind = "assumption",
+  variant => calc(variant,"actual-one").inputs.forEach(item => item.period_start = "2024-03-01"),
+  variant => variant.analysis.sections[4].paragraphs[0].text = valuation.text.replace("10%", "11%"),
+]) {
+  const variant = structuredClone(run); mutate(variant); sandbox.variant = variant;
+  evaluate("renderCompany(variant)");
+  assert.equal(drivers().length,0);
+}
+''')
+
+    @unittest.skipUnless(shutil.which("node"), "Node is required for the buildless UI check")
     def test_structured_and_legacy_saved_rendering(self):
         self.run_ui(r'''
 
@@ -101,7 +184,7 @@ assert.equal(all(view).filter(node => node.className === "company-chapter").leng
 for (const name of ["business", "valuation", "financials", "evidence"]) assert(!panel(name).open);
 assert(!all(view).some(node => node.attributes.role === "tab"));
 assert(panel("overview").textContent.includes("Investment conclusionStructured lead"));
-assert(panel("overview").textContent.includes("Conditional annual return12.5%At report price · 2026-10-30"));
+assert(!panel("overview").textContent.includes("Conditional annual return"));
 assert(panel("overview").textContent.includes("Required return12%Report assumption"));
 assert.equal(all(panel("overview")).find(node => node.className === "report-price").textContent, "100.00 SEK");
 assert.equal(evaluate("rounded('172.2')"), "172.2");
@@ -112,7 +195,8 @@ assert($("return-explanation").textContent.includes("does not average scenario r
 assert($("return-explanation").textContent.includes("2026-10-30"));
 assert(!disclosure("Report conclusion").open);
 assert(disclosure("Price evidence").textContent.includes("src_price"));
-assert($("company-scenarios").textContent.includes("Analyst-proposed weights"));
+assert(!panel("overview").textContent.includes("Analyst-proposed weights"));
+assert(disclosure("Weight qualifications & exact saved weights").textContent.includes("Proposed analyst weights"));
 assert.equal($("company-scenarios").parentElement, panel("overview"));
 for (const name of ["business", "valuation", "financials", "evidence"]) assert.equal(panel(name).parentElement, view);
 assert(panel("business").textContent.includes("<script>must remain text</script>"));
@@ -143,6 +227,12 @@ assert(history && all(history).some(node => node.tagName === "SELECT"));
 assert(history.textContent.includes("Exact saved values and period labels"));
 assert(!history.textContent.includes("Historical"));
 assert.deepEqual(Array.from(evaluate("tableCells('| Period | EBIT \\\\| adjusted | Revenue |')")), ["Period", "EBIT | adjusted", "Revenue"]);
+for (const prose of ["Label | value\n|", "|\n| --- |"]) {
+  sandbox.prose = prose;
+  const report = evaluate("readableReport(prose)");
+  assert.equal(report.firstElementChild.tagName, "P");
+  assert.equal(report.textContent, prose);
+}
 const multiple = evaluate("readableReport('| Period | EBIT (SEK million) | Margin (%) |\\n| --- | --- | --- |\\n| 2025 | -2 | 3 |\\n| 2026 R12 | 5 | 4 |')");
 const measureSelect = all(multiple).find(node => node.tagName === "SELECT");
 assert.equal(measureSelect.children.length, 2);
@@ -187,7 +277,6 @@ assert(!$("scenario-base").textContent.includes("Reader base rationale"));
 delete run.reader_memo;
 for (const price of [null, {...run.price, value: "90"}, {...run.price, id: "obs:other-price"}, {...run.price, source_id: "src_other"}]) {
   sandbox.variant = {...run, price}; evaluate("renderCompany(variant)");
-  assert(panel("overview").textContent.includes("Report-price binding unavailable"));
   assert(!$("return-explanation"));
 }
 evaluate("renderCompany(run)");
@@ -200,7 +289,7 @@ assert.equal(ids.length, new Set(ids).size);
 const charts = () => all($("company-valuation-charts")).filter(node => node.tagName === "SVG");
 assert(charts()[0].attributes["aria-label"].includes("horizontal dot plot"));
 assert(charts()[1].attributes["aria-label"].includes("vertical columns"));
-assert(charts().every(node => node.attributes["aria-label"].includes("saved weight 60%")));
+assert(charts().every(node => !node.attributes["aria-label"].includes("weight")));
 for (const chart of charts()) for (const link of all(chart).filter(node => node.tagName === "A")) {
   assert.equal(link.firstElementChild.attributes.class, "chart-hit-area");
   assert.equal(link.firstElementChild.attributes["pointer-events"], "all");
@@ -218,7 +307,7 @@ const quote = {instrument_id: 1, value: "125", scale: "1", unit: "currency/share
   assert.equal(all(charts()[0]).find(node => node.attributes.class === "price-line").attributes.x1, "430");
   assert.equal(all(charts()[1]).find(node => node.attributes.class === "price-line").attributes.y1, String(188 - 125 / 180 * 135));
   assert.equal(run.price.value, "100");
-  assert(panel("overview").textContent.includes("Conditional annual return12.5%"));
+  assert($("return-explanation").textContent.includes("Saved annual return12.5%"));
   sandbox.getJSON = async url => url.startsWith("/api/market-price/") ? {quote: {...quote,value: "12.5",scale: "10"}} : run;
   await evaluate('loadRun("structured")');
   assert.equal($("latest-market-price").textContent, "125.00 SEK");

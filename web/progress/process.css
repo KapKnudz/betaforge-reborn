@@ -28,6 +28,9 @@
 .process-view .process-storage p { font-size: 14px; color: #526276; }
 .process-view .process-storage strong { display: block; color: #172b40; margin-bottom: 3px; }
 .process-view .process-note { font-size: 14px; color: #526276; margin: 12px 0 0; }
+.process-view .process-skills { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); list-style: none; gap: 16px; margin: 0; padding: 0; }
+.process-view .process-skills > li { border-top: 1px solid #d7dfe5; padding-top: 12px; }
+.process-view .process-skills p { color: #526276; font-size: 14px; margin-top: 8px; }
 .process-view .process-roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 0 0 24px; }
 .process-view .process-roles dt { margin-bottom: 8px; }
 .process-view .process-roles dd { font-size: 14px; margin: 0; color: #526276; }
@@ -80,7 +83,7 @@
   .process-view .process-map h4 { margin-bottom: 4px; }
   .process-view .process-map > li:nth-child(n) { grid-column: auto; grid-row: auto; }
   .process-view .process-map > li:not(:last-child)::after { content: "↓"; top: auto; bottom: -21px; right: 50%; left: auto; z-index: 1; }
-  .process-view .process-storage, .process-view .process-roles, .process-view .process-decisions { grid-template-columns: 1fr; gap: 16px; }
+  .process-view .process-storage, .process-view .process-skills, .process-view .process-roles, .process-view .process-decisions { grid-template-columns: 1fr; gap: 16px; }
   .process-view .process-stage-title { flex: 1 1 calc(100% - 64px); }
   .process-view .process-stages summary { gap: 8px; padding-right: 0; }
   .process-view .process-stages summary::after { order: 1; margin-left: 0; }

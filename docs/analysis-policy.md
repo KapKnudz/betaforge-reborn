@@ -1,6 +1,6 @@
 # Betaforge analysis policy
 
-Version 3, 5 November 2026. This clarifies forecast cash support; version 2 introduced the personal return rule and operating-assumption review discipline. Each new analysis freezes this file and the [calculation catalogue](calculations.md) with their hashes. Historical packets retain their original instructions and results.
+Version 4, 9 November 2026. Scenario weights require a defensible basis, and peer evidence must have a stated effect on the analysis. Each new analysis freezes this file and the [calculation catalogue](calculations.md) with their hashes. Historical packets retain their original instructions and results.
 
 ## Purpose and sources
 
@@ -26,6 +26,8 @@ This policy combines the case-oriented principles in the [supplied Hedborg synth
 Start with the company's own five-to-ten-year history where available. Keep periods, currency, reporting scope and adjustments comparable. Identify acquisition, disposal, FX, seasonality and restatement effects. For metal-price pass-through businesses, volume and operating profit per tonne may explain performance better than nominal revenue.
 
 Then select a small global peer set by business model, customers, pricing, capital intensity and reinvestment economics. Give a reason for each inclusion and material difference. Country matters through actual tax, regulation, accounting, market structure or operating exposure, not listing domicile alone.
+
+For each material input addressed by peer evidence, record its effect. Show a changed assumption with before and after values and a reason, a new sensitivity with its tested range, or context only with the reason it does not change the case. An operating comparison can inform sales, margins or cash needs. A higher exit multiple needs separate pricing evidence and a company-specific rationale.
 
 Use industry datasets as a third layer of context. Preserve source date, period, coverage, accounting adjustments and aggregation. Sector aggregates are not peer medians. US tables and global workbooks have different coverage. Do not automatically copy an industry multiple into the valuation.
 
@@ -71,15 +73,15 @@ A full reverse DCF is not implemented by this policy. It would need an explicit 
 
 ## Probabilities and returns
 
-The analyst proposes company-specific probabilities, evidence and uncertainty; the user can override them. There is no fixed default split. Define outcomes and representative values. If material tails are omitted or values are representative points rather than conditional means, label the weighted result indicative/conditional rather than a calibrated full-distribution expectation.
+Lead with each scenario's cash-flow IRR and compare it with the selected hurdle. Assign company-specific probabilities only with a defensible basis, such as comparable outcome frequencies over the modeled horizon or a documented elicitation. Define the outcomes before assigning weights and record the evidence, uncertainty and any explicit user override. Without that basis, leave the cases unweighted and show the operating, valuation or entry conditions that would clear the hurdle. Equal weights also require support.
 
-Weight comparable values at the same date and ownership scope. Base-case value is not expected value, evidence confidence is not outcome probability, and a positive nominal return can still miss the investment hurdle.
+For a weighted result, use comparable values at the same date and ownership scope. Explain what each case represents and how the outcomes are separated. Label representative points or omitted tails as conditional. A full-distribution claim requires exhaustive outcomes and conditional means. Evidence confidence does not establish outcome probability.
 
 For the supported ordinary operating companies, start with a **10% required annual equity return** and show **9% sensitivity**, holding operating assumptions, cash flows and probabilities unchanged. This is the user's personal investment threshold and starting discount rate for shareholder cash flows, not an estimated WACC or an objectively established company cost of equity. Company-specific overrides are allowed only with an explicit rate and explanation; make the departure from the starting rule visible.
 
 Keep **SIX Return Index (SIXRX)** trailing ten-year annualized total return with reinvested dividends as a separate historical broad-market comparison, measured as of the analysis date. It is not the investment threshold, a forecast of index returns or automatically the company's cost of equity. Verify the exact series, dates and source conventions before comparing returns. Do not silently substitute another index when SIXRX data is missing.
 
-The candidate annual-return statistic is **IRR of probability-weighted cash flows**: weight each scenario's dividend/terminal payment at each date, then solve for the annual rate that equates those cash flows with the starting share price. Compare it with the selected personal required return for a hurdle verdict. Do not average scenario IRRs or annualize only the expected exit price. Label the result conditional/indicative when the scenarios omit tails or use representative points. Missing SIXRX data leaves that historical comparison unavailable; it does not prevent comparison with the explicit personal hurdle. Changing the discount rate alone changes present value, not the modeled IRR. Earlier packets retain their original rates and benchmark conventions.
+When weights are supported, the secondary annual-return statistic is **IRR of probability-weighted cash flows**. Weight each scenario's dividend and terminal payment at each date, then solve for the annual rate that equates those cash flows with the starting share price. Compare it with the selected personal required return. Changing the discount rate alone changes present value while the modeled IRR stays fixed. Earlier packets retain their original rates and benchmark conventions.
 
 ## Output and calculation discipline
 

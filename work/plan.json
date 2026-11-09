@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-06T16:56:10.129158+00:00",
+  "updated_at": "2026-11-09T22:31:45.356777+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "peer-discovery-pilot",
+  "next_task": "peer-workflow-from-pilot",
   "milestones": [
     {
       "id": "foundation",
@@ -14,7 +14,7 @@
     {
       "id": "workflow",
       "title": "Persistent project workflow",
-      "status": "done",
+      "status": "in_progress",
       "summary": "Short README, project instructions, current plan, clear boundaries, PR rules and local progress display."
     },
     {
@@ -724,25 +724,440 @@
     {
       "id": "peer-discovery-pilot",
       "milestone": "validation",
-      "title": "Trial peer discovery across manufacturing and software",
-      "status": "pending",
-      "summary": "Test whether the proposed source workflow finds useful comparable businesses.",
-      "purpose": "Validate economic matching and accessible evidence before adding a routine research stage.",
+      "title": "Test Börsdata branch discovery and Yahoo comparison data on one company",
+      "status": "done",
+      "summary": "Use one exact branch to select 5–10 Nordic candidates, then check Yahoo fields and primary reports.",
+      "purpose": "Learn which parts of the peer workflow are reliable enough to put into a skill.",
       "acceptance": [
-        "Choose explicit targets and information cutoff; preserve the short business profile and actual search/filter scope.",
-        "Save a bounded candidate list with issuer/security identity, source evidence, economic matches, material differences and inclusion/exclusion reasons.",
-        "Produce compact peer and market-driver briefs with compatible selected financials and valuation context where supported; localize gaps.",
-        "Review the contribution and source-access failures before implementing frozen-brief delivery or wider adoption."
+        "Freeze the target, saved directory date, exact branch and candidate selection reasons.",
+        "Check 5–10 exact saved Yahoo symbols for accessible identity, operating figures and dated valuation context; record field gaps and access route.",
+        "Verify a small set of material figures and candidate fit against original reports where feasible; distinguish coverage from comparability.",
+        "Save and independently review the bounded pilot result before changing the skill or runtime."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/research/peer-market-discovery.md",
+        "data/research-audits/20261107-aq-yahoo-pilot/report.md"
+      ],
       "blocker": null,
-      "note": "Proposed follow-up from the source research; no pilot, new subscription or runtime activation has occurred. Start with one company and use the second business model to test reuse."
+      "note": "Completed the requested one-company manual pilot with eight exact-branch candidates and nine successful Yahoo symbol checks. Browser receipts distinguish quote dates from undated statistics/TTM columns. Latest annual capex was observed in eight cases, TTM capex in five. Five issuer-based margins and three same-year gross cash-capex ratios were checked. Source hashes, arithmetic, links and plan JSON passed. Independent read-only review accepted the pilot after a source-period wording correction. Findings support screening plus report verification, not an automated connector or an aligned peer valuation. A public new-layout preview was checked for one issuer; recheck after Yahoo’s 9 November change before binding field labels. Private receipts are ignored; the draft skill and historical runs were not changed."
+    },
+    {
+      "id": "peer-workflow-from-pilot",
+      "milestone": "validation",
+      "title": "Turn the reviewed peer pilot into a short research procedure",
+      "status": "in_progress",
+      "summary": "Recheck revised Yahoo fields, then specify the smallest report-checked workflow.",
+      "purpose": "Use the tested discovery and screening sequence without assuming a provider row is comparable.",
+      "acceptance": [
+        "Spot-check the default Yahoo financial statements after the announced change and retain source labels, periods and observed limits.",
+        "Draft the saved-branch to Yahoo screen to issuer verification sequence, with explicit candidate fit and comparable inputs.",
+        "Keep the manual procedure separate from supported automation and frozen runner delivery.",
+        "Return one comparable operating table for at most five peers and a short verdict supported by the measures and their scope."
+      ],
+      "evidence": [
+        "docs/skill-drafts/betaforge-market-peer-research/SKILL.md",
+        "docs/skill-drafts/betaforge-market-peer-research/references/evidence-handoff.md",
+        "data/research-audits/20261107-lime-peer-trial/trial.md"
+      ],
+      "blocker": null,
+      "note": "The short manual procedure is drafted and independently reviewed after clarifying optional screening and eventual peer citation support. A contrasting software trial checked six starting names, two searches and three issuer report rows. Document validation, 17 local links and six arithmetic checks passed. The announced Yahoo default change has not occurred as of the trial; that spot check remains open. Proposed packet delivery is separate. Exact research stays private. The draft now targets three useful peers and caps the comparison at five, with one table and a scoped performance verdict. Independent review confirmed the rules for missing evidence and segment comparisons. Skill structure and local links passed validation."
+    },
+    {
+      "id": "peer-brief-packet-handoff",
+      "milestone": "validation",
+      "title": "Evaluate an optional reviewed peer brief input at packet preparation",
+      "status": "in_progress",
+      "summary": "Attach a private reviewed brief to a new frozen packet when useful.",
+      "purpose": "Make peer evidence available and citable without starting web research inside the valuation runner.",
+      "acceptance": [
+        "Preselect one material forecast or multiple. Compare an analysis with and without a reviewed, cutoff-compatible peer and market brief, holding the issuer evidence, price, three-year horizon and method fixed. Record the supported assumption or weight change, or explain why the original choice still holds.",
+        "If justified, verify target and cutoff, source hashes and relative paths at preparation; preserve no-brief behavior and prior packets.",
+        "Verify a bounded analyst read, one structured claim with a peer citation separate from target facts, and resume rejection of changed evidence."
+      ],
+      "evidence": [
+        "docs/skill-drafts/betaforge-market-peer-research/references/evidence-handoff.md"
+      ],
+      "blocker": null,
+      "note": "A focused same-input comparison and independent review are complete. Both readers chose the same issuer-based assumption and stress; the peer brief added context without changing the tested input. Exact packets and replay stay private. Wider usefulness, packet validation and resume checks remain open. No native lifecycle hooks, automatic dispatch or source connector have been added."
+    },
+    {
+      "id": "analysis-skill-map",
+      "milestone": "validation",
+      "title": "Map the draft skills and write a financial report guide",
+      "status": "done",
+      "summary": "Connect market research, valuation, memo writing and independent challenge in the workbench.",
+      "purpose": "Make it clear which guide to use at each stage and what evidence supports the methods and presentation.",
+      "acceptance": [
+        "Add a writing guide for the lead analyst using the existing six-section report and saved evidence.",
+        "Record primary investment-process and writing examples with specific reusable lessons.",
+        "Show four draft guides in Architecture with their timing, roles and links.",
+        "Check the documentation, served links and responsive workbench and obtain independent review."
+      ],
+      "evidence": [
+        "docs/analysis-process.md",
+        "docs/skill-drafts/betaforge-financial-report/SKILL.md",
+        "docs/research/investment-process-sources.md",
+        "docs/research/investor-writing-examples.md",
+        "docs/skill-drafts/betaforge-company-analysis/references/calculations.md",
+        "web/progress/process.js",
+        "tests/test_progress.py"
+      ],
+      "blocker": null,
+      "note": "Added four draft guide links to Architecture and mapped each guide to its role and stage. The lead analyst writes the memo using the existing report and calculation contracts. Source notes separate Hedborg and Armitage interviews from project policy. A fictional calculation illustrates operating disappointment and multiple sensitivity separately. The read-only review improved the history chart format and weighted-return export handoff. Four skill validations, local links, 27 HTTP tests and five UI tests passed. Chrome checks at 1280 × 720 and 390 × 844 showed four working guide links, working stage disclosures and no horizontal overflow. Drafts are available for manual use; live runner adoption and a real-company trial remain open."
+    },
+    {
+      "id": "analysis-skill-pilot",
+      "milestone": "validation",
+      "title": "Trial the draft guides on one frozen company",
+      "status": "done",
+      "summary": "Use the guides manually to write and challenge one company memo.",
+      "purpose": "Check whether the guides improve the investment case and traceability before automating delivery.",
+      "acceptance": [
+        "Use a reviewed peer comparison only where it addresses a material question.",
+        "Compare the new memo with the prior analysis on forecast support, operating downside, equity bridge and readability.",
+        "Save the independent challenge and record which instructions helped or need refinement."
+      ],
+      "evidence": [
+        "docs/analysis-process.md",
+        "docs/skill-drafts/betaforge-financial-report/SKILL.md",
+        "data/analysis-skill-pilot/aq-group-20261103/comparison.md",
+        "data/saved-views/aq-group-20261103-skill-trial.json"
+      ],
+      "blocker": null,
+      "note": "Completed one controlled trial using the original frozen evidence and dated report price. Later peer research stayed outside the cutoff. The new Sol/xhigh run delivered all 566 required pages and produced separate saved scenario IRRs. The coordinator replayed the scenario and indicative weighted cash-flow returns. One independent challenge and one revision clarified the material exit-multiple and cash assumptions and the presentation. The final reviewer accepted the exact revised report. Both memo versions load and switch in Chrome at desktop and mobile sizes. The draft report guide now includes the dated call, scenario-based judgment and viewer text conventions. The trial supports the presentation format on one company. Broader forecast quality and automatic skill delivery remain separate."
+    },
+    {
+      "id": "analysis-skills-review",
+      "milestone": "validation",
+      "title": "Prepare the draft research and valuation guides for review",
+      "status": "done",
+      "summary": "Bring the four guides, their references and the workbench map into one review.",
+      "purpose": "Review how research, valuation, writing and independent challenge fit together before runner adoption.",
+      "acceptance": [
+        "Keep the four draft roles and their evidence boundaries explicit.",
+        "Validate local links, workbench behavior and public scope with an independent review.",
+        "Present the draft guides in PR #18 for user review."
+      ],
+      "evidence": [
+        "docs/analysis-process.md",
+        "docs/skill-drafts/betaforge-financial-report/SKILL.md",
+        "web/progress/process.js"
+      ],
+      "blocker": null,
+      "note": "Prepared the four draft guides and synthesis step for PR #18. Full offline suite passed (223 tests, one private-evidence class skipped). Four skill packages, local links, browser layouts and independent scope review passed. Current-head Greptile and user review belong to the PR. PR #18 head 11d7a762 received a completed 5/5 Greptile review on 7 November 2026 (check 128553173280), with zero open threads and no fix rounds. User review and merge are pending. https://github.com/KapKnudz/betaforge-reborn/pull/18 The scenario-evidence follow-up is published and reviewed at head b1083935. Greptile completed at 5/5 with zero open threads (check 128561851954). The matched-brief trial is pending."
+    },
+    {
+      "id": "hedborg-podcast-evidence",
+      "milestone": "validation",
+      "title": "Verify Hedborg’s podcast case examples",
+      "status": "done",
+      "summary": "Map the eight episode links and check the strongest investing passages against their source.",
+      "purpose": "Add examples of the evidence and assumptions behind a case decision to the draft guidance.",
+      "acceptance": [
+        "Resolve each Spotify link to its episode and record the publisher source and transcript or audio availability.",
+        "Check named investing cases where source text or audio is accessible, with time references and clear uncertainty.",
+        "Keep episode text and audio separate from shared synthesis. Distinguish Hedborg’s comments from any proposed Betaforge practice."
+      ],
+      "evidence": [
+        "docs/research/investment-process-sources.md",
+        "docs/research/hedborg-podcast-evidence.md"
+      ],
+      "blocker": null,
+      "note": "Processed all eight supplied episodes. One publisher video supplied auto-captions and seven public publisher audio files were transcribed locally. The note preserves timestamped cases and separates investor recollections, issuer and regulator corroboration, and possible uses in the project. Source IDs, duration coverage, local links and whitespace passed. Focused independent review was completed and the distinction between scenario evidence and the policy hurdle was clarified. Automatic speech recognition may mishear proper nouns and audio offsets vary with ads. Raw files are temporary."
+    },
+    {
+      "id": "hedborg-valuation-examples",
+      "milestone": "validation",
+      "title": "Check Hedborg transcripts and apply valuation examples",
+      "status": "done",
+      "summary": "Cross-check seven supplied transcripts and extract practical examples for the valuation draft.",
+      "purpose": "Give analysts concrete ways to support earnings, cash and valuation assumptions.",
+      "acceptance": [
+        "Identify overlap and new episodes and verify material case claims against the original sources where available.",
+        "Link useful named examples from the draft and integrate the smallest actionable improvements.",
+        "Independently review attributions, guidance and links without publishing the supplied transcripts."
+      ],
+      "evidence": [
+        "docs/research/hedborg-podcast-evidence.md",
+        "docs/research/investment-process-sources.md",
+        "docs/skill-drafts/betaforge-company-analysis/SKILL.md"
+      ],
+      "blocker": null,
+      "note": "Checked seven supplied transcripts, including five overlaps and two new episodes. Saved ten episode references and named examples with source limits. Added a margin bridge and a conditional lower-multiple sensitivity to the local analyst draft. Independent read-only review passed after clarifying the timestamp and hypothetical insider example. Source IDs, issuer arithmetic, local links, frontmatter, whitespace and dashboard plan validation passed. The two new passages are located by topic in supplied text without timestamps. Live analyst behavior is untested. No raw transcript is in the project changes."
+    },
+    {
+      "id": "armitage-valuation-examples",
+      "milestone": "validation",
+      "title": "Check Armitage interviews for valuation examples",
+      "status": "done",
+      "summary": "Match three Spotify episodes to their publishers and check useful cases.",
+      "purpose": "Give analysts evidence tests for the drivers and risks that change the valuation.",
+      "acceptance": [
+        "Identify all three episodes and support selected claims with the original recordings or publisher text.",
+        "Save named cases with source locations and limits. Add only guidance that improves the analyst draft.",
+        "Review the attribution and scope independently and preserve the plan's next task."
+      ],
+      "evidence": [
+        "docs/research/armitage-podcast-evidence.md",
+        "docs/research/investment-process-sources.md",
+        "docs/skill-drafts/betaforge-company-analysis/SKILL.md"
+      ],
+      "blocker": null,
+      "note": "Matched three episodes and checked selected passages in the publisher audio. Saved Airbus, Altice and Ryanair cases with attribution limits and issuer checks where applicable. The local analyst draft now asks how a defensible range for a material private input affects the call. Independent review confirmed the attributions and prompted scope clarifications for Airbus and Ryanair. Skill metadata, source IDs, local links, whitespace and dashboard plan checks passed. Full transcript coverage and live analyst behavior were outside this check."
+    },
+    {
+      "id": "aq-guidance-peer-trial",
+      "milestone": "validation",
+      "title": "Run an updated AQ Group valuation with peer and market evidence",
+      "status": "done",
+      "summary": "Reuse the 3 November AQ evidence, run the updated guide and compare the scenarios with the previous memo.",
+      "purpose": "See which forecast or risk judgments change when the analyst receives specific external evidence.",
+      "acceptance": [
+        "Preserve the AQ source inputs, entry price, horizon and financial contract. Track cutoff evidence and latest peer evidence separately.",
+        "Run the updated structured valuation and obtain an independent challenge under the existing workflow.",
+        "Compare scenario assumptions and returns with the previous memo and identify which evidence changed or supported the decision."
+      ],
+      "evidence": [
+        "docs/skill-drafts/betaforge-company-analysis/SKILL.md",
+        "data/analysis-skill-pilot/aq-group-20261103-current-peer/trial.json",
+        "data/analysis-skill-pilot/aq-group-20261103-current-peer/cutoff-brief.md",
+        "data/analysis-skill-pilot/aq-group-20261103-current-peer/current-peer-check.md",
+        "data/analysis-skill-pilot/aq-group-20261103-current-peer/comparison.md",
+        "data/analysis-skill-pilot/aq-group-20261103-current-peer/run/analysis-review.json",
+        "data/saved-views/aq-group-20261103-current-peer.json"
+      ],
+      "blocker": null,
+      "note": "The structured Sol/xhigh trial delivered all 566 pages on the same frozen issuer inputs, with manually attached cutoff context and a separate later peer check. Independent challenge led to one revision and accepted recheck, with a historical margin wording qualification recorded in the comparison. Six scenario returns, weighted outputs and three sensitivities replayed. The exact reviewed report exported successfully. The guidance and brief changed together; a paired run to isolate peer input and automatic packet delivery remain separate."
+    },
+    {
+      "id": "memo-charts-evidence-rules",
+      "milestone": "saved-review",
+      "title": "Show decision charts and require support for scenario weights",
+      "status": "done",
+      "summary": "Add scenario-return and driver comparisons with optional evidence-backed probabilities.",
+      "purpose": "Show what drives the investment call and what peer evidence changes.",
+      "acceptance": [
+        "Render saved scenario returns against the hurdle and compatible actuals versus dated forecast anchors.",
+        "Support unweighted analyses throughout validation and export without invented weights; preserve legacy saved runs.",
+        "Update analyst, peer, writer and review guides; distinguish assumption changes, sensitivities and context.",
+        "Validate meaningful paths and browser layouts; obtain independent review."
+      ],
+      "evidence": [
+        "web/progress/app.js",
+        "betaforge/analysis_report.py",
+        "betaforge/saved_view.py",
+        "tests/test_analysis_report.py",
+        "tests/test_saved_view.py",
+        "tests/test_progress_ui.py",
+        "docs/skill-drafts/betaforge-financial-report/SKILL.md",
+        "docs/analysis-policy.md",
+        "docs/research/hurdle-rate-approach.md"
+      ],
+      "blocker": null,
+      "note": "Implemented and independently reviewed. Targeted backend 69, UI/prototype 7 and local HTTP 33 checks passed. Source snapshot full suite passed 230 tests with nine environment/private-evidence skips, using the baseline example fixture. Actual-worktree full suite is limited by a pre-existing missing example manifest and private cloud-file hydration. Real saved-memo and unweighted browser checks passed on desktop/mobile. Wider issuer chart coverage and a fresh analyst run remain untested. Changes are local and await PR integration. Final actual-worktree suite completed: 237 of 238 passed; sole error was the pre-existing absent example source manifest. All eight Node tests passed separately."
+    },
+    {
+      "id": "aq-philosophy-memo-audit",
+      "milestone": "saved-review",
+      "title": "Review philosophy application in the current memo",
+      "status": "done",
+      "summary": "Challenge the saved memo's investment reasoning and writing against the adopted skills.",
+      "purpose": "Prioritize evidence and editorial gaps before another analysis run.",
+      "acceptance": [
+        "Compare current saved memo with philosophy and skills, distinguishing historical execution from current instructions.",
+        "Record cited strengths, material gaps and unnecessary additions with independent review."
+      ],
+      "evidence": [
+        "data/analysis-skill-pilot/aq-group-20261103-current-peer/philosophy-audit.md"
+      ],
+      "blocker": null,
+      "note": "Two independent read-only reviews completed. Recorded sufficient elements, material forecast-evidence and prose gaps, and a prioritized next step. Current guide effectiveness on a fresh run remains unverified."
+    },
+    {
+      "id": "business-brief-trial",
+      "milestone": "saved-review",
+      "title": "Connect business evidence to forecast assumptions",
+      "status": "done",
+      "summary": "Add a short business brief and test it with preserved evidence.",
+      "purpose": "Give the analyst a causal, source-linked basis for financial assumptions.",
+      "acceptance": [
+        "Existing skills describe a short business brief, targeted research boundaries and explicit forecast effects.",
+        "One bounded preserved-evidence trial records material observations, uncertainty and assumption implications.",
+        "Independent review and document validation completed; distinguish trial from a valuation rerun."
+      ],
+      "evidence": [
+        "docs/skill-drafts/betaforge-company-analysis/references/business-evidence.md",
+        "docs/skill-drafts/betaforge-market-peer-research/SKILL.md",
+        "docs/analysis-workflow.md",
+        "web/progress/process.js",
+        "data/analysis-skill-pilot/aq-group-20261103-current-peer/business-brief-trial.md"
+      ],
+      "blocker": null,
+      "note": "Existing draft guides and manual workflow updated; private brief reviewed independently. Four skill validators, 114 local links, five offline UI tests, 27 HTTP tests, JS syntax and whitespace passed. Trial checked 26 links and source pages/cutoff. Browser attachment failed for the content-only process update; no layout changed. No fresh valuation or automatic runner admission tested. A contrasting business trial remains a useful next validation before considering a separate skill."
+    },
+    {
+      "id": "lime-business-brief-trial",
+      "milestone": "saved-review",
+      "title": "Test the business brief on a software company",
+      "status": "done",
+      "summary": "Software trial completed and independently reviewed using preserved evidence.",
+      "purpose": "Check transfer across business models before adding another skill.",
+      "acceptance": [
+        "Source a compact brief from preserved issuer evidence and test software-specific financial mechanisms.",
+        "Compare usefulness and gaps with the manufacturing trial.",
+        "Validate citations and cutoff, and obtain independent read-only review."
+      ],
+      "evidence": [
+        "data/research-audits/20261109-lime-business-brief/brief.md",
+        "data/research-audits/20261109-lime-business-brief/review.md"
+      ],
+      "blocker": null,
+      "note": "The existing brief transferred across business models and added evidence to challenge forecast rationales. Local links, PDF hashes and displayed arithmetic were checked; independent review corrections were applied. Retain one guide. No valuation rerun; live analyst use and forecast accuracy remain untested. Exact findings stay private."
+    },
+    {
+      "id": "lime-business-brief-output-review",
+      "milestone": "saved-review",
+      "title": "Review the business brief and investment-call handoff",
+      "status": "done",
+      "summary": "Brief is useful; delivery into a new investment call remains untested.",
+      "purpose": "Separate a useful research brief from a verified end-to-end investment decision.",
+      "acceptance": [
+        "Assess the brief against the saved memo and business evidence guide.",
+        "Inspect runner and writing-guide delivery boundaries.",
+        "Obtain an independent read-only review and record the smallest remaining step."
+      ],
+      "evidence": [
+        "data/research-audits/20261109-lime-business-brief/output-review.md"
+      ],
+      "blocker": null,
+      "note": "Independent read-only review agrees. Next test is a separately saved analysis with explicit brief delivery, evidenced assumptions, deterministic returns and exact-report challenge. No valuation or code changed."
+    },
+    {
+      "id": "lime-business-brief-analysis",
+      "milestone": "saved-review",
+      "title": "Run Lime with the business brief and current guides",
+      "status": "done",
+      "summary": "New frozen-input memo independently accepted after one funding clarification; comparison and display export saved.",
+      "purpose": "Test whether business evidence changes supported assumptions and the investment decision.",
+      "acceptance": [
+        "Preserve source inputs and explicitly deliver frozen brief and guides to the new run.",
+        "Complete structured analysis and independent challenge, with at most one revision.",
+        "Compare assumptions, scenarios and final call with the prior memo."
+      ],
+      "evidence": [
+        "data/analysis-skill-pilot/lime-business-brief-20261109/trial.json",
+        "data/analysis-skill-pilot/lime-business-brief-20261109/run/analysis-review.json",
+        "data/analysis-skill-pilot/lime-business-brief-20261109/draft-comparison.md",
+        "data/analysis-skill-pilot/lime-business-brief-20261109/final-valuation-invariance.json",
+        "data/saved-views/lime-business-brief-20261109.json"
+      ],
+      "blocker": null,
+      "note": "Same 171 evidence files; full 648-page reading; exact final review binding and saved-view validation passed. One revision clarified funding with no scenario or calculation changes. Comparison distinguishes evidence interpretation from discretionary assumption changes. No forecast-accuracy or live-price claim."
+    },
+    {
+      "id": "lime-evidence-decision-audit",
+      "milestone": "saved-review",
+      "title": "Audit the evidence-to-decision chain",
+      "status": "done",
+      "summary": "Business and cash links improved; forecast magnitude and multiple selection remain the main gaps.",
+      "purpose": "Identify the smallest reusable improvements to forecast reasoning and final decisions.",
+      "acceptance": [
+        "Trace material assumptions through business evidence, cash, valuation and conclusion.",
+        "Obtain an independent challenge and prioritize reusable improvements."
+      ],
+      "evidence": [
+        "data/analysis-skill-pilot/lime-business-brief-20261109/evidence-decision-audit.md"
+      ],
+      "blocker": null,
+      "note": "Independent read-only challenge completed. Prioritize existing assumption notes, magnitude/timing and decision sensitivity; no new skill or financial changes implemented."
+    },
+    {
+      "id": "material-assumptions-skill-update",
+      "milestone": "saved-review",
+      "title": "Connect material assumptions to the investment decision",
+      "status": "done",
+      "summary": "Existing guides now trace material assumptions through evidence, magnitude, timing and decision consequences.",
+      "purpose": "Improve forecast reasoning without expanding the model or adding skills.",
+      "acceptance": [
+        "Keep one concise assumption rule with role-specific links.",
+        "Preserve conditional judgments and distinguish evidence changes from discretionary choices.",
+        "Validate skill structure and local links; obtain independent review."
+      ],
+      "evidence": [
+        "docs/skill-drafts/betaforge-company-analysis/SKILL.md",
+        "docs/skill-drafts/betaforge-company-analysis/references/business-evidence.md",
+        "docs/skill-drafts/betaforge-company-analysis/references/memo-structure.md",
+        "docs/skill-drafts/betaforge-financial-report/SKILL.md",
+        "docs/skill-drafts/betaforge-valuation-review/SKILL.md"
+      ],
+      "blocker": null,
+      "note": "Five guide files updated. Three skill validators, 46 local links/anchors and whitespace checks passed. Independent read-only review accepted after clarifying valuation/cash scope and allowing rationale in the saved report. Draft/manual delivery remains; no live valuation rerun, runner change or publication."
+    },
+    {
+      "id": "lime-decision-skill-reassessment",
+      "milestone": "saved-review",
+      "title": "Reassess the investment call with revised assumption guidance",
+      "status": "done",
+      "summary": "Fixed-output reassessment retains the call with a clearer, independently accepted rationale.",
+      "purpose": "Test decision reasoning separately from arbitrary changes to valuation inputs.",
+      "acceptance": [
+        "Produce a concise decision with material evidence, magnitude, timing and decision effects.",
+        "Compare with prior rationale while holding financial inputs and outputs fixed.",
+        "Obtain independent read-only challenge and state remaining limits."
+      ],
+      "evidence": [
+        "data/analysis-skill-pilot/lime-business-brief-20261109/decision-skill-reassessment.md",
+        "data/analysis-skill-pilot/lime-business-brief-20261109/decision-skill-reassessment-review.json"
+      ],
+      "blocker": null,
+      "note": "20 links, saved calculation references and source/skill hashes checked. Independent review accepted after correcting acquisition deadline versus unknown payment date. Decision reasoning improved; no predictive-quality or full-run claim. Saved valuation unchanged."
+    },
+    {
+      "id": "lime-full-updated-skills",
+      "milestone": "saved-review",
+      "title": "Run full Lime analysis with updated assumption guidance",
+      "status": "done",
+      "summary": "Execute a fresh frozen-input analysis, independently review it and show both memo versions.",
+      "purpose": "Test updated skills in the complete analysis workflow, beyond the fixed-output reassessment.",
+      "acceptance": [
+        "Preserve source inputs and freeze updated guides explicitly in a new run.",
+        "Complete full structured analysis and independent challenge with at most one revision.",
+        "Validate and display new reviewed memo beside the previous version on the local website."
+      ],
+      "evidence": [
+        "data/analysis-skill-pilot/lime-updated-skills-20261109/trial.json",
+        "data/analysis-skill-pilot/lime-updated-skills-20261109/run/run.json",
+        "data/analysis-skill-pilot/lime-updated-skills-20261109/run/analysis-review.json",
+        "data/analysis-skill-pilot/lime-updated-skills-20261109/comparison.md",
+        "data/saved-views/lime-updated-skills-20261109.json",
+        "data/analysis-skill-pilot/lime-updated-skills-20261109/website-verification.json"
+      ],
+      "blocker": null,
+      "note": "Full frozen-input run, independent accept, validated export and browser version switching complete. Review qualifications retained. Predictive accuracy and isolated skill impact are not established."
+    },
+    {
+      "id": "cloud-publication-handoff",
+      "milestone": "workflow",
+      "title": "Publish current project for Codex Cloud",
+      "status": "in_progress",
+      "summary": "Publish latest reusable code and guides with a clear cloud startup and private research boundary.",
+      "purpose": "Continue development from GitHub without depending on one workstation.",
+      "acceptance": [
+        "Review and validate the current code and document checkpoint.",
+        "Push the working branch and update its PR; leave merge to the user.",
+        "Document cloud setup, private evidence restore and unverified runtime requirements."
+      ],
+      "evidence": [
+        "docs/cloud-handoff.md"
+      ],
+      "blocker": null,
+      "note": "238 offline tests pass with local socket access. Independent review fixes cover malformed memo tables, accounting labels and cloud preview privacy. Browser memo/review render verified. Publication, private backup and current-head Greptile review remain."
     }
   ],
   "session": {
-    "task": "peer-discovery-research",
-    "summary": "Completed structured source research and verified the preserved Nordic directory; reviewed discovery guidance is saved locally.",
-    "next_step": "Trial a small manufacturing-company peer/market brief, then a contrasting software brief. Preserve sources and selection reasons before integrating frozen delivery; keep historical analyses intact."
+    "task": "cloud-publication-handoff",
+    "summary": "Preparing current working tree for publication and cloud continuation.",
+    "next_step": "Complete validation, publish branch and run Greptile review."
   },
   "references": [
     {
