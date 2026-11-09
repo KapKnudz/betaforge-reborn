@@ -223,9 +223,9 @@ function number(value) {
   if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) return null;
   return Number(value);
 }
-function rounded(value, minimumFractionDigits = 0) {
+function rounded(value, minimumFractionDigits = 0, maximumFractionDigits = 2) {
   const numeric = number(value);
-  return numeric === null ? "Unavailable" : numeric.toLocaleString("en-GB", { minimumFractionDigits, maximumFractionDigits: 2 });
+  return numeric === null ? "Unavailable" : numeric.toLocaleString("en-GB", { minimumFractionDigits, maximumFractionDigits });
 }
 function savedValue(value, unit, minimumFractionDigits = 0) {
   const displayUnit = unit === "percent" ? "%" : unit === "dimensionless" ? "×" : unit;
@@ -579,6 +579,12 @@ function scalarCell(cell) {
   const value = String(cell).trim();
   return /^[+-]?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/.test(value) ? number(value.replace(/,/g, "")) : null;
 }
+function matchesDisplayedCell(cell, value) {
+  const displayed = scalarCell(cell);
+  if (displayed === null) return false;
+  const precision = cell.trim().split(".")[1]?.length || 0;
+  return precision <= 12 && scalarCell(rounded(value, 0, precision)) === displayed;
+}
 function driverForecasts(run) {
   const scenarios = scenarioEndpoints(run);
   const year = scenarios[0]?.target_date?.value;
@@ -609,8 +615,9 @@ function driverForecasts(run) {
     const sales = rows.find(row => row[0] === "Net sales, " + forecast[0].currency + " m");
     const margin = rows.find(row => row[0] === "Reported EBIT margin");
     return forecast.every((item, i) => {
-      const marginValue = margin?.[i + 1]?.endsWith("%") ? scalarCell(margin[i + 1].slice(0, -1)) : null;
-      return scalarCell(sales?.[i + 1]) === item.sales && marginValue !== null && Math.abs(marginValue - item.margin) < 1e-9;
+      const marginCell = margin?.[i + 1];
+      return matchesDisplayedCell(sales?.[i + 1], item.sales) &&
+        marginCell?.endsWith("%") && matchesDisplayedCell(marginCell.slice(0, -1), item.margin);
     });
   });
   return comparable ? {year, forecast} : null;
@@ -626,17 +633,15 @@ function driverHistory(headers, rows, context) {
     calc.formula === "ebit_margin" && references.has(calc.id + "#margin_percent"));
   const periods = rows.map(row => {
     const label = row[0], annual = /^\d{4}$/.test(label), trailing = /^R12\b/.test(label);
-    const salesValue = scalarCell(row[sales]), marginValue = scalarCell(row[margin]);
-    const marginPrecision = row[margin].split(".")[1]?.length || 0;
     const record = actuals.find(calc => {
       const ebit = formulaInput(calc, "ebit"), revenue = formulaInput(calc, "revenue");
       const date = ebit?.period_end, output = calc.outputs?.margin_percent;
+      const revenueValue = number(revenue?.calculation_value);
       if (ebit?.kind !== "flow" || !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > context.run.analysis_date || date.slice(0, 4) >= year ||
           !/^\d{4}-\d{2}-\d{2}$/.test(ebit.period_start) ||
           !revenue || (revenue.unit === "currency" ? revenue.currency : revenue.unit) !== currency ||
-          output?.unit !== "percent" || number(output.value) === null || marginValue === null || marginPrecision > 12 ||
-          salesValue === null || number(revenue.calculation_value) === null || Number(revenue.calculation_value) / 1e6 !== salesValue ||
-          Number(Number(output.value).toFixed(marginPrecision)) !== marginValue) return false;
+          output?.unit !== "percent" || !matchesDisplayedCell(row[margin], output.value) ||
+          revenueValue === null || !matchesDisplayedCell(row[sales], revenueValue / 1e6)) return false;
       const days = (Date.parse(date) - Date.parse(ebit.period_start)) / 86400000 + 1;
       if (!(days >= 360 && days <= 372)) return false;
       const report = (context.run.sources || []).find(source => source.id === revenue.report_id);

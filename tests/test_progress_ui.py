@@ -100,7 +100,7 @@ const saved = (id, formula, inputs, outputs) => ({id,formula,operation:"financia
 const price = {...run.price, field:"price"};
 const years = input("years","input:years","3","dimensionless");
 const hurdle = input("required_return","input:hurdle","0.12","dimensionless");
-const cases = [["bear","Bear","60","-14","90","0.08","7200000"],["base","Base","140","13","120","0.1","12000000"],["bull","Bull","170","24","150","0.12","18000000"]];
+const cases = [["bear","Bear","60","-14","90000000","0.08","7200000"],["base","Base","140","13","120234567","0.123456","14843678.703552"],["bull","Bull","170","24","150000000","0.12","18000000"]];
 run.analysis.schema_version = 2;
 run.analysis.scenarios = cases.map(([id,name,target]) => ({...scenario,id,name,valuation_calculation_id:"calc:case-"+id,future_target:{value:target,unit:"SEK/share"},weight_ref:undefined,probability_rationale:undefined}));
 run.scenarios = run.analysis.scenarios.map(item => ({...run.scenarios[0],name:item.name,calculation_ids:[item.valuation_calculation_id]}));
@@ -111,7 +111,7 @@ for (const [id,name,target,irr,sales,margin,ebit] of cases) {
   const operatingId = "calc:operating-" + id, caseId = "calc:case-" + id;
   const dividend = input("annual_dividend_per_share","input:dividend-"+id,"2","SEK/share");
   run.original_calculations.push(
-    saved(operatingId,"revenue_ebit",[input("revenue","input:sales-"+id,sales+"000000","SEK"),input("ebit_margin","input:margin-"+id,margin,"dimensionless")],{ebit:{value:ebit,unit:"SEK"}}),
+    saved(operatingId,"revenue_ebit",[input("revenue","input:sales-"+id,sales,"SEK"),input("ebit_margin","input:margin-"+id,margin,"dimensionless")],{ebit:{value:ebit,unit:"SEK"}}),
     saved(caseId,"valuation_case",[years,hurdle,dividend,input("forecast_ebit",operatingId,ebit,"SEK")],{future_target:{value:target,unit:"SEK/share"}}),
     saved("calc:return-"+id,"expected_cashflow_irr",[price,years,{...dividend,field:"expected_annual_dividend_per_share"},input("expected_future_target",caseId+"#future_target",target,"SEK/share")],{irr_percent:{value:irr,unit:"percent"}}),
   );
@@ -119,18 +119,18 @@ for (const [id,name,target,irr,sales,margin,ebit] of cases) {
 function historical(id, type, start, end, sales, margin) {
   const period = {kind:"flow",report_type:type,period_start:start,period_end:end};
   return saved(id,"ebit_margin",[input("ebit","input:actual-ebit-"+id,"8000000","SEK",period),
-    input("revenue","input:actual-revenue-"+id,sales+"000000","SEK",period)],{margin_percent:{value:margin,unit:"percent"}});
+    input("revenue","input:actual-revenue-"+id,sales,"SEK",period)],{margin_percent:{value:margin,unit:"percent"}});
 }
 run.original_calculations.push(
-  historical("calc:actual-one","year","2024-01-01","2024-12-31","80","10"),
-  historical("calc:actual-two","year","2025-01-01","2025-12-31","100","8"),
-  historical("calc:actual-r12","r12","2025-10-01","2026-09-30","105","7.62"),
+  historical("calc:actual-one","year","2024-01-01","2024-12-31","80234567","9.970764845032440942817077831"),
+  historical("calc:actual-two","year","2025-01-01","2025-12-31","100000000","8"),
+  historical("calc:actual-r12","r12","2025-10-01","2026-09-30","105000000","7.62"),
 );
 const actual = run.analysis.sections.find(item => item.id === "drivers").paragraphs[0];
-actual.text = "Reported group history uses net sales.\n\n| Period | Net sales (SEK m) | EBIT margin (%) |\n| --- | --- | --- |\n| 2024 | 80 | 10 |\n| 2025 | 100 | 8 |\n| R12 September 2026 | 105 | 7.62 |";
+actual.text = "Reported group history uses net sales.\n\n| Period | Net sales (SEK m) | EBIT margin (%) |\n| --- | --- | --- |\n| 2024 | 80.23 | 9.97 |\n| 2025 | 100 | 8 |\n| R12 September 2026 | 105 | 7.62 |";
 actual.references = ["calc:actual-one#margin_percent","calc:actual-two#margin_percent","calc:actual-r12#margin_percent"];
 const valuation = run.analysis.sections.find(item => item.id === "valuation").paragraphs[0];
-valuation.text = "|\n\n| 2029 operating bridge | Bear | Base | Bull |\n| --- | --- | --- | --- |\n| Net sales, SEK m | 90 | 120 | 150 |\n| Reported EBIT margin | 8% | 10% | 12% |\n|";
+valuation.text = "|\n\n| 2029 operating bridge | Bear | Base | Bull |\n| --- | --- | --- | --- |\n| Net sales, SEK m | 90 | 120.23 | 150 |\n| Reported EBIT margin | 8% | 12.35% | 12% |\n|";
 const sensitivity = run.analysis.sections.find(item => item.id === "risks").paragraphs[0];
 sensitivity.text = "| Check | What changes from base | Annual IRR |\n| --- | --- | --- |\n| Cash | More capital | 3% |";
 evaluate("renderCompany(run)");
@@ -145,7 +145,8 @@ assert(all(panel("valuation")).some(node => node.className === "table-wrap sensi
 assert.equal(all($("reader-valuation")).filter(node => node.tagName === "P" && node.textContent === "|").length, 2);
 const drivers = () => all($("reader-drivers")).filter(node => node.attributes.class === "chart driver-chart");
 assert.equal(drivers().length,2);
-assert.match(drivers()[0].attributes["aria-label"], /History on the memo's stated basis: .*R12 September 2026 105.*2029 assumptions: Bear 90, Base 120, Bull 150/);
+assert.match(drivers()[0].attributes["aria-label"], /History on the memo's stated basis: 2024 80\.23.*R12 September 2026 105.*2029 assumptions: Bear 90, Base 120\.23, Bull 150/);
+assert.match(drivers()[1].attributes["aria-label"], /2024 9\.97%.*2029 assumptions: Bear 8%, Base 12\.35%, Bull 12%/);
 assert($("reader-drivers").textContent.includes("Accounting labels follow the memo's stated basis."));
 const calc = (variant, id) => variant.original_calculations.find(item => item.id === "calc:" + id);
 for (const mutate of [
@@ -167,7 +168,9 @@ for (const mutate of [
   variant => variant.analysis.sections[1].paragraphs[0].text = actual.text.replace("Reported group history","In contrast to reported group history, this sample"),
   variant => calc(variant,"actual-r12").inputs[1].kind = "assumption",
   variant => calc(variant,"actual-one").inputs.forEach(item => item.period_start = "2024-03-01"),
-  variant => variant.analysis.sections[4].paragraphs[0].text = valuation.text.replace("10%", "11%"),
+  variant => variant.analysis.sections[1].paragraphs[0].text = actual.text.replace("80.23", "80.24"),
+  variant => variant.analysis.sections[4].paragraphs[0].text = valuation.text.replace("120.23", "120.24"),
+  variant => variant.analysis.sections[4].paragraphs[0].text = valuation.text.replace("12.35%", "12.34%"),
 ]) {
   const variant = structuredClone(run); mutate(variant); sandbox.variant = variant;
   evaluate("renderCompany(variant)");

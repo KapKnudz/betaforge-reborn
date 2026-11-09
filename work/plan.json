@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-09T22:40:32.807560+01:00",
+  "updated_at": "2026-11-09T22:48:19.298346+01:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "peer-workflow-from-pilot",
@@ -1153,7 +1153,7 @@
         "https://github.com/KapKnudz/betaforge-research-private/releases/tag/cloud-research-2026-11-09"
       ],
       "blocker": null,
-      "note": "Code and guides published to PR #18 branch with earlier history preserved. 238 local tests pass; clean public checkout passes 230 tests with one private-evidence class skipped. Independent review fixes and browser checks pass. Selected research archive uploaded privately and digest verified. Current-head Greptile review pending; merge and actual Cloud setup remain user-owned follow-up."
+      "note": "Latest public code and private research checkpoint published. Greptile 5/5 on 33180c7 raised rounded chart matching; fixed with regression tests and independent recheck. Full suite passes 238 tests; clean public checkpoint passed 230 with one private-evidence class skipped. Fresh review of the fix is the final session check; receipt belongs in PR #18. Actual Cloud runtime remains unverified."
     }
   ],
   "session": {
