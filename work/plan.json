@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-09T22:36:54.338115+00:00",
+  "updated_at": "2026-11-09T22:39:49.753266+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
   "next_task": "cloud-project-setup",
@@ -1196,16 +1196,17 @@
         "tests/test_codex_runner.py",
         "docs/codex-integration.md",
         "docs/cloud-handoff.md",
-        "data/cloud-setup-20261109/"
+        "data/cloud-setup-20261109/",
+        "https://github.com/KapKnudz/betaforge-reborn/pull/19"
       ],
       "blocker": "Nested Codex authentication cannot refresh; loading the project defaults also needs explicit approval to trust this repository. Reusable environment Edit/Publish controls are unavailable in this chat.",
-      "note": "Portable executable discovery is implemented: explicit --codex wins, then PATH, then an existing executable Mac bundle; missing executables fail before creating a run. Sol/xhigh, evidence restrictions, formulas and implementation-hash guards are unchanged. Independent Sol/high read-only review found no actionable issues. Full restored-state suite: 241 tests, OK with no skips; all 16 runner checks pass. Six earlier private releases passed archive size/checksum, safe member and staging checks; 9,210 absent ignored files copied, identical existing files retained, and conflicting immutable groups preserved separately. Twelve additional packets and fourteen database copies passed source/report/contract/blob and integrity/foreign-key checks; the four earlier pilot packets/stores remain verified. All 967 original checkpoint files remain byte-identical. The loopback workbench now has 30 captured companies, 10 with memos, 18 memo IDs and preserved stored quotes; 47 HTTP checks and desktop catalogue/empty-state/Granges/Lime checks passed. The incompatible historical export remains unchanged and excluded. Effective nested project defaults are currently disabled because this checkout is not trusted; automatic approval review rejected the persistent trust addition and specific user approval is pending. No global trust/auth/config change was applied. Nested authentication remains unavailable; no substitute model, fresh provider acquisition or full valuation. The reusable environment was not edited or republished. Code publication/review receipt follows in the PR conversation."
+      "note": "Portable executable discovery is implemented: explicit --codex wins, then PATH, then an existing executable Mac bundle; missing executables fail before creating a run. Sol/xhigh, evidence restrictions, formulas and implementation-hash guards are unchanged. Independent Sol/high read-only review found no actionable issues. Full restored-state suite: 241 tests, OK with no skips; all 16 runner checks pass. Six earlier private releases passed archive size/checksum, safe member and staging checks; 9,210 absent ignored files copied, identical existing files retained, and conflicting immutable groups preserved separately. Twelve additional packets and fourteen database copies passed source/report/contract/blob and integrity/foreign-key checks; the four earlier pilot packets/stores remain verified. All 967 original checkpoint files remain byte-identical. The loopback workbench now has 30 captured companies, 10 with memos, 18 memo IDs and preserved stored quotes; 47 HTTP checks and desktop catalogue/empty-state/Granges/Lime checks passed. The incompatible historical export remains unchanged and excluded. Effective nested project defaults are currently disabled because this checkout is not trusted; automatic approval review rejected the persistent trust addition and specific user approval is pending. No global trust/auth/config change was applied. Nested authentication remains unavailable; no substitute model, fresh provider acquisition or full valuation. The reusable environment was not edited or republished. Published the focused setup change as PR #19 targeting main. Current-head Greploop receipt belongs in that PR conversation; user review/merge remains pending."
     }
   ],
   "session": {
     "task": "cloud-project-setup",
     "summary": "Cloud code/data/viewer setup is close to the local workbench: portable runner discovery, restored prior evidence and full offline checks pass. Nested authentication and explicit project trust remain blocked; reusable publication is not performed.",
-    "next_step": "Approve the narrowly scoped project trust request and reauthenticate nested Cloud Codex; verify effective Sol/xhigh and run a new bounded smoke. Review/merge the setup PR before updating the reusable environment through Edit/Save/Publish, then verify a fresh task."
+    "next_step": "Review PR #19 and the narrowly scoped project trust request. Reauthenticate nested Cloud Codex; verify effective Sol/xhigh and run a new bounded smoke. After user merge, update the reusable environment through Edit/Save/Publish and verify a fresh task."
   },
   "references": [
     {
