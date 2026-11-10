@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-10T11:44:12.107878+00:00",
+  "updated_at": "2026-11-10T13:48:39.800532+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "management-history-rerun",
+  "next_task": "material-event-coverage",
   "milestones": [
     {
       "id": "foundation",
@@ -1237,11 +1237,11 @@
       "id": "management-history-rerun",
       "milestone": "saved-review",
       "title": "Build five-year management history and test it in fresh analyses",
-      "status": "blocked",
+      "status": "done",
       "summary": "Link sourced management/board history, ownership and all captured transactions, then run two full preserved-evidence analyses.",
       "purpose": "Assess management delivery and alignment with dated responsibility and complete captured transaction coverage.",
       "acceptance": [
-        "Verify the uploaded private supplement archive against its existing hashes and complete private preservation with a documented automatic-upload route or an explicit access blocker.",
+        "Recover the prior-reviewed private supplements against their existing hashes and complete private preservation with a documented automatic-upload route or an explicit access blocker.",
         "Preserve a company-neutral five-year management/board history with dated person/entity identity, role and ownership evidence; retain all captured transactions including non-management entities and unmatched rows without forced joins or blind netting.",
         "Freeze and actually deliver the reviewed structure and supplements to separately identified same-evidence analyses using the required Sol/xhigh runner, with no provider refresh or silent model substitution.",
         "Complete full structured analyses and independent exact-report challenges with at most one revision, preserve new/old outputs separately and compare supported financial/decision changes and limitations.",
@@ -1253,16 +1253,20 @@
         "tests/test_management_history.py",
         "tests/test_packet.py",
         "tests/test_saved_view.py",
-        "data/research-audits/20261110-management-history/"
+        "data/research-audits/20261110-management-history/",
+        "https://github.com/KapKnudz/betaforge-reborn/pull/21",
+        "https://github.com/KapKnudz/betaforge-research-private/tree/backups/management-history-prepared-20261110",
+        "https://github.com/KapKnudz/betaforge-research-private/tree/backups/management-history-final-aq-20261110",
+        "https://github.com/KapKnudz/betaforge-research-private/tree/backups/management-history-final-lime-20261110"
       ],
-      "blocker": "Actual new analyses require secure Codex runtime reauthentication; private release verification/automatic upload require a working repository-scoped credential. User setup is pending. Dependent predecessor PR20 remains unmerged.",
-      "note": "Company-neutral source/identity/history validation, exact selected-dataset row preservation, complete frozen prompt delivery and standalone saved-view metadata are implemented. Full offline suite:249 tests OK,1 private-evidence class skipped; local links/skill frontmatter and whitespace pass. Independent Sol/high source review accepted after restoring the plan handoff key. Private five-year source histories, all captured row crosswalks and readable overviews were independently reviewed, including targeted Terra/medium original-page layout checks. New packets preserve original frozen database/report bytes and include the verified structure, prior derived supplements and current guides. Full prompt/model acceptance and new valuations are NOT completed: genuine Sol/xhigh smoke failed unauthorized before any evidence or calculation; official device login expired without completion. Uploaded release body attachments remain unverified through the current route. Draft PR and current-head Greptile review are pending at this checkpoint; final receipts belong in the PR/private handoff. Do not merge predecessor work or substitute a model."
+      "blocker": null,
+      "note": "Company-neutral history validation, full selected-dataset row preservation, frozen prompt delivery and standalone saved-view metadata are implemented. Existing implementation checks: 249 tests OK, one known private-evidence class skipped; independent source review accepted and Greptile 5/5 at e56eed7. This continuation changes only the public delivery plan. Original attachment URLs remained unavailable; exact previously reviewed history and supplement contents were recovered from saved command evidence and matched their prior hashes. Original frozen sources were restored and verified. After user reauthentication, the actual required Sol/xhigh text/image/calculation smoke and both full structured same-evidence analyses completed. All selected captured transaction rows were verified in actual tool delivery. Both final reports were independently accepted against exact hashes: one without revision, the other after its single permitted longitudinal-ownership revision. The old/new comparison separates evidence improvements from discretionary modeling changes and retains review qualifications. Both standalone exports and seven loopback HTTP checks passed; no new visual/layout claim. Prepared inputs, original drafts and final results were uploaded through private Git Data API backup branches, downloaded byte-for-byte and freshly restored with hashes and review bindings checked; release-asset upload still fails. No provider refresh, predictive-quality claim or reusable environment publication. Public plan JSON/whitespace and independent handoff review cover this continuation; final current-head Greploop receipt belongs in PR #21. It remains a draft targeting main, dependent on unmerged #20; verify the remaining diff after that merge. User reviews and merges."
     }
   ],
   "session": {
     "task": "management-history-rerun",
-    "summary": "Implementation and reviewed private history/packets prepared; requested full analyses and remote preservation remain blocked by authentication. Dependent draft PR review is the remaining source handoff.",
-    "next_step": "Complete the bounded current-head PR review, then recover secure runtime/repository credentials, verify private assets and run fresh structured analyses with independent exact-report challenge."
+    "summary": "Recovered the exact reviewed histories and supplements, completed both required-model analyses and independent challenges, validated the comparison/exports, and verified final private backups with fresh restoration. Public continuation is a delivery-plan update only.",
+    "next_step": "Complete the final current-head review receipt in draft PR #21 during this session. User merge of #20 and remaining-diff verification precede #21 readiness. The next roadmap task is material-event-coverage."
   },
   "references": [
     {
