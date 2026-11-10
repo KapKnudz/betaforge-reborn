@@ -18,6 +18,8 @@ one analyst → saved draft → independent challenge
 
 Select the company, information cutoff, dated price, required reports and material mapping decisions. Freeze the policy and formulas with the packet. Use at least the latest five annual reports where available and the interims needed for current results. A later execution or mapping-review date does not refresh the market price or create a point-in-time backtest.
 
+Before freezing, the coordinator researches the [material-event and security-scope check](skill-drafts/betaforge-company-analysis/references/business-evidence.md#check-material-events-and-security-scope), preserving selected disclosures and the checked coverage/gaps in admitted evidence. Apply the [canonical scope rule](analysis-policy.md#material-events-and-security-scope); required packet reading does not establish complete disclosure coverage.
+
 New packets also freeze the selected repository analyst guides into `prompt.md`, with role/path/hash metadata in `analysis_guides`, and preserve the reviewer guide for the explicit handoff below. Inspect that metadata and the actual prompt rather than assuming skill discovery loads the documents. Existing packets and resumes retain their original prompt and guidance; do not attach current guides silently. The [packet contract](codex-integration.md) owns the delivery details.
 
 For a requested five-year management/board and ownership history, prepare the [versioned evidence sidecar](management-history.md) from the frozen reports and captured datasets and supply `--management-history PATH`. Set the explicit requested window and preserve older context, every captured transaction version and unknown dates/identity matches. The new packet delivers the full index in its hashed prompt; it does not turn source associations or prior supplement judgments into issuer facts. A fresh analyst checks the sources and derives its own forecasts.
@@ -27,6 +29,8 @@ Completion: the packet has explicit identities, source hashes, coverage requirem
 ## 2. Run one lead analyst
 
 Start a [business brief](skill-drafts/betaforge-company-analysis/references/business-evidence.md#write-the-business-brief-before-forecasting) from preserved issuer reports using the frozen guides. The coordinator handles any targeted external checks before freezing evidence for a new run. The lead analyst finishes the brief from admitted evidence before selecting forecasts. Structured submission does not require a separate brief.
+
+The frozen analyst cannot browse for missing disclosures. Verify the event treatment from admitted sources and carry exclusions or incomplete coverage beside the conclusion and returns. New evidence requires a separate packet and run; preserve earlier packets, outputs and reviews.
 
 Use Sol/xhigh with the existing evidence tools and `--structured`:
 
@@ -58,6 +62,8 @@ For packets with `management_history`, also deliver the verified full sidecar an
 Challenge the thesis. Cover business mechanics, management comparisons, financial definitions, earnings versus cash, capital allocation and dilution, operating forecasts, the multiple and equity bridge, return timing, any probability coverage and disconfirming evidence. Check how each material use of peer evidence affected the analysis. Cite file sections and saved references. For each finding, give a bounded verdict, reasoning and missing evidence. Distinguish a supported local claim from a broader unverified claim. Name any unresolved disagreement.
 
 Challenge the source of forecast cash as well as its uses. Connect assumed cash generation to the earnings path, noncash items, cash taxes, interest, working-capital movements and recurring investment. A compact reconciliation is enough; terminal earnings alone do not explain average cash over the horizon. Keep unsupported components explicit rather than inventing them.
+
+Challenge the [event check](skill-drafts/betaforge-company-analysis/references/business-evidence.md#check-material-events-and-security-scope): source coverage, distinct dates/status, each event's disposition across earnings, funding, claims and shares, and whether the visible conclusion/return limitation matches the supported security scope.
 
 Bind the review to the packet and exact `analysis.json` hash using the feedback schema in `betaforge/analysis_report.py`. The viewer accepts `analysis-review.json` only when it covers the current report. Keep draft feedback with the private artifacts; a review of an earlier draft does not approve a later revision.
 

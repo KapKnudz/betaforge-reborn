@@ -1,6 +1,6 @@
 # Betaforge analysis policy
 
-Version 5, 10 November 2026. Management delivery and insider evidence require explicit, qualified checks; formulas and the valuation method are unchanged. Each new analysis freezes this file and the [calculation catalogue](calculations.md) with their hashes. Historical packets retain their original instructions and results.
+Version 6, 10 November 2026. Material-event coverage through the cutoff and the security scope of conclusions must be explicit; formulas and the valuation method are unchanged. Each new analysis freezes this file and the [calculation catalogue](calculations.md) with their hashes. Historical packets retain their original instructions and results.
 
 ## Purpose and sources
 
@@ -34,6 +34,14 @@ For each material input addressed by peer evidence, record its effect. Show a ch
 Use industry datasets as a third layer of context. Preserve source date, period, coverage, accounting adjustments and aggregation. Sector aggregates are not peer medians. US tables and global workbooks have different coverage. Do not automatically copy an industry multiple into the valuation.
 
 Reuse Börsdata and prepared reports first. Add a report fact or provider only when it answers an identified question. Keep reported/adjusted EBIT, parent/group profit, share bases and source revisions distinct. Preserve discrepancies and rounding residuals.
+
+## Material events and security scope
+
+Identify the latest financial statement available by the information cutoff. Distinguish its balance date, publication date and the cutoff. Check disclosed events from the balance date through the cutoff, including the report's subsequent-event section and relevant official issuer/regulatory disclosure channels. Required report reading alone is not an exhaustive disclosure check. Preserve the reviewed sources, dates, coverage and gaps; a missing archive does not establish that no events occurred.
+
+Cover material acquisitions/disposals, financing, dividends, buybacks, issuances, awards and other changes to claims or shares. Distinguish announcement, completion/control, accounting inclusion and settlement. Trace each event's treatment through the operating perimeter and the cash/debt, other-claims and share/distribution bridges, without counting an already included effect twice. Horizon-average cash generation does not establish funding at a payment date.
+
+Report a bounded outcome: no material event found within the named checked scope; material events modeled or qualified; or known exclusions/incomplete coverage. Beside the conclusion and returns, state whether the analysis covers the actual common shares or is a conditional operating benchmark, with material omissions and their consequences visible. Unsupported transaction terms remain gaps; a useful benchmark does not establish a complete security valuation. Follow the [operational check](skill-drafts/betaforge-company-analysis/references/business-evidence.md#check-material-events-and-security-scope) using existing evidence, notes, report references and calculations.
 
 ## Financial quality
 

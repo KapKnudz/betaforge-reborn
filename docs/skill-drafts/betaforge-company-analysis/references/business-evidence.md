@@ -15,6 +15,16 @@ Before freezing evidence for a new run, the coordinator can use this outline to 
 
 Use disclosed contributions to explain changes in sales or profit. Leave any unattributed growth explicit and test whether the case depends on it. Check that the selected demand, pricing, margins and capital needs can occur together in the same case.
 
+## Check material events and security scope
+
+Apply the [canonical policy](../../../analysis-policy.md#material-events-and-security-scope) before treating operating scenarios as a valuation of the actual common shares. The coordinator researches before freezing; the analyst verifies only admitted evidence. Keep one compact record in existing notes/report detail, with saved source/input/calculation references where applicable:
+
+- **Coverage.** Identify the latest statement available by the cutoff; record its balance date, publication date and cutoff separately. Inspect its subsequent-event section, any intervening report's subsequent-event section and relevant official issuer/regulatory disclosure channels through the cutoff. Name the reviewed channels, date ranges, source identities and gaps. Required reading and an absent archive do not establish exhaustive coverage.
+- **Events and status.** Identify material acquisitions, disposals, financing, dividends, buybacks, issuances, awards and other claim/share changes. Preserve the disclosure and terms with exact source URL/ID and report page where applicable. Keep announcement, completion/control, accounting consolidation and cash settlement dates separate; unknown dates or terms remain unknown. A pending transaction is not a completed one; an authorization is not an executed buyback.
+- **One treatment across the case.** For each material event, state what is already included in the starting earnings/balance/share basis, what is modeled prospectively and what is excluded or unresolved. Link its effect on the operating perimeter/earnings to consideration/proceeds, cash/debt and funding, other claims (including earnouts, minorities, pensions or leases where relevant), forecast shares and shareholder distributions/entitlements. Do not subtract a purchase cost already included in closing net debt, add acquired earnings without their associated consideration/claims, or count a distribution twice.
+- **Timing and missing terms.** Identify payment-date funding and issuance assumptions where material. A horizon-average retained-cash estimate cannot prove cash available at settlement. Do not invent a pro forma valuation from unsupported terms: qualify the affected case or retain a conditional operating benchmark with the omitted costs, claims or shares visible.
+- **Outcome and decision.** State no material event found within the named checked scope, material events modeled or qualified, or known exclusions/incomplete coverage; more than one may apply. State whether the analysis covers actual common shares or is a conditional operating benchmark, with material omissions and their consequence beside the opening conclusion and scenario returns. Keep supporting source detail in the appendix, without a new report section or automatic score.
+
 ## Explain material assumptions
 
 For the few assumptions that could materially change value, funding or the investment call, keep one short decision note:
