@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import queue
 import signal
+import shutil
 import subprocess
 import threading
 import time
@@ -50,6 +51,19 @@ CONFIG = {'model_reasoning_effort':REASONING_EFFORT,'web_search':'disabled','too
                       'apps':False,'computer_use':False,'browser_use':False,
                       'hooks':False,'memories':False,'code_mode':False},
           'tools':{'view_image':False},'apps':{'_default':{'enabled':False}}}
+
+
+def resolve_codex(executable=None):
+    """Prefer an explicit executable, then PATH, then the existing Mac app bundle."""
+    if executable is not None:
+        selected = shutil.which(executable)
+        if selected is None:
+            raise FileNotFoundError(f'Codex executable not found or not executable: {executable}')
+    else:
+        selected = shutil.which('codex') or shutil.which(DEFAULT_CODEX)
+        if selected is None:
+            raise FileNotFoundError('Codex executable unavailable; install codex on PATH or select one with --codex')
+    return os.path.abspath(selected)
 
 
 def safe_event(value):
@@ -177,12 +191,13 @@ Respond SMOKE_COMPLETE with results and references. Full required-report reading
 only for this integration check; do not finish research rounds or issue a valuation.'''
 
 
-def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=DEFAULT_CODEX, smoke=False, resume=False, cancel_after=None, structured=False, review_feedback=None):
+def run(packet_path, prompt_path, output, timeout_seconds=7200, executable=None, smoke=False, resume=False, cancel_after=None, structured=False, review_feedback=None):
     if not 0 < timeout_seconds <= 7200:raise ValueError('Timeout must be >0 and <=7200 seconds')
     if smoke and structured:raise ValueError('Structured mode cannot be combined with smoke')
     if review_feedback and not (resume and structured):raise ValueError('Review feedback requires --resume --structured')
     output=Path(output).resolve()
     if output.exists() and not resume:raise FileExistsError('Output exists; choose a new run or explicitly resume')
+    executable=resolve_codex(executable)
     output.mkdir(parents=True,exist_ok=resume)
     tools=EvidenceTools(packet_path,output,resume=resume,structured=structured)
     try:
@@ -367,7 +382,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--packet',required=True,type=Path);parser.add_argument('--prompt',type=Path)
     parser.add_argument('--output',required=True,type=Path);parser.add_argument('--timeout',type=float,default=7200)
-    parser.add_argument('--codex',default=DEFAULT_CODEX);parser.add_argument('--smoke',action='store_true')
+    parser.add_argument('--codex');parser.add_argument('--smoke',action='store_true')
     parser.add_argument('--resume',action='store_true');parser.add_argument('--cancel-after',type=float)
     parser.add_argument('--structured',action='store_true');parser.add_argument('--review-feedback',type=Path)
     args=parser.parse_args()

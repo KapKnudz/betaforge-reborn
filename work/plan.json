@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-09T22:48:19.298346+01:00",
+  "updated_at": "2026-11-09T22:39:49.753266+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "peer-workflow-from-pilot",
+  "next_task": "cloud-project-setup",
   "milestones": [
     {
       "id": "foundation",
@@ -14,7 +14,7 @@
     {
       "id": "workflow",
       "title": "Persistent project workflow",
-      "status": "done",
+      "status": "in_progress",
       "summary": "Short README, project instructions, current plan, clear boundaries, PR rules and local progress display."
     },
     {
@@ -1154,12 +1154,59 @@
       ],
       "blocker": null,
       "note": "Latest public code and private research checkpoint published. Greptile 5/5 on 33180c7 raised rounded chart matching; fixed with regression tests and independent recheck. Full suite passes 238 tests; clean public checkpoint passed 230 with one private-evidence class skipped. Fresh review of the fix is the final session check; receipt belongs in PR #18. Actual Cloud runtime remains unverified."
+    },
+    {
+      "id": "cloud-verification-20261109",
+      "milestone": "workflow",
+      "title": "Verify merged code and private research in the existing Cloud task",
+      "status": "done",
+      "summary": "Verify task-local code, restored evidence, saved views and nested runner capability.",
+      "purpose": "Establish a concrete Cloud continuation checkpoint without claiming reusable environment publication.",
+      "acceptance": [
+        "Verify merged PR #18 without discarding existing work.",
+        "Verify private release identity, checksum, safe restoration, source hashes and SQLite integrity; preserve historical saved artifacts.",
+        "Install pinned dependencies, run the offline suite and verify both latest Lime versions through the loopback viewer.",
+        "Check nested Codex authentication and required Sol/xhigh separately; run a bounded tool smoke if supported.",
+        "Record tested setup, access/runtime limits and the next action; distinguish task-local readiness from reusable publication."
+      ],
+      "evidence": [
+        "docs/cloud-handoff.md",
+        "data/cloud-verification-20261109/HANDOFF.md",
+        "data/cloud-verification-20261109/verification-summary.json"
+      ],
+      "blocker": null,
+      "note": "Task-local verification complete on merged PR #18 commit 348b4a3e72b7298c5ea9e20e884dc1d744ab3326. Private repository/release identity, archive size/checksum and safe restoration passed; 967 original files remain unchanged and 868 source hashes match. Four frozen packets and SQLite integrity/foreign-key/blob checks passed; 25 of 26 saved views validate, with the known historical incompatible export preserved and excluded. Python 3.14.7, pinned requirements, Node and Poppler verified; final restored-state suite ran 230 tests, OK with one earlier private-evidence class skipped. Both latest Lime versions passed 17 loopback HTTP checks and shared Cloud desktop viewing/version switching; frozen dates are preserved. Nested Codex 0.167.0-alpha.4 accepts strict configuration and lists Sol/xhigh, but the authorized bounded smoke failed before tool calls because its saved login cannot refresh (unauthorized). Live runner access needs Cloud reauthentication and a new bounded smoke; no substitute model, provider acquisition or full valuation. No application source change or PR. Only this task checkout changed; reusable environment editing/publication was unavailable and was not performed. Tested Edit setup and exact private receipts are in the ignored handoff. Independent Sol/high read-only review of the plan and receipts found no actionable issues; visual verification and file hashes retain their original checker scope."
+    },
+    {
+      "id": "cloud-project-setup",
+      "milestone": "workflow",
+      "title": "Bring Cloud project setup closer to the local workbench",
+      "status": "blocked",
+      "summary": "Make executable selection portable, restore prior research dependencies and verify project configuration.",
+      "purpose": "Continue work in Cloud with the same project rules, evidence and saved-view workflow.",
+      "acceptance": [
+        "Preserve the verified checkout and all existing research while applying bounded setup fixes.",
+        "Verify effective project model/agent settings and use the existing Cloud Codex executable without Mac credentials.",
+        "Restore missing private corpus/research dependencies with checksums, safe paths and absent-or-identical copying.",
+        "Verify the expanded read-only viewer and applicable offline/private-evidence tests.",
+        "Independently review source changes and record runtime/authentication and reusable-publication limits with exact next steps."
+      ],
+      "evidence": [
+        "betaforge/codex_runner.py",
+        "tests/test_codex_runner.py",
+        "docs/codex-integration.md",
+        "docs/cloud-handoff.md",
+        "data/cloud-setup-20261109/",
+        "https://github.com/KapKnudz/betaforge-reborn/pull/19"
+      ],
+      "blocker": "Nested Codex authentication cannot refresh; loading the project defaults also needs explicit approval to trust this repository. Reusable environment Edit/Publish controls are unavailable in this chat.",
+      "note": "Portable executable discovery is implemented: explicit --codex wins, then PATH, then an existing executable Mac bundle; missing executables fail before creating a run. Sol/xhigh, evidence restrictions, formulas and implementation-hash guards are unchanged. Independent Sol/high read-only review found no actionable issues. Full restored-state suite: 241 tests, OK with no skips; all 16 runner checks pass. Six earlier private releases passed archive size/checksum, safe member and staging checks; 9,210 absent ignored files copied, identical existing files retained, and conflicting immutable groups preserved separately. Twelve additional packets and fourteen database copies passed source/report/contract/blob and integrity/foreign-key checks; the four earlier pilot packets/stores remain verified. All 967 original checkpoint files remain byte-identical. The loopback workbench now has 30 captured companies, 10 with memos, 18 memo IDs and preserved stored quotes; 47 HTTP checks and desktop catalogue/empty-state/Granges/Lime checks passed. The incompatible historical export remains unchanged and excluded. Effective nested project defaults are currently disabled because this checkout is not trusted; automatic approval review rejected the persistent trust addition and specific user approval is pending. No global trust/auth/config change was applied. Nested authentication remains unavailable; no substitute model, fresh provider acquisition or full valuation. The reusable environment was not edited or republished. Published the focused setup change as PR #19 targeting main. Current-head Greploop receipt belongs in that PR conversation; user review/merge remains pending."
     }
   ],
   "session": {
-    "task": "cloud-publication-handoff",
-    "summary": "Published latest code and selected private research for cloud continuation. Actual Cloud runtime remains unverified.",
-    "next_step": "Finish current-head Greptile review, then user reviews/merges PR #18 and follows docs/cloud-handoff.md to prepare and test the Cloud environment."
+    "task": "cloud-project-setup",
+    "summary": "Cloud code/data/viewer setup is close to the local workbench: portable runner discovery, restored prior evidence and full offline checks pass. Nested authentication and explicit project trust remain blocked; reusable publication is not performed.",
+    "next_step": "Review PR #19 and the narrowly scoped project trust request. Reauthenticate nested Cloud Codex; verify effective Sol/xhigh and run a new bounded smoke. After user merge, update the reusable environment through Edit/Save/Publish and verify a fresh task."
   },
   "references": [
     {
