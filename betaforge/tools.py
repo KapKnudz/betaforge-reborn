@@ -15,6 +15,7 @@ import time
 from datetime import datetime, timezone
 
 from betaforge.financials import FORMULAS, evaluate
+from betaforge import management_history as history
 
 READ_LIMIT = 45000
 
@@ -235,6 +236,22 @@ class EvidenceTools:
             if 'analysis_guides' in self.packet:
                 self.analysis_guide_texts = read_analysis_guides(self.packet_path.parent, self.packet['analysis_guides'])
                 self.identity['analysis_guides'] = self.packet['analysis_guides']
+            self.management_history = None
+            if 'management_history' in self.packet:
+                entry = self.packet['management_history']
+                history.validate_metadata(entry, self.instrument, self.packet.get('analysis_date'))
+                path = (self.packet_path.parent / entry['path']).resolve()
+                if not path.is_relative_to(self.packet_path.parent):
+                    raise ValueError('Management history path escapes packet')
+                body = path.read_bytes()
+                if hashlib.sha256(body).hexdigest() != entry['sha256']:
+                    raise ValueError('Management history hash mismatch')
+                value = history.loads(body)
+                history.validate(value, self.instrument, self.packet.get('analysis_date'), reports=self.reports, store=self.store)
+                if history.metadata(value, body, entry['path']) != entry:
+                    raise ValueError('Management history metadata differs from frozen body')
+                self.management_history = value
+                self.identity['management_history'] = entry
             for benchmark_name in ('benchmark_context','market_benchmark_context'):
                 benchmark = self.packet.get(benchmark_name)
                 if not benchmark:
@@ -293,7 +310,7 @@ class EvidenceTools:
                 'datasets': self.packet.get('datasets', [d['dataset'] for d in self.store.list_datasets()]), 'context': self.packet.get('context', ''), 'initial_context':self.packet.get('initial_context',{}),
                 'coverage': self.coverage(), 'saved_input_ids': list(self.state['inputs']),
                 'calculation_ids': list(self.state['calculations']), 'research_rounds': self.state['rounds'],
-                **({'analysis_guides': self.packet['analysis_guides']} if 'analysis_guides' in self.packet else {})}
+                **({name: self.packet[name] for name in ('analysis_guides', 'management_history') if name in self.packet})}
 
     def get_calculation_definitions(self):
         return {'formulas': FORMULAS, 'analysis_contract': self.analysis_contract,

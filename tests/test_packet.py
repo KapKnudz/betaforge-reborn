@@ -71,6 +71,7 @@ class PacketTests(unittest.TestCase):
         self.assertIn("Test adopted policy", data["context"])
         self.assertIn("Test explicit formulas", data["context"])
         self.assertEqual(data["required_reports"], ["issuer-test"])
+        self.assertNotIn('management_history', data)
         for item in data["analysis_contract"].values():
             self.assertFalse(Path(item["path"]).is_absolute())
             self.assertEqual(packet.digest(result.parent / item["path"]), item["sha256"])
@@ -87,8 +88,19 @@ class PacketTests(unittest.TestCase):
         self.assertFalse((self.root / "published").exists())
         self.assertFalse(list(self.root.glob('.prepare-*')))
 
-    def test_guides_are_frozen_deterministically_and_delivered_in_actual_turn(self):
-        result = self.build()
+    def management_history_fixture(self):
+        from test_management_history import append_transactions, history_fixture
+        append_transactions(self.input)
+        with packet.EvidenceStore(self.root / 'history-selection/evidence.sqlite3') as store:
+            store.ingest_snapshot(self.input)
+            value = history_fixture(store, report_id='issuer-test', quote='Revenue 10', analysis_date='2026-11-01')
+        path = self.root / 'history.json'
+        path.write_text(json.dumps(value))
+        return path, value
+
+    def test_guides_and_history_are_frozen_deterministically_and_delivered_in_actual_turn(self):
+        history_path, history_value = self.management_history_fixture()
+        result = self.build(management_history=history_path)
         data = json.loads(result.read_text())
         guides = data['analysis_guides']
         self.assertEqual([entry['role'] for entry in guides], ['analyst'] * 5 + ['reviewer'])
@@ -102,7 +114,12 @@ class PacketTests(unittest.TestCase):
         with patch.object(packet, 'ROOT', self.root):
             metadata, appended = packet.copy_analysis_guides(duplicate)
         self.assertEqual(metadata, guides)
-        self.assertEqual(prompt, self.prompt.read_text() + appended)
+        self.assertTrue(prompt.startswith(self.prompt.read_text() + appended))
+        frozen_history = result.parent / data['management_history']['path']
+        self.assertEqual(frozen_history.read_bytes(), history_path.read_bytes())
+        self.assertEqual(packet.digest(frozen_history), data['management_history']['sha256'])
+        self.assertIn(json.dumps(history_value, ensure_ascii=False, separators=(',', ':')), prompt)
+        history_path.write_text('Live history changed after packet creation')
         for entry in guides:
             source = self.root / entry['source_path']
             frozen = result.parent / entry['path']
@@ -137,15 +154,65 @@ class PacketTests(unittest.TestCase):
         delivered = turn['input'][0]['text']
         self.assertTrue(delivered.startswith(prompt))
         self.assertNotIn('Live guidance changed', delivered)
+        self.assertNotIn('Live history changed', delivered)
+        self.assertIn(json.dumps(history_value, ensure_ascii=False, separators=(',', ':')), delivered)
         self.assertEqual(state['identity']['analysis_guides'], guides)
         tools = EvidenceTools(result, self.root / 'guide-run', resume=True)
         try:
             self.assertEqual(tools.catalogue()['analysis_guides'], guides)
+            self.assertEqual(tools.catalogue()['management_history'], data['management_history'])
+            self.assertEqual(tools.management_history, history_value)
             reviewer = next(entry for entry in guides if entry['role'] == 'reviewer')
             self.assertEqual(tools.analysis_guide_texts[reviewer['path']],
                              (result.parent / reviewer['path']).read_text())
         finally:
             tools.store.close()
+
+    def test_invalid_history_or_incomplete_transaction_coverage_never_publishes(self):
+        path, value = self.management_history_fixture()
+        value['instrument_id'] = 427
+        path.write_text(json.dumps(value))
+        with self.assertRaisesRegex(ValueError, 'instrument mismatch'):
+            self.build(management_history=path)
+        self.assertFalse((self.root / 'store').exists())
+        value['instrument_id'] = 426
+        value['transaction_links'].pop()
+        path.write_text(json.dumps(value))
+        with self.assertRaisesRegex(ValueError, 'every captured transaction'):
+            self.build(management_history=path)
+        self.assertFalse((self.root / 'published').exists())
+        self.assertFalse(list(self.root.glob('.prepare-*')))
+
+    def test_frozen_history_tamper_and_metadata_changes_cannot_resume(self):
+        path, value = self.management_history_fixture()
+        result = self.build(management_history=path)
+        data = json.loads(result.read_text())
+        run = self.root / 'history-run'
+        tools = EvidenceTools(result, run)
+        tools.store.close()
+        original_state = (run / 'tool-state.json').read_bytes()
+        frozen = result.parent / data['management_history']['path']
+        original = frozen.read_bytes()
+        frozen.write_bytes(original + b' ')
+        with self.assertRaisesRegex(ValueError, 'history hash mismatch'):
+            EvidenceTools(result, run, resume=True)
+        frozen.write_bytes(original)
+        changed = json.loads(result.read_text())
+        changed['management_history']['window']['start'] = '2020-01-01'
+        result.write_text(json.dumps(changed))
+        with self.assertRaisesRegex(ValueError, 'metadata differs'):
+            EvidenceTools(result, run, resume=True)
+        changed['management_history'] = dict(data['management_history'], path='../history.json')
+        result.write_text(json.dumps(changed))
+        with self.assertRaisesRegex(ValueError, 'history path'):
+            EvidenceTools(result, run, resume=True)
+        linked = result.parent / 'linked-history.json'
+        linked.symlink_to(path)
+        changed['management_history'] = dict(data['management_history'], path='linked-history.json')
+        result.write_text(json.dumps(changed))
+        with self.assertRaisesRegex(ValueError, 'path escapes packet'):
+            EvidenceTools(result, run, resume=True)
+        self.assertEqual((run / 'tool-state.json').read_bytes(), original_state)
 
     def test_missing_or_invalid_required_guide_does_not_publish_or_ingest(self):
         source = self.root / 'docs/skill-drafts/betaforge-valuation-review/SKILL.md'

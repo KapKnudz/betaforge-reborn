@@ -225,7 +225,7 @@ def _run_with_tools(tools, packet_path, prompt_path, output, timeout_seconds, ex
            'packet':str(Path(packet_path).resolve()),'identity':tools.identity,'smoke':smoke,'structured':structured,
            'revision_count':previous.get('revision_count',0),'review_feedback_sha256':previous.get('review_feedback_sha256'),
            'content_review_status':previous.get('content_review_status','unreviewed'),
-           'timeout_seconds':timeout_seconds,'implementation_sha256':{name:hashlib.sha256((Path(__file__).parent/name).read_bytes()).hexdigest() for name in (('tools.py','financials.py','codex_runner.py','storage.py','analysis_report.py') if structured else ('tools.py','financials.py','codex_runner.py','storage.py'))},'thread_id':previous.get('thread_id'),
+           'timeout_seconds':timeout_seconds,'implementation_sha256':{name:hashlib.sha256((Path(__file__).parent/name).read_bytes()).hexdigest() for name in (('tools.py','financials.py','codex_runner.py','storage.py','management_history.py','analysis_report.py') if structured else ('tools.py','financials.py','codex_runner.py','storage.py','management_history.py'))},'thread_id':previous.get('thread_id'),
            'turn_id':None,'turns':previous.get('turns',[]),'usage':previous.get('usage',[]),
            'unexpected_tools':[],'resume_count':previous.get('resume_count',0)+int(resume)}
     if resume and previous.get('identity') != tools.identity:raise ValueError('Run evidence changed')

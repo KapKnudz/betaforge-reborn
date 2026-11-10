@@ -25,6 +25,7 @@ work/plan.json → local research workbench ← explicit company catalogue + sav
 | Acquisition | `betaforge/borsdata.py`, fetch scripts | Download original responses with safe diagnostics; preserve sources. |
 | Evidence | `betaforge/storage.py` | Normalize observations, keep definitions/provenance/revisions, freeze SQLite and source blobs. |
 | Preparation | `scripts/prepare_codex_packet.py` | Select one issuer and freeze reports, evidence, policy and context for a run. |
+| Curated history evidence | `betaforge/management_history.py` | Validate optional sourced party/role/ownership history and complete captured transaction links; no identity inference or financial arithmetic. |
 | Report preparation | `scripts/prepare_reports.py` | Verify preserved PDF identities and produce physical-page text; keep the full archive separate from mandatory reading. |
 | Arithmetic | `betaforge/financials.py` | Named, versioned deterministic formulas defined in [calculations](calculations.md). |
 | Analyst access | `betaforge/tools.py` | Bounded reads, saved inputs, provenance and calculation calls. |
