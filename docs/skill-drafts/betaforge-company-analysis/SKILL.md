@@ -21,6 +21,8 @@ Read the [calculation guide](references/calculations.md) before selecting valuat
 
 Identify the company/security, cutoff, dated purchase price, currency, ownership basis and horizon. Complete required report reading, including the five latest annuals where available and relevant current interims. Use compatible latest quarter/R12 flows and closing balances for current questions; use five-to-ten-year history where available for context.
 
+Complete the [material-event and security-scope check](references/business-evidence.md#check-material-events-and-security-scope) under the frozen [scope policy](../../analysis-policy.md#material-events-and-security-scope). Use admitted evidence only; report incomplete disclosure coverage or material exclusions beside the conclusion and returns. The coordinator researches missing disclosures before freezing a separate packet; the frozen analyst cannot browse.
+
 Reconcile each material selected input with the report and provider definition: period, units, reported/adjusted basis, group/parent scope, acquisitions and source revisions. Save report substitutions and assumptions with exact references. A missing optional input stays a local qualification; continue the useful supported analysis.
 
 Completion: material inputs have a stated meaning and saved source, or an explicit assumption/gap.
@@ -59,7 +61,7 @@ Select the exit multiple on the same earnings/claims basis as the forecast. Iden
 
 Explain which operating changes drive forecast EBIT and which part of the investment case depends on a change in the multiple. If rerating is material to the call, use the existing scenario calculation at a defensible lower multiple with the same operating and cash assumptions. State whether the return still clears the hurdle.
 
-Support forecast cash with an earnings path or horizon average and material noncash, tax, interest, working-capital, investment and lease adjustments. Show cash uses, acquisitions, claim settlements, minorities and common dividends before retained cash. Complete the debt/claims/assets/share bridge once; identify financing or dilution needed to fund the case. State material post-statement events and any transaction scope the case excludes.
+Support forecast cash with an earnings path or horizon average and material noncash, tax, interest, working-capital, investment and lease adjustments. Show cash uses, acquisitions, claim settlements, minorities and common dividends before retained cash. Complete the debt/claims/assets/share bridge once; identify financing or dilution needed to fund the case, following the event check above.
 
 Follow the [probability policy](../../analysis-policy.md#probabilities-and-returns). If comparable outcome frequencies or a documented elicitation support company-specific weights, save the rationale and source references for all cases. State omitted outcomes and show a justified alternative allocation when it could change the conclusion. When evidence is too thin, omit weights for all cases and use `probability_limits` to explain the gap. An equal split also requires evidence.
 
