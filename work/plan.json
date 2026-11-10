@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-09T22:39:49.753266+00:00",
+  "updated_at": "2026-11-10T10:29:38.660485+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "cloud-project-setup",
+  "next_task": "peer-workflow-from-pilot",
   "milestones": [
     {
       "id": "foundation",
@@ -1201,12 +1201,43 @@
       ],
       "blocker": "Nested Codex authentication cannot refresh; loading the project defaults also needs explicit approval to trust this repository. Reusable environment Edit/Publish controls are unavailable in this chat.",
       "note": "Portable executable discovery is implemented: explicit --codex wins, then PATH, then an existing executable Mac bundle; missing executables fail before creating a run. Sol/xhigh, evidence restrictions, formulas and implementation-hash guards are unchanged. Independent Sol/high read-only review found no actionable issues. Full restored-state suite: 241 tests, OK with no skips; all 16 runner checks pass. Six earlier private releases passed archive size/checksum, safe member and staging checks; 9,210 absent ignored files copied, identical existing files retained, and conflicting immutable groups preserved separately. Twelve additional packets and fourteen database copies passed source/report/contract/blob and integrity/foreign-key checks; the four earlier pilot packets/stores remain verified. All 967 original checkpoint files remain byte-identical. The loopback workbench now has 30 captured companies, 10 with memos, 18 memo IDs and preserved stored quotes; 47 HTTP checks and desktop catalogue/empty-state/Granges/Lime checks passed. The incompatible historical export remains unchanged and excluded. Effective nested project defaults are currently disabled because this checkout is not trusted; automatic approval review rejected the persistent trust addition and specific user approval is pending. No global trust/auth/config change was applied. Nested authentication remains unavailable; no substitute model, fresh provider acquisition or full valuation. The reusable environment was not edited or republished. Published the focused setup change as PR #19 targeting main. Current-head Greploop receipt belongs in that PR conversation; user review/merge remains pending."
+    },
+    {
+      "id": "management-insider-evidence",
+      "milestone": "saved-review",
+      "title": "Connect management delivery and insider evidence to thesis confidence",
+      "status": "done",
+      "summary": "Require explicit management/insider checks and preserve frozen guidance through new packets and saved exports.",
+      "purpose": "Apply the adopted credibility and alignment philosophy consistently without changing saved valuations.",
+      "acceptance": [
+        "Update the existing company-analysis and independent-review workflow with bounded management commitment/outcome and insider-evidence checks, keeping unknown dates, definitions and coverage explicit.",
+        "Freeze selected role-specific analysis guides and their identities reliably into new packets and analyst prompts while preserving legacy packet and resume behavior.",
+        "Preserve read-only supplements for two existing frozen-evidence cases, reviewing material commitments, all relevant captured insider rows and the consequence for thesis confidence without rewriting historical memos or financial outputs.",
+        "Complete meaningful code checks and the full offline suite, independent read-only review, a focused main-targeted PR and the bounded current-head Greptile loop."
+      ],
+      "evidence": [
+        "scripts/prepare_codex_packet.py",
+        "betaforge/tools.py",
+        "tests/test_packet.py",
+        "tests/test_tools.py",
+        "docs/analysis-policy.md",
+        "docs/analysis-workflow.md",
+        "docs/codex-integration.md",
+        "docs/skill-drafts/betaforge-company-analysis/references/business-evidence.md",
+        "docs/skill-drafts/betaforge-valuation-review/SKILL.md",
+        "data/research-audits/20261110-management-insider/",
+        "betaforge/saved_view.py",
+        "tests/test_saved_view.py",
+        "https://github.com/KapKnudz/betaforge-reborn/pull/20"
+      ],
+      "blocker": null,
+      "note": "Implemented company-neutral policy/guide checks and automatic role-specific guide freezing for new packets, with analyst bodies in the actual hashed prompt and explicit manual reviewer handoff. Legacy packets/resumes and shared formulas are unchanged. New structured exports retain validated guide identities and load without their original packet. Greptile identified an export allowlist gap; the fix shares metadata validation and adds a real prepare/submit/CLI-export/standalone-load regression, including tamper and malformed-metadata checks. Affected checks: 91 passed. Final offline source suite: 241 tests, OK with one private-evidence class skipped. All 154 local documentation links/anchors, plan JSON and whitespace pass. Independent Sol/high implementation review and focused export recheck found no actionable findings. Two private retrospective supplements were independently accepted and final hash bindings verified; original source/artifact identities remain unchanged. A small private supplement archive passed clean restore; hosted asset upload returned HTTP 401 and no hosted backup is claimed. No new provider acquisition or valuation. PR #20 targets main; final current-head Greptile receipt belongs in its conversation and private handoff. User review and merge remain pending."
     }
   ],
   "session": {
-    "task": "cloud-project-setup",
-    "summary": "Cloud code/data/viewer setup is close to the local workbench: portable runner discovery, restored prior evidence and full offline checks pass. Nested authentication and explicit project trust remain blocked; reusable publication is not performed.",
-    "next_step": "Review PR #19 and the narrowly scoped project trust request. Reauthenticate nested Cloud Codex; verify effective Sol/xhigh and run a new bounded smoke. After user merge, update the reusable environment through Edit/Save/Publish and verify a fresh task."
+    "task": "management-insider-evidence",
+    "summary": "Implementation and private retrospective pilots are complete, with independent review and the export integration correction verified. PR #20 is published for user review.",
+    "next_step": "Complete the fresh current-head Greptile check and record its receipt in PR #20/private handoff without another status-only push. The user reviews/merges. Preserve the verified local private archive; hosted backup upload remains unavailable. Next roadmap task is peer-workflow-from-pilot."
   },
   "references": [
     {

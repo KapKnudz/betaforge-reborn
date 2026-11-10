@@ -21,6 +21,8 @@ Condense the [business brief](../betaforge-company-analysis/references/business-
 
 Show bear, base and bull returns. Explain the business conditions behind each case and what would weaken the thesis. Where peer evidence mattered, identify what changed or what sensitivity it prompted. Label comparisons used only as context. Use the [valuation guide](../betaforge-company-analysis/references/calculations.md) for calculations and return definitions.
 
+In Management, give a short conclusion from both [required evidence checks](../betaforge-company-analysis/references/business-evidence.md#check-management-delivery-and-insider-evidence): what material commitments and later outcomes show about delivery, and what the reviewed insider transactions show about alignment. State the consequence for thesis confidence and any material coverage or classification gap. Ownership levels alone do not describe buying or selling. Keep the compact historical record, transaction coverage and source details in supporting paragraphs; concise writing must not erase a pending deadline, revised definition or unresolved correction.
+
 If the evidence supports weights, put the qualified weighted result and its rationale in supporting valuation detail. Give the coordinator its saved calculation ID. If the cases are unweighted, record the reason and explain what would clear the hurdle. See the [export guide](../../saved-analysis-view.md#add-a-saved-company-run).
 
 ## 3. Choose visuals that answer a question

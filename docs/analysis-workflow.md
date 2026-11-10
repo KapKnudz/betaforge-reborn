@@ -18,11 +18,13 @@ one analyst → saved draft → independent challenge
 
 Select the company, information cutoff, dated price, required reports and material mapping decisions. Freeze the policy and formulas with the packet. Use at least the latest five annual reports where available and the interims needed for current results. A later execution or mapping-review date does not refresh the market price or create a point-in-time backtest.
 
+New packets also freeze the selected repository analyst guides into `prompt.md`, with role/path/hash metadata in `analysis_guides`, and preserve the reviewer guide for the explicit handoff below. Inspect that metadata and the actual prompt rather than assuming skill discovery loads the documents. Existing packets and resumes retain their original prompt and guidance; do not attach current guides silently. The [packet contract](codex-integration.md) owns the delivery details.
+
 Completion: the packet has explicit identities, source hashes, coverage requirements and a question that can be answered from the preserved evidence. Missing optional context remains identified.
 
 ## 2. Run one lead analyst
 
-When applying the draft guides manually, start a [business brief](skill-drafts/betaforge-company-analysis/references/business-evidence.md#write-the-business-brief-before-forecasting) from preserved issuer reports. The coordinator handles any targeted external checks before freezing evidence for a new run. The lead analyst finishes the brief from admitted evidence before selecting forecasts. Structured submission does not require a separate brief.
+Start a [business brief](skill-drafts/betaforge-company-analysis/references/business-evidence.md#write-the-business-brief-before-forecasting) from preserved issuer reports using the frozen guides. The coordinator handles any targeted external checks before freezing evidence for a new run. The lead analyst finishes the brief from admitted evidence before selecting forecasts. Structured submission does not require a separate brief.
 
 Use Sol/xhigh with the existing evidence tools and `--structured`:
 
@@ -35,6 +37,8 @@ Use Sol/xhigh with the existing evidence tools and `--structured`:
 
 The analyst reads the required reports, investigates material questions and submits six readable sections: thesis, earnings drivers, financial quality, management, valuation and risks. Facts, interpretations and assumptions carry distinct labels and saved references. Scenario values come from saved `valuation_case` outputs, with explicit dates and their precision. Management statements retain their wording, source, publication date, target period and definition.
 
+Complete the [management commitment/outcome and insider-evidence checks](skill-drafts/betaforge-company-analysis/references/business-evidence.md#check-management-delivery-and-insider-evidence) in the management section and supporting notes. Preserve material commitments across the available years, revisions, original definitions/deadlines, responsible management when known and later compatible outcomes. Review all relevant captured insider rows through the cutoff, with dates, correction candidates, type definitions and incentive context; do not treat dataset ordering as chronology or net unmatched categories. Each check ends with its consequence for thesis confidence or an explicit bounded gap. A report can remain useful with missing optional evidence; it cannot imply that an omitted check was completed.
+
 The report explains three to five drivers, useful quality diagnostics, one operating equation, the equity bridge, individual scenario returns, modest disappointments and evidence that would break the thesis. If the report uses weights, it explains their basis under the [probability policy](analysis-policy.md#probabilities-and-returns). A management ROCE target is compared with issuer ROCE. Related utilization or pricing guidance is labelled as a driver when shown beside EBIT margin.
 
 Apply the policy's [writing rules](analysis-policy.md#output-and-calculation-discipline). The opening explains the investment case and its main uncertainty in plain financial language; each important forecast connects evidence, business mechanism and magnitude. The [investor examples](research/investor-writing-examples.md) are optional source reading for the coordinator, not additional issuer evidence or a replacement investment strategy. Review the forecast rationale, cash explanation and conclusion for clarity as part of the existing challenge.
@@ -44,6 +48,8 @@ Completion: required pages are delivered and `submit_analysis` accepts the repor
 ## 3. Challenge the draft independently
 
 Dispatch a fresh Sol/xhigh reviewer with the same frozen evidence, policy, draft, saved inputs and calculations, and the manual business brief when used. The reviewer reads existing artifacts; it changes no files, starts no code, test, provider, model, browser or PDF-render runs, and grants no waivers. The coordinator saves its returned challenge as `draft-review.json` using `betaforge.tools.write_json`. If the draft is accepted, also save that exact review as `analysis-review.json` for display.
+
+For packets with `analysis_guides`, verify and deliver the frozen reviewer guide and the frozen analyst guides as part of that handoff, recording their paths/hashes. This remains a coordinator action, not automatic reviewer dispatch. The reviewer must check both management evidence chains and the stated confidence consequence, including any absence/coverage claim. Source identity and complete pagination do not establish economic meaning or management motives.
 
 Challenge the thesis. Cover business mechanics, management comparisons, financial definitions, earnings versus cash, capital allocation and dilution, operating forecasts, the multiple and equity bridge, return timing, any probability coverage and disconfirming evidence. Check how each material use of peer evidence affected the analysis. Cite file sections and saved references. For each finding, give a bounded verdict, reasoning and missing evidence. Distinguish a supported local claim from a broader unverified claim. Name any unresolved disagreement.
 

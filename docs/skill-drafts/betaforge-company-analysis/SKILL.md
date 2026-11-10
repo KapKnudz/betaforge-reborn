@@ -7,7 +7,7 @@ metadata:
 
 # Company analysis
 
-Draft for review, stored outside active skill discovery. Runner delivery and packet freezing are separate adoption work. Preserve historical analysis instructions and results.
+Repository guidance stored outside active skill discovery. New packets freeze the selected analyst guides into the prompt and preserve the reviewer guide for the coordinator's handoff. Use those frozen copies, not later edits to this directory. Preserve historical analysis instructions and results.
 
 ## Foundation and scope
 
@@ -28,6 +28,8 @@ Completion: material inputs have a stated meaning and saved source, or an explic
 ## 2. Explain the business and select initial calculations
 
 Complete the [business brief](references/business-evidence.md#write-the-business-brief-before-forecasting) from the preserved issuer evidence before selecting forecasts. Use the same guide to identify three to five drivers of earnings and cash and test pricing power, competitive advantages, management delivery, capital allocation and prospective dilution. Compare own history first, economically matched global peers second, and qualified industry data third. Use a frozen [market and peer brief](../betaforge-market-peer-research/SKILL.md) when supplied. The coordinator owns external research, and you own its forecast implications.
+
+Complete the guide's [management-delivery and insider-evidence checks](references/business-evidence.md#check-management-delivery-and-insider-evidence) and put their bounded conclusions in the management section. Use all relevant captured insider rows, not a first-page sample. If evidence or trade definitions are unavailable, state the coverage and unresolved interpretation rather than inferring no activity. Explain whether management delivery and alignment evidence support, weaken or leave unchanged confidence in the material assumptions; do not translate either into an automatic multiple or return adjustment.
 
 Select calculations by the question they answer:
 

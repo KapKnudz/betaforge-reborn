@@ -7,11 +7,13 @@ metadata:
 
 # Independent valuation review
 
-Draft for review, stored outside active skill discovery. It does not replace the existing review process or a historical review verdict.
+Repository guidance stored outside active skill discovery. New packets preserve this guide for the coordinator's explicit reviewer handoff; the controller does not dispatch the reviewer. It does not replace a historical review verdict.
 
 ## Mandate and evidence
 
 Use a fresh reviewer context with the frozen company packet, policy, submitted report, saved inputs and calculations. The coordinator supplies those artifacts and records your returned review. Follow [the existing workflow](../../analysis-workflow.md#3-challenge-the-draft-independently) and its review schema in [analysis_report.py](../../../betaforge/analysis_report.py).
+
+Use the packet's frozen reviewer and analyst guides when present and record their identities in the review handoff. Do not silently apply live repository edits to a historical run. For legacy packets, identify which separately supplied guidance governs a retrospective supplement; lack of the new metadata does not invalidate the original report.
 
 The canonical foundation is [analysis-policy.md](../../analysis-policy.md), derived from the combined investment philosophy, and the [calculation catalogue](../../calculations.md). Read the analyst's [calculation guide](../betaforge-company-analysis/references/calculations.md) and [memo structure](../betaforge-company-analysis/references/memo-structure.md) when assessing their application. Actual packet versions govern the saved run; identify legacy conventions rather than silently replacing them.
 
@@ -24,6 +26,7 @@ Treat the proposed conclusion as a hypothesis. For the two or three drivers that
 | Review question | Evidence to inspect |
 |---|---|
 | Does the thesis explain how money is earned? | Three to five operating/cash drivers; pricing power and competitive position; management delivery and capital allocation; plausible thesis-breaking evidence. |
+| Do the management checks support their conclusion? | Require explicit results or bounded evidence gaps for both [commitment/outcome and insider-evidence checks](../betaforge-company-analysis/references/business-evidence.md#check-management-delivery-and-insider-evidence). Inspect original commitments, revisions, responsible management where disclosed, deadlines and later comparable outcomes across available years. Check captured transaction coverage to exhaustion, date/correction/type/incentive qualifications and the consequence for confidence. Current target/latest actual or ownership levels alone do not complete these checks; missing terms do not establish dishonesty, no trades or an automatic valuation adjustment. |
 | Are material figures comparable? | Exact report/provider definitions, period/currency/scale, annual/R12 and fiscal conventions, reported/adjusted EBIT, group/parent scope and justified substitutions. Numeric agreement alone is insufficient. |
 | Do growth and profitability fit together? | Compatible history, capacity/demand/mix and scope changes; support for exceptional scale and margin in one central case; a coherent operating disappointment. |
 | Is the multiple independently defended? | Earnings/claim consistency, business economics, own history and matched peers. Distinguish an independently supported estimate from a maintained-current-multiple condition; reverse-implied EBIT does not independently validate its assumptions. |

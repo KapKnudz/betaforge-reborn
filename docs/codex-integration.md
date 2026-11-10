@@ -30,6 +30,17 @@ A valid selected instrument ID is required. Paths resolve relative to the packet
 
 The packet builder additionally freezes the adopted policy/calculation catalogue and optional industry/market context with source-file hashes. It requires explicit company ID, report corpus, prompt and analysis date. Company reconciliations and extra sourced facts are optional explicit inputs, not issuer defaults. [Preparation command](../scripts/prepare_codex_packet.py), [retrieval contract](retrieval-design.md).
 
+New preparations also copy a fixed selection of role guides under `analysis-guides/`, preserving the skill/reference directory layout:
+
+- Analyst: [company-analysis](skill-drafts/betaforge-company-analysis/SKILL.md), its [business evidence](skill-drafts/betaforge-company-analysis/references/business-evidence.md), [calculations](skill-drafts/betaforge-company-analysis/references/calculations.md) and [memo structure](skill-drafts/betaforge-company-analysis/references/memo-structure.md) references, and [financial report](skill-drafts/betaforge-financial-report/SKILL.md).
+- Reviewer: [valuation review](skill-drafts/betaforge-valuation-review/SKILL.md).
+
+The separate `analysis_guides` list records each guide's `role` (`analyst` or `reviewer`), repository-relative `source_path`, packet-relative `path` and byte-level `sha256`. The financial `analysis_contract` remains policy and calculations only. Missing or invalid UTF-8 required guides fail preparation before publication or store ingestion. The builder appends the complete analyst guide bodies, labelled with source paths and hashes, to the supplied company prompt and then hashes the resulting packet `prompt.md`. Pass that **packet's `prompt.md`** to `--prompt`; the original company prompt will fail the packet's prompt identity check. The reviewer guide is preserved for the coordinator's manual handoff.
+
+`EvidenceTools` verifies supplied guide roles, paths, duplicate identities and content hashes, records their metadata in saved run identity, and exposes the metadata through `get_catalogue`. `source_path` is an identity label; loading or resuming never reads a live guide from that location. These checks establish delivered document identity, not semantic completeness or adherence. Packets without `analysis_guides` retain their existing behavior; loading or resuming never adds guides or rewrites a saved prompt.
+
+Structured saved exports retain this optional guide metadata in the canonical report identity. Export verifies the original frozen files; standalone saved-view loading checks the retained metadata's shape, roles, paths and hashes without requiring the original packet or reading live guide files. Older exports without guide metadata remain supported.
+
 ## Tool contract
 
 - `read_report`: complete consecutive physical pages up to 45,000 characters; follows `next_page` and persists delivery coverage. Delivery is not proof of human-like comprehension.
@@ -52,6 +63,8 @@ Remove the `CANCEL` marker before deliberate continuation, then rerun the same c
 
 New packets also freeze and verify the adopted policy/catalogue and optional industry/market contexts with source-file hashes. Resume now requires identical complete implementation hashes for tools, formulas, storage and runner. An old or changed implementation needs a separate run; the controller cannot silently mix financial definitions in one run.
 
+When present, frozen guide metadata and hashes are also part of the checked evidence identity. Changes to a guide body, role, source label or packet path require a separately identified packet/run. Editing the repository's current guide documents does not change a frozen packet.
+
 Prior invocation metadata and answers are retained under `prior-invocations/` on deliberate resume.
 
 Artifacts:
@@ -70,6 +83,23 @@ Use `--structured` for new philosophy-based reports. `submit_analysis` validates
 The controller writes `analysis.json` and a readable `answer.md`, recording the exact report, input and calculation artifact hashes. Structured completion requires delivered mandatory pages and an accepted submission. This is a structural and identity check, not an assessment of the investment thesis. Existing unstructured runs and smoke checks retain their original contracts.
 
 The session coordinator obtains an independent read-only Sol/xhigh challenge following [the analysis workflow](analysis-workflow.md). The controller does not dispatch financial subagents itself. Review feedback is tied to the packet and exact draft hash. `--resume --structured --review-feedback PATH` permits one explicit revision, preserves draft artifacts, and reopens at most two targeted research rounds. Structured analyst execution has a cumulative 7,200-second limit across continuations. The original prompt and implementation identity remain fixed; feedback has its own saved hash. A revised report remains pending content review until independently checked.
+
+For that manual reviewer dispatch, the coordinator must explicitly supply the complete **frozen reviewer and analyst guides**, including their role/path/hash metadata, alongside the exact report and evidence/record references required by the workflow. A live repository link or a hash alone does not deliver the guide. For a new structured run, the existing saved tool state can verify and load the handoff bodies without reading current repository documents:
+
+```python
+from betaforge.tools import EvidenceTools
+
+tools = EvidenceTools(packet_path, run_dir, resume=True, structured=True)
+try:
+    guide_handoff = [
+        {**entry, "text": tools.analysis_guide_texts[entry["path"]]}
+        for entry in tools.identity.get("analysis_guides", [])
+    ]
+finally:
+    tools.store.close()
+```
+
+Include `guide_handoff` in the reviewer's actual context or attach those verified frozen files and require their reading. Record the identities used with the manual review receipt. An empty list means the historical packet did not freeze these guides; preserve that limitation rather than silently substituting current documents. There is no automatic reviewer dispatch or guide update on resume.
 
 ## Protocol and verification scope
 

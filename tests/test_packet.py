@@ -2,13 +2,15 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import prepare_codex_packet as packet
 from betaforge.tools import EvidenceTools
+from betaforge import codex_runner
 
 
 class PacketTests(unittest.TestCase):
@@ -30,6 +32,10 @@ class PacketTests(unittest.TestCase):
         (self.root / "docs").mkdir()
         (self.root / "docs/analysis-policy.md").write_text("Test adopted policy")
         (self.root / "docs/calculations.md").write_text("Test explicit formulas")
+        for role, name in packet.ANALYSIS_GUIDE_SOURCES:
+            source = self.root / "docs/skill-drafts" / name
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text(f"Unique {role} body: {name}\n")
         self.prompt = self.root / "company-prompt.md"
         self.prompt.write_text("Test prompt")
         self.facts = self.root / "facts.json"
@@ -80,6 +86,78 @@ class PacketTests(unittest.TestCase):
             self.build()
         self.assertFalse((self.root / "published").exists())
         self.assertFalse(list(self.root.glob('.prepare-*')))
+
+    def test_guides_are_frozen_deterministically_and_delivered_in_actual_turn(self):
+        result = self.build()
+        data = json.loads(result.read_text())
+        guides = data['analysis_guides']
+        self.assertEqual([entry['role'] for entry in guides], ['analyst'] * 5 + ['reviewer'])
+        prompt = (result.parent / 'prompt.md').read_text()
+        self.assertTrue(prompt.startswith('Test prompt\n'))
+        self.assertEqual(packet.digest(result.parent / 'prompt.md'), data['prompt_sha256'])
+        with self.assertRaisesRegex(ValueError, 'Prompt does not match frozen packet hash'):
+            codex_runner.verify_prompt(data, self.prompt.read_text())
+        duplicate = self.root / 'duplicate-guides'
+        duplicate.mkdir()
+        with patch.object(packet, 'ROOT', self.root):
+            metadata, appended = packet.copy_analysis_guides(duplicate)
+        self.assertEqual(metadata, guides)
+        self.assertEqual(prompt, self.prompt.read_text() + appended)
+        for entry in guides:
+            source = self.root / entry['source_path']
+            frozen = result.parent / entry['path']
+            self.assertEqual(frozen.read_bytes(), source.read_bytes())
+            self.assertEqual(packet.digest(frozen), entry['sha256'])
+            source.write_text('Live guidance changed after packet creation')
+            if entry['role'] == 'analyst':
+                self.assertIn(frozen.read_text(), prompt)
+                self.assertIn(entry['sha256'], prompt)
+            else:
+                self.assertNotIn(frozen.read_text(), prompt)
+
+        # Exercise the real runner's turn construction with an offline protocol double.
+        server = Mock()
+        server.request.side_effect = lambda method, params: method
+        server.wait_response.side_effect = lambda request, deadline, handle: {
+            'initialize': {}, 'thread/start': {'model': 'gpt-6.1-sol', 'thread': {'id': 'thread'}},
+            'turn/start': {'turn': {'id': 'turn'}}}[request]
+        server.next.side_effect = [
+            {'id': 'read', 'method': 'item/tool/call', 'params': {
+                'tool': 'read_report', 'arguments': {'report_id': 'issuer-test', 'start_page': 1}, 'callId': 'read'}},
+            {'method': 'item/completed', 'params': {'item': {
+                'type': 'agentMessage', 'phase': 'final_answer', 'text': 'Offline fixture complete.'}}},
+            {'method': 'turn/completed', 'params': {'turn': {'id': 'turn', 'status': 'completed'}}},
+        ]
+        with patch.object(codex_runner, 'AppServer', return_value=server), \
+             patch.object(codex_runner.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, 'offline')):
+            state = codex_runner.run(result, result.parent / 'prompt.md', self.root / 'guide-run',
+                                     executable=sys.executable, timeout_seconds=5)
+        self.assertEqual(state['status'], 'completed')
+        turn = next(call.args[1] for call in server.request.call_args_list if call.args[0] == 'turn/start')
+        delivered = turn['input'][0]['text']
+        self.assertTrue(delivered.startswith(prompt))
+        self.assertNotIn('Live guidance changed', delivered)
+        self.assertEqual(state['identity']['analysis_guides'], guides)
+        tools = EvidenceTools(result, self.root / 'guide-run', resume=True)
+        try:
+            self.assertEqual(tools.catalogue()['analysis_guides'], guides)
+            reviewer = next(entry for entry in guides if entry['role'] == 'reviewer')
+            self.assertEqual(tools.analysis_guide_texts[reviewer['path']],
+                             (result.parent / reviewer['path']).read_text())
+        finally:
+            tools.store.close()
+
+    def test_missing_or_invalid_required_guide_does_not_publish_or_ingest(self):
+        source = self.root / 'docs/skill-drafts/betaforge-valuation-review/SKILL.md'
+        source.unlink()
+        for body, error in ((None, FileNotFoundError), (b'\xff', UnicodeDecodeError)):
+            if body is not None:
+                source.write_bytes(body)
+            with self.subTest(body=body), self.assertRaises(error):
+                self.build()
+            self.assertFalse((self.root / 'published').exists())
+            self.assertFalse((self.root / 'store').exists())
+            self.assertFalse(list(self.root.glob('.prepare-*')))
 
     def archive_fixture(self):
         annuals = [f"issuer-annual-{year}" for year in range(2021, 2026)]
@@ -145,6 +223,18 @@ class PacketTests(unittest.TestCase):
             self.build(required_reports=required)
         self.assertFalse((self.root / "published").exists())
         self.assertFalse(list(self.root.glob('.prepare-*')))
+
+    def test_prompt_hash_matches_delivered_text_with_windows_newlines(self):
+        self.prompt.write_bytes(b'Company instructions\r\nSecond line\r\n')
+        source = self.root / 'docs/skill-drafts/betaforge-company-analysis/SKILL.md'
+        source.write_bytes('Sourced guidance: ä\r\n'.encode('utf-8'))
+        result = self.build()
+        data = json.loads(result.read_text())
+        delivered = (result.parent / 'prompt.md').read_text()
+        self.assertEqual(codex_runner.verify_prompt(data, delivered), data['prompt_sha256'])
+        self.assertNotIn('\r', delivered)
+        frozen = result.parent / data['analysis_guides'][0]['path']
+        self.assertEqual(frozen.read_bytes(), source.read_bytes())
 
     def test_financial_context_keeps_period_provider_and_source_dates_distinct(self):
         payload = {"instrument": 426, "reports": [{

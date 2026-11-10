@@ -1,6 +1,6 @@
 # Betaforge analysis policy
 
-Version 4, 9 November 2026. Scenario weights require a defensible basis, and peer evidence must have a stated effect on the analysis. Each new analysis freezes this file and the [calculation catalogue](calculations.md) with their hashes. Historical packets retain their original instructions and results.
+Version 5, 10 November 2026. Management delivery and insider evidence require explicit, qualified checks; formulas and the valuation method are unchanged. Each new analysis freezes this file and the [calculation catalogue](calculations.md) with their hashes. Historical packets retain their original instructions and results.
 
 ## Purpose and sources
 
@@ -20,6 +20,8 @@ This policy combines the case-oriented principles in the [supplied Hedborg synth
 8. Require a defensible multiple and complete equity bridge. Historical multiples provide context; multiple expansion needs its own rationale and cannot rescue unsupported earnings.
 9. Name evidence that would weaken or invalidate the thesis. A price decline alone is not an operating thesis break, and an improving business does not justify any price.
 10. Produce useful conditional valuations when evidence is incomplete. Localize the missing input; do not invent it or block unrelated analysis.
+
+The management section must report the [commitment/outcome and insider-evidence checks](skill-drafts/betaforge-company-analysis/references/business-evidence.md#check-management-delivery-and-insider-evidence). Compare material commitments across the available years, including revisions and later outcomes on their original basis, and explain their consequence for confidence in the thesis. Keep standing ambitions, dated promises, pending outcomes and missing evidence distinct. Review the captured insider transactions through the cutoff with their coverage, corrections, trade types and incentive context; ownership levels alone do not complete that check. State a bounded result or an explicit evidence gap for each check. Neither a missed target nor a purchase or sale supplies a mechanical credibility score or valuation adjustment.
 
 ## Evidence and comparisons
 
