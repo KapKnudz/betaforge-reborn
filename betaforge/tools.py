@@ -23,33 +23,41 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def read_analysis_guides(base, entries):
-    """Validate supplied frozen guides without consulting their live source paths."""
+def validate_analysis_guide_metadata(entries):
+    """Check retained guide identities without reading files or resolving live paths."""
     if not isinstance(entries, list) or not entries:
         raise ValueError('Analysis guides must be a nonempty list')
-    texts, sources = {}, set()
+    paths, sources = set(), set()
     for entry in entries:
         if (not isinstance(entry, dict) or set(entry) != {'role', 'source_path', 'path', 'sha256'} or
                 entry['role'] not in ('analyst', 'reviewer')):
             raise ValueError('Invalid analysis guide role or metadata')
         for key in ('path', 'source_path'):
             value = entry[key]
-            if (not isinstance(value, str) or not value or '\\' in value or
+            if (not isinstance(value, str) or not value or '\\' in value or '\x00' in value or
                     Path(value).is_absolute() or '..' in Path(value).parts or
                     Path(value).as_posix() != value or value == '.'):
                 raise ValueError('Invalid analysis guide path')
-        path = (base / entry['path']).resolve()
-        if not path.is_relative_to(base):
-            raise ValueError('Analysis guide path escapes packet')
-        if entry['path'] in texts or entry['source_path'] in sources:
+        if entry['path'] in paths or entry['source_path'] in sources:
             raise ValueError('Duplicate analysis guide path or source')
         if not isinstance(entry['sha256'], str) or not re.fullmatch(r'[0-9a-f]{64}', entry['sha256']):
             raise ValueError('Invalid analysis guide hash')
+        paths.add(entry['path'])
+        sources.add(entry['source_path'])
+
+
+def read_analysis_guides(base, entries):
+    """Validate supplied frozen guides without consulting their live source paths."""
+    validate_analysis_guide_metadata(entries)
+    texts = {}
+    for entry in entries:
+        path = (base / entry['path']).resolve()
+        if not path.is_relative_to(base):
+            raise ValueError('Analysis guide path escapes packet')
         body = path.read_bytes()
         if hashlib.sha256(body).hexdigest() != entry['sha256']:
             raise ValueError('Analysis guide hash mismatch')
         texts[entry['path']] = body.decode('utf-8')
-        sources.add(entry['source_path'])
     return texts
 
 

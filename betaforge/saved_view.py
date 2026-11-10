@@ -609,7 +609,7 @@ def _validate_structured_view(view):
         probability_weights, render_markdown, text, validate_review,
     )
     from betaforge.financials import FORMULAS
-    from betaforge.tools import unit_dimensions
+    from betaforge.tools import unit_dimensions, validate_analysis_guide_metadata
     report, provenance = view["analysis"], view["provenance"]
     fields(report, ("schema_version", "analysis_date", "summary", "sections", "management_comparisons", "scenarios",
                     "probability_limits", "identity", "validation_status", "review_status"))
@@ -626,7 +626,9 @@ def _validate_structured_view(view):
         raise ValueError("Structured narrative differs from canonical analysis")
     identity = report["identity"]
     fields(identity, ("packet_sha256", "database_sha256", "reports", "source_manifest_sha256"),
-           ("analysis_contract", "benchmark_context", "market_benchmark_context"))
+           ("analysis_contract", "analysis_guides", "benchmark_context", "market_benchmark_context"))
+    if "analysis_guides" in identity:
+        validate_analysis_guide_metadata(identity["analysis_guides"])
     for key in ("packet_sha256", "database_sha256", "source_manifest_sha256"):
         if not isinstance(identity[key], str) or not HASH.fullmatch(identity[key]):
             raise ValueError("Invalid canonical evidence identity")

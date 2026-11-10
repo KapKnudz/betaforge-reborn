@@ -2,6 +2,7 @@ import hashlib
 import copy
 import json
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -792,6 +793,7 @@ class StructuredSavedViewTests(unittest.TestCase):
 
     def test_exports_actual_completed_run_without_legacy_review_or_summary(self):
         view = self.build()
+        self.assertNotIn("analysis_guides", view["analysis"]["identity"])
         self.assertFalse((self.run / "review-summary.json").exists())
         self.assertEqual(view["analysis"], json.loads((self.run / "analysis.json").read_text()))
         self.assertEqual(view["original_calculations"], list(self.tools.state["calculations"].values()))
@@ -804,6 +806,79 @@ class StructuredSavedViewTests(unittest.TestCase):
         output = self.root / "view.json"
         SavedViewTests.write(output, view)
         self.assertEqual(load_saved_view(output), view)
+
+    def test_new_prepared_guides_export_and_load_without_original_packet(self):
+        from scripts.prepare_codex_packet import prepare
+        from scripts.export_saved_analysis import main
+        from test_analysis_report import AnalysisReportTests
+        from betaforge.tools import EvidenceTools
+
+        self.tools.store.close()
+        prompt = self.root / "company-prompt.md"
+        prompt.write_text("Analyze the supplied frozen issuer evidence.")
+        self.packet = prepare(
+            [self.root / "source", self.root / "price-capture"], self.root / "new-packet",
+            self.root / "new-live/evidence.sqlite3", None, self.root / "reports",
+            analysis_date="2026-11-04", instrument_id=426, prompt_path=prompt,
+        )
+        self.run = self.root / "new-guide-run"
+        self.tools = EvidenceTools(self.packet, self.run, structured=True)
+        self.addCleanup(self.tools.store.close)
+        self.tools.submit_analysis(AnalysisReportTests.report(self))
+        self.run_data.update(identity=self.tools.identity, coverage=self.tools.coverage())
+        self.persist_run()
+        guides = json.loads(self.packet.read_text())["analysis_guides"]
+        self.assertEqual([entry["role"] for entry in guides], ["analyst"] * 5 + ["reviewer"])
+        view = build_saved_view(None, self.run, self.packet.parent, "Sample", "SAMP", "sample-20261104", "Structured")
+        self.assertEqual(view["analysis"]["identity"]["analysis_guides"], guides)
+        output = self.root / "data/guides-view.json"
+        with patch("scripts.export_saved_analysis.__file__", str(self.root / "scripts/export_saved_analysis.py")):
+            self.assertEqual(main(["--run", str(self.run), "--packet", str(self.packet.parent), "--company", "Sample",
+                                   "--ticker", "SAMP", "--id", "sample-20261104", "--method", "Structured",
+                                   "--output", str(output)]), 0)
+        self.assertEqual(load_saved_view(output), view)
+        # Export still verifies frozen bodies; the standalone view retains metadata only.
+        (self.packet.parent / guides[0]["path"]).write_text("Changed frozen guide")
+        with self.assertRaisesRegex(ValueError, "Analysis guide hash mismatch"):
+            build_saved_view(None, self.run, self.packet.parent, "Sample", "SAMP", "sample-20261104", "Structured")
+        self.tools.store.close()
+        shutil.rmtree(self.packet.parent)
+        self.assertEqual(load_saved_view(output), view)
+
+    def test_standalone_view_validates_optional_guide_metadata(self):
+        view = self.build()
+        entry = {"role": "reviewer", "source_path": "docs/reviewer/SKILL.md",
+                 "path": "analysis-guides/reviewer/SKILL.md", "sha256": "a" * 64}
+        output = self.root / "guide-metadata-view.json"
+
+        def save(entries):
+            changed = copy.deepcopy(view)
+            changed["analysis"]["identity"]["analysis_guides"] = entries
+            signature = hashlib.sha256(json.dumps(changed["analysis"], indent=2, ensure_ascii=False).encode()).hexdigest()
+            changed["provenance"].update(analysis_sha256=signature, summary_sha256=signature)
+            SavedViewTests.write(output, changed)
+            return changed
+
+        # Neither this source label nor this packet path exists in the saved view's directory.
+        valid = save([entry])
+        self.assertEqual(load_saved_view(output), valid)
+        invalid = [None, {}, [], [None], [dict(entry, role="unknown")], [dict(entry, role=[])],
+                   [dict(entry, sha256="bad")], [dict(entry, sha256=1)], [dict(entry, sha256="A" * 64)],
+                   [dict(entry, extra="unexpected")], [entry, entry], [dict(entry, role="analyst", text="live body")]]
+        missing = dict(entry)
+        missing.pop("role")
+        invalid.append([missing])
+        for key in ("path", "source_path"):
+            for value in ("/absolute.md", "../outside.md", "guides/../review.md", "guides\\review.md",
+                          "./guides/review.md", "guides//review.md", "", ".", None, "guides/\x00review.md"):
+                invalid.append([dict(entry, **{key: value})])
+        invalid.extend(([entry, dict(entry, source_path="docs/other.md")],
+                        [entry, dict(entry, path="analysis-guides/other.md")]))
+        for entries in invalid:
+            with self.subTest(entries=entries):
+                save(entries)
+                with self.assertRaisesRegex(ValueError, "(?i)analysis guide"):
+                    load_saved_view(output)
 
     def test_cli_omits_review_for_structured_run(self):
         from scripts.export_saved_analysis import main

@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updated_at": "2026-11-10T10:18:21.378149+00:00",
+  "updated_at": "2026-11-10T10:29:38.660485+00:00",
   "goal": "Explainable company valuation from preserved evidence, with inspectable decisions and a simple local interface.",
   "scope": "Personal use; ordinary operating companies first. Review saved analyses before adding analysis launch and refresh controls. Agents update this plan during working sessions; the user reviews and merges PRs.",
-  "next_task": "management-insider-evidence",
+  "next_task": "peer-workflow-from-pilot",
   "milestones": [
     {
       "id": "foundation",
@@ -1206,8 +1206,8 @@
       "id": "management-insider-evidence",
       "milestone": "saved-review",
       "title": "Connect management delivery and insider evidence to thesis confidence",
-      "status": "in_progress",
-      "summary": "Require explicit management and insider checks in the existing workflow and test them on preserved evidence.",
+      "status": "done",
+      "summary": "Require explicit management/insider checks and preserve frozen guidance through new packets and saved exports.",
       "purpose": "Apply the adopted credibility and alignment philosophy consistently without changing saved valuations.",
       "acceptance": [
         "Update the existing company-analysis and independent-review workflow with bounded management commitment/outcome and insider-evidence checks, keeping unknown dates, definitions and coverage explicit.",
@@ -1225,16 +1225,19 @@
         "docs/codex-integration.md",
         "docs/skill-drafts/betaforge-company-analysis/references/business-evidence.md",
         "docs/skill-drafts/betaforge-valuation-review/SKILL.md",
-        "data/research-audits/20261110-management-insider/"
+        "data/research-audits/20261110-management-insider/",
+        "betaforge/saved_view.py",
+        "tests/test_saved_view.py",
+        "https://github.com/KapKnudz/betaforge-reborn/pull/20"
       ],
       "blocker": null,
-      "note": "Implemented company-neutral policy/guide checks and automatic role-specific guide freezing for new packets, with analyst bodies in the actual hashed prompt and explicit manual reviewer handoff. Legacy packets/resumes and shared formulas are unchanged. Targeted packet/tools/runner checks: 49 passed. Full offline source suite: 239 tests, OK with one private-evidence class skipped. All 154 local documentation links/anchors, plan JSON and whitespace pass. Independent Sol/high source review found no actionable findings. Two retrospective private supplements cover all relevant captured rows with correction/type/ownership limits; fresh independent Sol/high review accepted both supplements and verified their final hashes; private supplement archival and PR review remain. No new provider acquisition or valuation."
+      "note": "Implemented company-neutral policy/guide checks and automatic role-specific guide freezing for new packets, with analyst bodies in the actual hashed prompt and explicit manual reviewer handoff. Legacy packets/resumes and shared formulas are unchanged. New structured exports retain validated guide identities and load without their original packet. Greptile identified an export allowlist gap; the fix shares metadata validation and adds a real prepare/submit/CLI-export/standalone-load regression, including tamper and malformed-metadata checks. Affected checks: 91 passed. Final offline source suite: 241 tests, OK with one private-evidence class skipped. All 154 local documentation links/anchors, plan JSON and whitespace pass. Independent Sol/high implementation review and focused export recheck found no actionable findings. Two private retrospective supplements were independently accepted and final hash bindings verified; original source/artifact identities remain unchanged. A small private supplement archive passed clean restore; hosted asset upload returned HTTP 401 and no hosted backup is claimed. No new provider acquisition or valuation. PR #20 targets main; final current-head Greptile receipt belongs in its conversation and private handoff. User review and merge remain pending."
     }
   ],
   "session": {
     "task": "management-insider-evidence",
-    "summary": "Implementation, full offline checks and independent source/private-supplement reviews passed; original research outputs remain unchanged.",
-    "next_step": "Archive the private supplements, publish the focused PR and complete the bounded current-head Greptile loop."
+    "summary": "Implementation and private retrospective pilots are complete, with independent review and the export integration correction verified. PR #20 is published for user review.",
+    "next_step": "Complete the fresh current-head Greptile check and record its receipt in PR #20/private handoff without another status-only push. The user reviews/merges. Preserve the verified local private archive; hosted backup upload remains unavailable. Next roadmap task is peer-workflow-from-pilot."
   },
   "references": [
     {

@@ -39,6 +39,8 @@ The separate `analysis_guides` list records each guide's `role` (`analyst` or `r
 
 `EvidenceTools` verifies supplied guide roles, paths, duplicate identities and content hashes, records their metadata in saved run identity, and exposes the metadata through `get_catalogue`. `source_path` is an identity label; loading or resuming never reads a live guide from that location. These checks establish delivered document identity, not semantic completeness or adherence. Packets without `analysis_guides` retain their existing behavior; loading or resuming never adds guides or rewrites a saved prompt.
 
+Structured saved exports retain this optional guide metadata in the canonical report identity. Export verifies the original frozen files; standalone saved-view loading checks the retained metadata's shape, roles, paths and hashes without requiring the original packet or reading live guide files. Older exports without guide metadata remain supported.
+
 ## Tool contract
 
 - `read_report`: complete consecutive physical pages up to 45,000 characters; follows `next_page` and persists delivery coverage. Delivery is not proof of human-like comprehension.
