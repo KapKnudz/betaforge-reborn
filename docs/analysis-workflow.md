@@ -82,3 +82,15 @@ The controller preserves the draft artifacts and frozen feedback. The analyst ad
 The reviewer may make one focused read-only check of the response. Save that returned review as `analysis-review.json`, bound to the final report. Without that check the revised report remains unreviewed; do not copy the draft verdict into the current-review file. If material issues remain, show them and stop; another automatic rewrite is outside this process.
 
 Export the saved run for the [local viewer](saved-analysis-view.md), then archive the evidence, draft, feedback, final report and review through the [private handoff](research-handoff.md). Opening the website reads saved results. It does not launch this process.
+
+## 5. Verify the effect of management evidence
+
+When reviewing a change to management or insider evidence, start with the saved memos. Define the comparison questions before reading the results and record the exact identities of the baseline and updated reports, inputs, calculations, histories and reviews. Keep the financial outputs unchanged during this initial audit.
+
+For each material finding, trace the source and its interpretation to a named forecast assumption, sensitivity, confidence qualification, monitoring condition or explicit reason for treating it as context only. Cite the actual memo passages and any saved input/calculation IDs. Separate financial treatment derived from disclosed instrument terms from interpretations of insider activity.
+
+Read that chain alongside the investment conclusion. If the conclusion stays the same, identify the decisive constraint, such as price, return or funding, and the evidence that would reopen the decision. An unchanged forecast or conclusion can be justified; missing transmission needs an explanation or a bounded correction. Do not require a numerical adjustment or a different investment call merely to demonstrate impact.
+
+Compare the baseline passages directly. Distinguish newly added or corrected reasoning, better support for an existing judgment, and reasoning that was already present. Record discretionary forecast changes separately. Complete captured-row delivery verifies coverage; this audit verifies how the memo uses the evidence. Neither establishes an isolated causal effect of the guidance or better forecast accuracy.
+
+Preserve the detailed comparison privately with exact citations and artifact hashes, then obtain a fresh independent read-only challenge. The public plan records the bounded result and next action. Request another valuation only if a specific unresolved question requires it; preserve the original outputs and the single-revision limit above.
