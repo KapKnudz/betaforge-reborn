@@ -23,6 +23,36 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def read_analysis_guides(base, entries):
+    """Validate supplied frozen guides without consulting their live source paths."""
+    if not isinstance(entries, list) or not entries:
+        raise ValueError('Analysis guides must be a nonempty list')
+    texts, sources = {}, set()
+    for entry in entries:
+        if (not isinstance(entry, dict) or set(entry) != {'role', 'source_path', 'path', 'sha256'} or
+                entry['role'] not in ('analyst', 'reviewer')):
+            raise ValueError('Invalid analysis guide role or metadata')
+        for key in ('path', 'source_path'):
+            value = entry[key]
+            if (not isinstance(value, str) or not value or '\\' in value or
+                    Path(value).is_absolute() or '..' in Path(value).parts or
+                    Path(value).as_posix() != value or value == '.'):
+                raise ValueError('Invalid analysis guide path')
+        path = (base / entry['path']).resolve()
+        if not path.is_relative_to(base):
+            raise ValueError('Analysis guide path escapes packet')
+        if entry['path'] in texts or entry['source_path'] in sources:
+            raise ValueError('Duplicate analysis guide path or source')
+        if not isinstance(entry['sha256'], str) or not re.fullmatch(r'[0-9a-f]{64}', entry['sha256']):
+            raise ValueError('Invalid analysis guide hash')
+        body = path.read_bytes()
+        if hashlib.sha256(body).hexdigest() != entry['sha256']:
+            raise ValueError('Analysis guide hash mismatch')
+        texts[entry['path']] = body.decode('utf-8')
+        sources.add(entry['source_path'])
+    return texts
+
+
 def write_json(path, value):
     temporary = Path(str(path) + '.tmp')
     temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False))
@@ -193,6 +223,10 @@ class EvidenceTools:
                 if set(self.analysis_contract) != {'policy','calculations'}:
                     raise ValueError('Analysis contract requires policy and calculations')
                 self.identity['analysis_contract'] = self.packet['analysis_contract']
+            self.analysis_guide_texts = {}
+            if 'analysis_guides' in self.packet:
+                self.analysis_guide_texts = read_analysis_guides(self.packet_path.parent, self.packet['analysis_guides'])
+                self.identity['analysis_guides'] = self.packet['analysis_guides']
             for benchmark_name in ('benchmark_context','market_benchmark_context'):
                 benchmark = self.packet.get(benchmark_name)
                 if not benchmark:
@@ -250,7 +284,8 @@ class EvidenceTools:
         return {'instrument_id': self.instrument, 'reports': [{'report_id': rid, 'pages': len(p), **({'publication_date': self.report_publication_dates.get(rid)} if self.structured else {})} for rid, p in self.reports.items()],
                 'datasets': self.packet.get('datasets', [d['dataset'] for d in self.store.list_datasets()]), 'context': self.packet.get('context', ''), 'initial_context':self.packet.get('initial_context',{}),
                 'coverage': self.coverage(), 'saved_input_ids': list(self.state['inputs']),
-                'calculation_ids': list(self.state['calculations']), 'research_rounds': self.state['rounds']}
+                'calculation_ids': list(self.state['calculations']), 'research_rounds': self.state['rounds'],
+                **({'analysis_guides': self.packet['analysis_guides']} if 'analysis_guides' in self.packet else {})}
 
     def get_calculation_definitions(self):
         return {'formulas': FORMULAS, 'analysis_contract': self.analysis_contract,

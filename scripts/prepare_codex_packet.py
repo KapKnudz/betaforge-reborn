@@ -13,6 +13,15 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from betaforge.storage import EvidenceStore
 
+ANALYSIS_GUIDE_SOURCES = (
+    ("analyst", "betaforge-company-analysis/SKILL.md"),
+    ("analyst", "betaforge-company-analysis/references/business-evidence.md"),
+    ("analyst", "betaforge-company-analysis/references/calculations.md"),
+    ("analyst", "betaforge-company-analysis/references/memo-structure.md"),
+    ("analyst", "betaforge-financial-report/SKILL.md"),
+    ("reviewer", "betaforge-valuation-review/SKILL.md"),
+)
+
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -61,6 +70,26 @@ def copy_contract(destination):
         contract[role] = {"path": target.relative_to(destination).as_posix(), "sha256": digest(target)}
         texts.append("\nFROZEN ANALYSIS " + role.upper() + "\n" + body.decode("utf-8"))
     return contract, "".join(texts)
+
+
+def copy_analysis_guides(destination):
+    """Freeze the selected role guides; deliver analyst bodies in the saved prompt."""
+    guides, texts = [], []
+    for role, name in ANALYSIS_GUIDE_SOURCES:
+        source = Path("docs/skill-drafts") / name
+        body = (ROOT / source).read_bytes()
+        target = destination / "analysis-guides" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(body)
+        entry = {"role": role, "source_path": source.as_posix(),
+                 "path": target.relative_to(destination).as_posix(), "sha256": digest(target)}
+        guides.append(entry)
+        # Decode every required guide, including the manual reviewer's guide, before publishing.
+        text = target.read_text(encoding="utf-8")
+        if role == "analyst":
+            texts.append("\n\nFROZEN ANALYST GUIDE | " + entry["source_path"] +
+                         " | sha256=" + entry["sha256"] + "\n" + text)
+    return guides, "".join(texts)
 
 
 def relative_source(base, value):
@@ -233,7 +262,9 @@ def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analys
             target.parent.mkdir(exist_ok=True)
             shutil.copyfile(source, target)
             extra_metadata.append({"path": target.relative_to(temporary).as_posix(), "sha256": digest(target)})
-        shutil.copyfile(prompt_path, temporary / "prompt.md")
+        guides, guide_text = copy_analysis_guides(temporary)
+        (temporary / "prompt.md").write_text(prompt_path.read_text(encoding="utf-8") + guide_text,
+                                             encoding="utf-8", newline="\n")
         contract, contract_text = copy_contract(temporary)
         benchmark_metadata, benchmark_text = (copy_benchmarks(benchmark_context, temporary) if benchmark_context else (None, ""))
         market_metadata, market_text = (copy_market_benchmark(market_benchmark_context,temporary,analysis_date) if market_benchmark_context else (None,''))
@@ -251,7 +282,7 @@ def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analys
         packet = {"instrument_id": instrument_id, "analysis_date": analysis_date,
                   "snapshot_dir": "snapshot", "reports_dir": "reports",
                   "required_reports": required,
-                  "analysis_contract": contract, "extra_report_facts": extra_metadata,
+                  "analysis_contract": contract, "analysis_guides": guides, "extra_report_facts": extra_metadata,
                   "context": context,
                   "prompt_sha256": digest(temporary / "prompt.md"),
                   "mapping_resolution_sha256": digest(temporary / "mapping-resolution.md")}

@@ -34,7 +34,7 @@ Codex can ignore project-local configuration until the checkout is trusted. Chec
 codex -m gpt-6.1-sol -c 'model_reasoning_effort="xhigh"'
 ```
 
-The valuation runner already passes Sol/xhigh explicitly. Its evidence-tool restrictions remain separate from ordinary project development. Local personal skills and wrappers are not portable dependencies. The analysis guides remain drafts under `docs/skill-drafts/`; follow [the analysis workflow](analysis-workflow.md) to freeze the selected guides explicitly rather than activating historical packets or installing drafts automatically.
+The valuation runner already passes Sol/xhigh explicitly. Its evidence-tool restrictions remain separate from ordinary project development. Local personal skills and wrappers are not portable dependencies. Guides remain outside active skill discovery under `docs/skill-drafts/`. New packet preparation freezes the selected analyst guides into the prompt and preserves reviewer guidance with role/path/hash identities; existing packets and resumes retain their original instructions. Follow [the analysis workflow](analysis-workflow.md) to verify delivery and explicitly hand the frozen guides to the reviewer.
 
 Never copy Mac `.env`, Codex authentication or account configuration into Cloud or Git. Authenticate the Cloud executable separately. `codex login status` can report a saved login whose token no longer refreshes; a successful bounded live check is separate evidence.
 

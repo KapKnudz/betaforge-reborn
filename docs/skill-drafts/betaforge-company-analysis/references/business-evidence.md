@@ -46,6 +46,26 @@ For a material claim, record: **observation and source â†’ economic mechanism â†
 
 Keep only the judgments material to the company. Do not require an exhaustive evidence table in the human memo; put a short explanation beside the assumption and source detail in the appendix.
 
+## Check management delivery and insider evidence
+
+Both checks are required in the existing management section. They are evidence and judgment checks, not new scores or valuation formulas. A retrospective supplement may complete them without rewriting a historical report or changing its saved financial outputs; identify the exact report and frozen cutoff it supplements.
+
+**Commitments and outcomes.** Search the available annual and interim history for the few material promises that bear on the thesis: financial guidance, operational projects, acquisitions, investment or cash delivery. Keep a compact record in existing notes or supporting report detail:
+
+- Original wording and source/page; publication date or explicitly unknown date; management or responsible body when disclosed. A later restatement does not establish when a target was first introduced.
+- Metric, accounting definition, business/ownership scope and original deadline. Distinguish a standing policy or medium-term ambition from a dated commitment.
+- Revisions, changed definitions and explanations, each with its source and date; preserve the original basis rather than substituting the latest target.
+- Later comparable outcomes and their periods/sources. Mark delivered, missed, pending, withdrawn, not comparable or unverified only as the evidence supports. Show material acquisition, FX or perimeter differences; an immature deadline is not a miss, and a rounded value may not establish a strict threshold.
+- What the record supports about delivery and candour, the strongest contrary evidence and the consequence for confidence in the material forecast assumptions. Separate management decisions from external shocks; a miss alone does not establish dishonesty.
+
+Cover the available years where material rather than repeating the current target against the latest quarter. If no relevant commitment can be established, identify the reports/periods searched and the remaining gap. Do not invent publication dates, responsibility, a project return or a categorical trust verdict.
+
+**Insider evidence.** Identify the captured dataset, capture/check date, analysis cutoff, transaction-date range and number of relevant rows reviewed. Page through the relevant captured rows to exhaustion, recording coverage or any gap. Dataset ordering is not necessarily trade-date ordering; a first page cannot establish the latest activity. Keep transaction and verification dates distinct and exclude information not admitted at the cutoff.
+
+Preserve row/source identifiers and original versions. Check correction or duplicate candidates before treating rows as separate events; if the capture supplies no reliable event/correction link, state that limit and do not silently deduplicate or add repeated rows together. Establish transaction-type definitions where evidence permits, and inspect incentive/other flags and terms. Separate discretionary purchases or sales from awards, exercises, transfers, related-company transactions and unknown categories. An unknown code or a blank flag is not proof of an open-market trade. Do not net unmatched categories or double-count a multi-leg incentive event. A zero/empty dataset establishes only the captured coverage, not no trading.
+
+Summarize the material dated observations, their size relative to disclosed personal ownership when comparable evidence exists, and whether they change confidence in alignment. Personal wealth, motives and complete current holdings may be unknown. Clustered buying may reflect a common incentive program; selling can have several explanations. Use the [checked Hedborg passage](../../../research/hedborg-podcast-evidence.md#checked-passages) as interpretation guidance, not as evidence for the issuer. State when transactions are context only and why. Keep register/issuer verification and unavailable terms explicit; do not fetch new evidence inside a frozen analyst run or make trades a mechanical signal.
+
 ## Select three to five drivers
 
 Choose the smallest set that explains earnings and cash. The following are possible drivers, not mandatory sector templates:

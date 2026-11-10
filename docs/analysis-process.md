@@ -40,7 +40,7 @@ The lead analyst and independent reviewer are separate roles. The reviewer reads
 
 ## Draft skill guides
 
-The local workbench lists these guides under **Architecture → Skills**. They describe intended use. The current runner delivers the packet policy and tools, while these guides are available for manual use as drafts.
+The local workbench lists these guides under **Architecture → Skills**. They remain outside active skill discovery. New packets freeze the selected analyst guides into the actual prompt and preserve reviewer guidance with role/path/hash identities. The coordinator explicitly supplies those frozen guides to the independent reviewer; dispatch remains manual. Legacy packets retain their original instructions. See [the delivery contract](codex-integration.md).
 
 | Guide | When to use it | Owner and output |
 | --- | --- | --- |
@@ -75,7 +75,7 @@ The inspectable reasoning is the saved rationale, selected evidence, assumptions
 
 **Agent judgment:** read the business, reconcile source differences, inspect original page images when extraction is ambiguous and select comparable periods, adjustment bases and ownership scope. Financial definitions must remain visible. See [policy: Financial quality](analysis-policy.md#financial-quality), [material input rules](material-inputs.md) and [Codex integration: Tool contract](codex-integration.md#tool-contract).
 
-**Draft manual practice:** start a [business brief](skill-drafts/betaforge-company-analysis/references/business-evidence.md#write-the-business-brief-before-forecasting) with preserved issuer reports. Explain why customers buy and which recent developments could change earnings or cash. The coordinator handles bounded external research on material gaps before freezing evidence for a new run. The runner does not require a separate brief.
+**Guided analyst practice:** start a [business brief](skill-drafts/betaforge-company-analysis/references/business-evidence.md#write-the-business-brief-before-forecasting) with preserved issuer reports. Explain why customers buy and which recent developments could change earnings or cash. The coordinator handles bounded external research on material gaps before freezing evidence for a new run. Structural submission does not require a separate brief.
 
 **Code-enforced:** `read_report` delivers complete consecutive physical pages within a bounded response and records delivery coverage. `search_reports` returns bounded snippets and does not increase full-page coverage. Financial/dataset queries are bounded and selected-company access is constrained. `record_input` saves a numeric assumption or a report input with report/page and a quote matching saved text; it creates a content-based input ID. See [`EvidenceTools.coverage`, `read_report`, `search_reports`, `get_financials`, `get_dataset`, `record_input` and `resolve_input`](../betaforge/tools.py).
 
@@ -87,7 +87,7 @@ The inspectable reasoning is the saved rationale, selected evidence, assumptions
 
 **Agent judgment:** connect each material forecast to its evidence anchor, business mechanism and selected magnitude. Test the joint growth/margin assumption against history, current evidence and capital needs. Explain multiple selection, retained cash, additional claims, non-operating assets and future diluted shares without counting benefits or claims twice. See [policy: Valuation methods](analysis-policy.md#valuation-methods) and [catalogue: Primary scenario bridge](calculations.md#primary-scenario-bridge-valuation_case).
 
-**Draft manual practice:** use the completed business brief to show what changes an assumption, warrants a sensitivity or remains context. Carry material unanswered questions into the affected case.
+**Guided analyst practice:** use the completed business brief to show what changes an assumption, warrants a sensitivity or remains context. Carry material unanswered questions into the affected case.
 
 **Code-enforced:** the analyst calls named financial formulas using saved IDs; the wrapper applies each original source scale once. Python Decimal arithmetic retains normalized inputs, formula/version, outputs, units, missing inputs and warnings. Known incompatible units, currencies and paired periods are rejected. Some capital/earnings checks reject known quarter/YTD or opening-date conflicts. See [`EvidenceTools.calculate_financial` and `_financial_periods`](../betaforge/tools.py), [`financials.evaluate`](../betaforge/financials.py), and [catalogue: Common conventions](calculations.md#common-conventions).
 
@@ -101,9 +101,9 @@ Each case has an annual cash-flow IRR at the dated price. Compare the three retu
 
 **Code-enforced:** require six sections, labelled paragraphs with resolvable references, and bear, base and bull cases with compatible dates. The tool copies scenario targets and present values from saved `valuation_case` outputs. New reports explain omitted probabilities or supply three saved weights summing to one, each with a rationale and factual source reference. Structured completion requires complete mandatory page delivery and an accepted submission. See [`validate_report`](../betaforge/analysis_report.py), [`EvidenceTools.submit_analysis`](../betaforge/tools.py) and [`_run_with_tools`](../betaforge/codex_runner.py).
 
-**Agent judgment:** save the causal investment case and its uncertainty, including scenario and probability rationales, disappointment checks, disconfirmers and management’s important promises versus outcomes. See [policy: Output and calculation discipline](analysis-policy.md#output-and-calculation-discipline).
+**Agent judgment:** save the causal investment case and its uncertainty, including scenario and probability rationales, disappointment checks and disconfirmers. The management section must state the bounded results of the [commitment/outcome and insider-evidence checks](skill-drafts/betaforge-company-analysis/references/business-evidence.md#check-management-delivery-and-insider-evidence), their coverage gaps and consequence for thesis confidence. A current target/actual comparison or ownership stake alone does not complete these checks. See [policy: Output and calculation discipline](analysis-policy.md#output-and-calculation-discipline).
 
-**Limit:** acceptance is structural and identity validation. It is not an economic verdict. `management_comparisons` may be empty; required rationale text is not checked for analytical quality. Three valid scenario weights do not establish a complete outcome distribution. See the list/text checks and `syntax_and_identity_valid` status in [`validate_report`](../betaforge/analysis_report.py).
+**Limit:** acceptance is structural and identity validation. It is not an economic verdict. `management_comparisons` may be empty; code does not enforce the semantic completeness of the two management evidence checks or rationale quality. Guide inclusion and page delivery do not prove comprehension. Three valid scenario weights do not establish a complete outcome distribution. The independent reviewer checks the required evidence chains. See the list/text checks and `syntax_and_identity_valid` status in [`validate_report`](../betaforge/analysis_report.py).
 
 ## 5. Challenge independently and revise once
 

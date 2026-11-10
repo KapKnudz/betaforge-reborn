@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from copy import deepcopy
 from decimal import Decimal
 
 from betaforge.storage import EvidenceStore
@@ -137,6 +138,76 @@ class ToolsTests(unittest.TestCase):
         policy.write_text('Changed policy')
         with self.assertRaisesRegex(ValueError,'contract hash'):
             EvidenceTools(self.packet,self.root/'tampered-policy-run')
+
+    def guide_fixture(self):
+        guide = self.root / 'guides/review.md'
+        guide.parent.mkdir()
+        guide.write_text('Frozen reviewer guidance')
+        return {'role': 'reviewer', 'source_path': 'docs/review/SKILL.md',
+                'path': 'guides/review.md', 'sha256': hashlib.sha256(guide.read_bytes()).hexdigest()}
+
+    def test_analysis_guides_reject_invalid_metadata_and_escaping_paths(self):
+        entry = self.guide_fixture()
+        packet = json.loads(self.packet.read_text())
+        invalid = [None, {}, [], [None], [dict(entry, role='unknown')], [dict(entry, sha256='bad')],
+                   [dict(entry, sha256='0' * 64)], [entry, entry], [dict(entry, extra='untracked')]]
+        for key in ('path', 'source_path'):
+            for value in ('/absolute.md', '../outside.md', 'guides/../review.md', 'guides\\review.md',
+                          './guides/review.md', 'guides//review.md', '', '.', None):
+                invalid.append([dict(entry, **{key: value})])
+        outside = self.root.parent / (self.root.name + '-outside.md')
+        outside.write_text('Outside the packet')
+        self.addCleanup(outside.unlink)
+        (self.root / 'guides/link.md').symlink_to(outside)
+        invalid.append([dict(entry, path='guides/link.md', sha256=hashlib.sha256(outside.read_bytes()).hexdigest())])
+        invalid.append([entry, dict(entry, source_path='docs/other.md')])
+        copy = self.root / 'guides/copy.md'
+        copy.write_text('Frozen reviewer guidance')
+        invalid.append([entry, dict(entry, path='guides/copy.md')])
+        for i, entries in enumerate(invalid):
+            with self.subTest(entries=entries):
+                self.packet.write_text(json.dumps(dict(packet, analysis_guides=entries)))
+                run = self.root / f'invalid-guides-{i}'
+                with self.assertRaisesRegex(ValueError, '(?i)analysis guide'):
+                    EvidenceTools(self.packet, run)
+                self.assertFalse((run / 'tool-state.json').exists())
+
+    def test_analysis_guide_content_and_metadata_are_bound_on_resume(self):
+        entry = self.guide_fixture()
+        packet = json.loads(self.packet.read_text())
+        packet['analysis_guides'] = [entry]
+        self.packet.write_text(json.dumps(packet))
+        tools = EvidenceTools(self.packet, self.root / 'guide-run')
+        tools.store.close()
+        state = (self.root / 'guide-run/tool-state.json').read_bytes()
+        for key, value in (('role', 'analyst'), ('source_path', 'docs/other/SKILL.md')):
+            changed = deepcopy(packet)
+            changed['analysis_guides'][0][key] = value
+            self.packet.write_text(json.dumps(changed))
+            with self.subTest(key=key), self.assertRaisesRegex(ValueError, 'Resume evidence identity changed'):
+                EvidenceTools(self.packet, self.root / 'guide-run', resume=True)
+            self.assertEqual((self.root / 'guide-run/tool-state.json').read_bytes(), state)
+        self.packet.write_text(json.dumps(packet))
+        (self.root / entry['path']).write_text('Changed frozen reviewer guidance')
+        with self.assertRaisesRegex(ValueError, 'Analysis guide hash mismatch'):
+            EvidenceTools(self.packet, self.root / 'guide-run', resume=True)
+        self.assertEqual((self.root / 'guide-run/tool-state.json').read_bytes(), state)
+
+    def test_legacy_packets_do_not_acquire_guides_on_resume(self):
+        self.assertEqual(self.tools.analysis_guide_texts, {})
+        self.assertNotIn('analysis_guides', self.tools.identity)
+        self.assertNotIn('analysis_guides', self.tools.catalogue())
+        before = (self.root / 'run/tool-state.json').read_bytes()
+        # A live source label is never opened by loading a legacy packet.
+        (self.root / 'docs').mkdir()
+        (self.root / 'docs/SKILL.md').write_text('New live guide')
+        resumed = EvidenceTools(self.packet, self.root / 'run', resume=True)
+        try:
+            self.assertEqual(resumed.analysis_guide_texts, {})
+            self.assertNotIn('analysis_guides', resumed.identity)
+            self.assertEqual((self.root / 'run/tool-state.json').read_bytes(), before)
+        finally:
+            resumed.store.close()
 
     def test_market_context_is_verified_before_use_or_resume(self):
         self.tools.store.close()
