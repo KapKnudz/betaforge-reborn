@@ -92,6 +92,7 @@ for line in sys.stdin:
             self.assertEqual((turn['model'],turn['effort']),('gpt-6.1-sol','xhigh'))
             saved=json.loads((root/'run/run.json').read_text())
             self.assertEqual((saved['model'],saved['reasoning_effort']),('gpt-6.1-sol','xhigh'))
+            self.assertIn('management_history.py', saved['implementation_sha256'])
 
     def test_smoke_uses_supplied_report_without_company_or_period_assumptions(self):
         prompt=integration_smoke_prompt(['other-issuer-annual-2030'])

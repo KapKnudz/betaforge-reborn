@@ -39,6 +39,8 @@ The separate `analysis_guides` list records each guide's `role` (`analyst` or `r
 
 `EvidenceTools` verifies supplied guide roles, paths, duplicate identities and content hashes, records their metadata in saved run identity, and exposes the metadata through `get_catalogue`. `source_path` is an identity label; loading or resuming never reads a live guide from that location. These checks establish delivered document identity, not semantic completeness or adherence. Packets without `analysis_guides` retain their existing behavior; loading or resuming never adds guides or rewrites a saved prompt.
 
+Optional `--management-history PATH` accepts the [versioned management/ownership history](management-history.md). The packet freezes its full JSON, company/cutoff/window identity and hash in `management_history`, and delivers the full evidence index in the analyst prompt. Report quotes and dataset pointers are validated against packet evidence; every captured row in the declared transaction datasets must remain unchanged. These are identity and preservation checks; names, meanings and coverage claims still require independent challenge. The financial report and formula schemas remain unchanged.
+
 Structured saved exports retain this optional guide metadata in the canonical report identity. Export verifies the original frozen files; standalone saved-view loading checks the retained metadata's shape, roles, paths and hashes without requiring the original packet or reading live guide files. Older exports without guide metadata remain supported.
 
 ## Tool contract
@@ -62,6 +64,8 @@ Create a file named `CANCEL` inside the run directory to request cancellation, o
 Remove the `CANCEL` marker before deliberate continuation, then rerun the same command with `--resume`. Resume validates packet/database/report identity and the frozen prompt hash, restores input/calculation/coverage state and resumes the saved Codex thread. It does not silently restart the analysis with new evidence. Unstructured invocations receive a fresh deadline; structured continuations share the cumulative 7,200-second limit described below.
 
 New packets also freeze and verify the adopted policy/catalogue and optional industry/market contexts with source-file hashes. Resume now requires identical complete implementation hashes for tools, formulas, storage and runner. An old or changed implementation needs a separate run; the controller cannot silently mix financial definitions in one run.
+
+The management-history validator is also included in implementation hashes. A supplied history is checked and bound to saved run identity on load/resume. Changing its bytes, scope or metadata requires a separately identified packet/run; omitting it never loads live or default history.
 
 When present, frozen guide metadata and hashes are also part of the checked evidence identity. Changes to a guide body, role, source label or packet path require a separately identified packet/run. Editing the repository's current guide documents does not change a frozen packet.
 
@@ -100,6 +104,8 @@ finally:
 ```
 
 Include `guide_handoff` in the reviewer's actual context or attach those verified frozen files and require their reading. Record the identities used with the manual review receipt. An empty list means the historical packet did not freeze these guides; preserve that limitation rather than silently substituting current documents. There is no automatic reviewer dispatch or guide update on resume.
+
+When a history was supplied, also include its verified `tools.management_history` body and `tools.identity['management_history']` metadata in that handoff, before closing the verified tools instance. The reviewer challenges its source scope, reported-owner/real-identity distinction, role/ownership dates, responsibility and every captured transaction. A historical packet without a history retains that limitation. Standalone saved-view loading validates retained history identity without depending on the original files.
 
 ## Protocol and verification scope
 

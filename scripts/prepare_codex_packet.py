@@ -12,6 +12,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from betaforge.storage import EvidenceStore
+from betaforge import management_history as history
 
 ANALYSIS_GUIDE_SOURCES = (
     ("analyst", "betaforge-company-analysis/SKILL.md"),
@@ -188,12 +189,18 @@ def copy_market_benchmark(context_path, destination, analysis_date=None):
 
 def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analysis_date,
             instrument_id, prompt_path, extra_facts=(), resolution_path=None, benchmark_context=None,
-            market_benchmark_context=None, required_reports=None):
+            market_benchmark_context=None, required_reports=None, management_history=None):
     if type(instrument_id) is not int or instrument_id <= 0:
         raise ValueError("Instrument ID must be a positive integer")
     if not isinstance(analysis_date, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", analysis_date):
         raise ValueError("Analysis date must be explicit YYYY-MM-DD")
     date.fromisoformat(analysis_date)
+    history_body = Path(management_history).read_bytes() if management_history is not None else None
+    history_value = history.loads(history_body) if history_body is not None else None
+    if history_value is not None:
+        history.validate(history_value, instrument_id, analysis_date)
+    elif history_body is not None:
+        raise ValueError('Management history must be a versioned JSON object')
     reports_base = Path(reports_base).resolve()
     primary_facts = Path(facts_path).resolve() if facts_path is not None else None
     additional_facts = [Path(path).resolve() for path in extra_facts]
@@ -263,7 +270,13 @@ def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analys
             shutil.copyfile(source, target)
             extra_metadata.append({"path": target.relative_to(temporary).as_posix(), "sha256": digest(target)})
         guides, guide_text = copy_analysis_guides(temporary)
-        (temporary / "prompt.md").write_text(prompt_path.read_text(encoding="utf-8") + guide_text,
+        history_metadata = None
+        history_text = ''
+        if history_value is not None:
+            (temporary / 'management-history.json').write_bytes(history_body)
+            history_metadata = history.metadata(history_value, history_body)
+            history_text = history.prompt_text(history_value, history_metadata)
+        (temporary / "prompt.md").write_text(prompt_path.read_text(encoding="utf-8") + guide_text + history_text,
                                              encoding="utf-8", newline="\n")
         contract, contract_text = copy_contract(temporary)
         benchmark_metadata, benchmark_text = (copy_benchmarks(benchmark_context, temporary) if benchmark_context else (None, ""))
@@ -274,6 +287,9 @@ def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analys
             for path in fact_paths:
                 print(json.dumps(store.add_report_facts(path)), flush=True)
             store.validate_report_links({r["report_id"]: r for r in index["reports"]}, instrument_id=instrument_id)
+            if history_value is not None:
+                report_pages = {rid: json.loads((copied / 'prepared' / (rid + '.json')).read_text()) for rid in report_ids}
+                history.validate(history_value, instrument_id, analysis_date, reports=report_pages, store=store)
             context = (initial_context(store, resolution, instrument_id, analysis_date) +
                        "\nREPORT AVAILABILITY LIMITATION\nMissing or null report publication dates remain unknown. "
                        "Retrieval dates do not establish historical availability; this packet is not an automatic backtest.\n" +
@@ -290,6 +306,8 @@ def prepare(snapshots, destination, db_path, facts_path, reports_base, *, analys
             packet["benchmark_context"] = benchmark_metadata
         if market_metadata:
             packet['market_benchmark_context'] = market_metadata
+        if history_metadata is not None:
+            packet['management_history'] = history_metadata
         (temporary / "packet.json").write_text(json.dumps(packet, indent=2, ensure_ascii=False))
         temporary.rename(destination)
     except BaseException:
@@ -314,13 +332,14 @@ def main():
     parser.add_argument("--mapping-resolution", type=Path)
     parser.add_argument("--benchmark-context", type=Path)
     parser.add_argument('--market-benchmark-context',type=Path)
+    parser.add_argument('--management-history', type=Path, help='Optional sourced management/ownership history JSON; frozen and delivered in full')
     args = parser.parse_args()
     print("Packet:", prepare(args.snapshots, args.output, args.db, args.facts, args.reports,
                              instrument_id=args.instrument_id, analysis_date=args.analysis_date,
                              extra_facts=args.extra_facts, prompt_path=args.prompt,
                              resolution_path=args.mapping_resolution, benchmark_context=args.benchmark_context,
                              market_benchmark_context=args.market_benchmark_context,
-                             required_reports=args.required_reports))
+                             required_reports=args.required_reports, management_history=args.management_history))
 
 
 if __name__ == "__main__":

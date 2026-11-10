@@ -20,6 +20,8 @@ Select the company, information cutoff, dated price, required reports and materi
 
 New packets also freeze the selected repository analyst guides into `prompt.md`, with role/path/hash metadata in `analysis_guides`, and preserve the reviewer guide for the explicit handoff below. Inspect that metadata and the actual prompt rather than assuming skill discovery loads the documents. Existing packets and resumes retain their original prompt and guidance; do not attach current guides silently. The [packet contract](codex-integration.md) owns the delivery details.
 
+For a requested five-year management/board and ownership history, prepare the [versioned evidence sidecar](management-history.md) from the frozen reports and captured datasets and supply `--management-history PATH`. Set the explicit requested window and preserve older context, every captured transaction version and unknown dates/identity matches. The new packet delivers the full index in its hashed prompt; it does not turn source associations or prior supplement judgments into issuer facts. A fresh analyst checks the sources and derives its own forecasts.
+
 Completion: the packet has explicit identities, source hashes, coverage requirements and a question that can be answered from the preserved evidence. Missing optional context remains identified.
 
 ## 2. Run one lead analyst
@@ -50,6 +52,8 @@ Completion: required pages are delivered and `submit_analysis` accepts the repor
 Dispatch a fresh Sol/xhigh reviewer with the same frozen evidence, policy, draft, saved inputs and calculations, and the manual business brief when used. The reviewer reads existing artifacts; it changes no files, starts no code, test, provider, model, browser or PDF-render runs, and grants no waivers. The coordinator saves its returned challenge as `draft-review.json` using `betaforge.tools.write_json`. If the draft is accepted, also save that exact review as `analysis-review.json` for display.
 
 For packets with `analysis_guides`, verify and deliver the frozen reviewer guide and the frozen analyst guides as part of that handoff, recording their paths/hashes. This remains a coordinator action, not automatic reviewer dispatch. The reviewer must check both management evidence chains and the stated confidence consequence, including any absence/coverage claim. Source identity and complete pagination do not establish economic meaning or management motives.
+
+For packets with `management_history`, also deliver the verified full sidecar and its company/cutoff/window/path/hash metadata. Challenge the distinction between reported source owners and corroborated people/entities, dated roles and ownership, responsibility links, scope omissions and every captured transaction row. Row/source/pointer and sidecar IDs can support readable provenance notes; they do not introduce new report or calculation reference types.
 
 Challenge the thesis. Cover business mechanics, management comparisons, financial definitions, earnings versus cash, capital allocation and dilution, operating forecasts, the multiple and equity bridge, return timing, any probability coverage and disconfirming evidence. Check how each material use of peer evidence affected the analysis. Cite file sections and saved references. For each finding, give a bounded verdict, reasoning and missing evidence. Distinguish a supported local claim from a broader unverified claim. Name any unresolved disagreement.
 

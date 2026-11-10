@@ -195,6 +195,9 @@ class ToolsTests(unittest.TestCase):
 
     def test_legacy_packets_do_not_acquire_guides_on_resume(self):
         self.assertEqual(self.tools.analysis_guide_texts, {})
+        self.assertIsNone(self.tools.management_history)
+        self.assertNotIn('management_history', self.tools.identity)
+        self.assertNotIn('management_history', self.tools.catalogue())
         self.assertNotIn('analysis_guides', self.tools.identity)
         self.assertNotIn('analysis_guides', self.tools.catalogue())
         before = (self.root / 'run/tool-state.json').read_bytes()
@@ -204,6 +207,7 @@ class ToolsTests(unittest.TestCase):
         resumed = EvidenceTools(self.packet, self.root / 'run', resume=True)
         try:
             self.assertEqual(resumed.analysis_guide_texts, {})
+            self.assertIsNone(resumed.management_history)
             self.assertNotIn('analysis_guides', resumed.identity)
             self.assertEqual((self.root / 'run/tool-state.json').read_bytes(), before)
         finally:

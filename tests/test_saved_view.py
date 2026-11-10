@@ -794,6 +794,7 @@ class StructuredSavedViewTests(unittest.TestCase):
     def test_exports_actual_completed_run_without_legacy_review_or_summary(self):
         view = self.build()
         self.assertNotIn("analysis_guides", view["analysis"]["identity"])
+        self.assertNotIn("management_history", view["analysis"]["identity"])
         self.assertFalse((self.run / "review-summary.json").exists())
         self.assertEqual(view["analysis"], json.loads((self.run / "analysis.json").read_text()))
         self.assertEqual(view["original_calculations"], list(self.tools.state["calculations"].values()))
@@ -812,14 +813,22 @@ class StructuredSavedViewTests(unittest.TestCase):
         from scripts.export_saved_analysis import main
         from test_analysis_report import AnalysisReportTests
         from betaforge.tools import EvidenceTools
+        from test_management_history import append_transactions, history_fixture
+        from betaforge.storage import EvidenceStore
 
         self.tools.store.close()
+        append_transactions(self.root / 'source')
+        with EvidenceStore(self.root / 'history-selection/evidence.sqlite3') as store:
+            store.ingest_snapshot(self.root / 'source')
+            value = history_fixture(store)
+        history_path = self.root / 'supplied-history.json'
+        history_path.write_text(json.dumps(value))
         prompt = self.root / "company-prompt.md"
         prompt.write_text("Analyze the supplied frozen issuer evidence.")
         self.packet = prepare(
             [self.root / "source", self.root / "price-capture"], self.root / "new-packet",
             self.root / "new-live/evidence.sqlite3", None, self.root / "reports",
-            analysis_date="2026-11-04", instrument_id=426, prompt_path=prompt,
+            analysis_date="2026-11-04", instrument_id=426, prompt_path=prompt, management_history=history_path,
         )
         self.run = self.root / "new-guide-run"
         self.tools = EvidenceTools(self.packet, self.run, structured=True)
@@ -831,6 +840,7 @@ class StructuredSavedViewTests(unittest.TestCase):
         self.assertEqual([entry["role"] for entry in guides], ["analyst"] * 5 + ["reviewer"])
         view = build_saved_view(None, self.run, self.packet.parent, "Sample", "SAMP", "sample-20261104", "Structured")
         self.assertEqual(view["analysis"]["identity"]["analysis_guides"], guides)
+        self.assertEqual(view['analysis']['identity']['management_history'], self.tools.identity['management_history'])
         output = self.root / "data/guides-view.json"
         with patch("scripts.export_saved_analysis.__file__", str(self.root / "scripts/export_saved_analysis.py")):
             self.assertEqual(main(["--run", str(self.run), "--packet", str(self.packet.parent), "--company", "Sample",
@@ -838,12 +848,46 @@ class StructuredSavedViewTests(unittest.TestCase):
                                    "--output", str(output)]), 0)
         self.assertEqual(load_saved_view(output), view)
         # Export still verifies frozen bodies; the standalone view retains metadata only.
-        (self.packet.parent / guides[0]["path"]).write_text("Changed frozen guide")
+        guide_path = self.packet.parent / guides[0]['path']
+        original_guide = guide_path.read_bytes()
+        guide_path.write_text("Changed frozen guide")
         with self.assertRaisesRegex(ValueError, "Analysis guide hash mismatch"):
             build_saved_view(None, self.run, self.packet.parent, "Sample", "SAMP", "sample-20261104", "Structured")
+        guide_path.write_bytes(original_guide)
+        (self.packet.parent / 'management-history.json').write_text('Changed frozen history')
+        with self.assertRaisesRegex(ValueError, 'Management history hash mismatch'):
+            build_saved_view(None, self.run, self.packet.parent, 'Sample', 'SAMP', 'sample-20261104', 'Structured')
         self.tools.store.close()
         shutil.rmtree(self.packet.parent)
         self.assertEqual(load_saved_view(output), view)
+
+    def test_standalone_view_validates_optional_management_history_identity(self):
+        view = self.build()
+        entry = {'schema_version': 1, 'instrument_id': 426, 'analysis_date': '2026-11-04',
+                 'window': {'start': '2021-11-04', 'end': '2026-11-04'},
+                 'path': 'management-history.json', 'sha256': 'a' * 64}
+        output = self.root / 'history-metadata-view.json'
+
+        def save(metadata):
+            changed = copy.deepcopy(view)
+            changed['analysis']['identity']['management_history'] = metadata
+            signature = hashlib.sha256(json.dumps(changed['analysis'], indent=2, ensure_ascii=False).encode()).hexdigest()
+            changed['provenance'].update(analysis_sha256=signature, summary_sha256=signature)
+            SavedViewTests.write(output, changed)
+            return changed
+
+        valid = save(entry)
+        self.assertEqual(load_saved_view(output), valid)
+        invalid = [None, [], {}, dict(entry, schema_version=True), dict(entry, instrument_id=427),
+                   dict(entry, analysis_date='2026-11-05'), dict(entry, path='../outside.json'),
+                   dict(entry, path='/absolute.json'), dict(entry, path='a\\b.json'), dict(entry, path='./history.json'),
+                   dict(entry, sha256='bad'), dict(entry, extra='unversioned'),
+                   dict(entry, window={'start': '2026-11-04', 'end': '2026-11-04'})]
+        for metadata in invalid:
+            with self.subTest(metadata=metadata):
+                save(metadata)
+                with self.assertRaisesRegex(ValueError, '(?i)management history'):
+                    load_saved_view(output)
 
     def test_standalone_view_validates_optional_guide_metadata(self):
         view = self.build()
